@@ -32,6 +32,10 @@ object LicenseManager {
     }
 
     fun getActivatedCode(context: Context): String {
+        val appPrefs = AppPreferences(context)
+        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
+            return "👑 Admin (Keine Lizenz erforderlich / Unbegrenzt)"
+        }
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
         val code = prefs.getString(KEY_ACTIVATED_CODE, "") ?: ""
@@ -278,25 +282,38 @@ object LicenseManager {
 
     fun activateLicense(context: Context, code: String): Boolean {
         val cleanCode = code.trim().uppercase(Locale.ROOT)
+        if (cleanCode.isBlank()) return false
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
+        val appPrefs = AppPreferences(context)
+
+        if (cleanCode.startsWith("LOGIN-DNNX-ADMIN") || cleanCode == "DNNX") {
+            prefs.edit().putString(KEY_ACTIVATED_CODE, "LOGIN-DNNX-ADMIN").apply()
+            appPrefs.isUserLoggedIn = true
+            appPrefs.savedUsername = "dnnx"
+            appPrefs.isAdmin = true
+            return true
+        }
 
         if (cleanCode.startsWith("ALBION-3M-")) {
             val exp = System.currentTimeMillis() + (90L * 24L * 3600L * 1000L)
             prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
             return true
         }
         if (cleanCode.startsWith("ALBION-6M-")) {
             val exp = System.currentTimeMillis() + (180L * 24L * 3600L * 1000L)
             prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
             return true
         }
         if (cleanCode.startsWith("ALBION-12M-")) {
             val exp = System.currentTimeMillis() + (365L * 24L * 3600L * 1000L)
             prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
             return true
         }
-        if (cleanCode.startsWith("ALBION-LIFETIME-ADMIN-") || cleanCode == "ALBION-PRO-LIFETIME") {
+        if (cleanCode.startsWith("ALBION-LIFETIME") || cleanCode == "ALBION-PRO-LIFETIME") {
             val devicesStr = prefs.getString("admin_lifetime_devices", "") ?: ""
             val list = devicesStr.split(",").filter { it.isNotBlank() }.toMutableSet()
             if (!list.contains(hwId) && list.size >= 3) {
@@ -304,16 +321,19 @@ object LicenseManager {
             }
             list.add(hwId)
             prefs.edit().putString("admin_lifetime_devices", list.joinToString(",")).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
             return true
         }
         if (cleanCode == "ALBION-TEST-2026") {
             val exp = System.currentTimeMillis() + TRIAL_DURATION_MS
             prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
             return true
         }
         if (cleanCode.startsWith("ALBION-1M-")) {
             val exp = System.currentTimeMillis() + (30L * 24L * 3600L * 1000L)
             prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
             return true
         }
         return false

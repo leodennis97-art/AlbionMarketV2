@@ -40,6 +40,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -74,6 +76,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.albionmarketv2.ui.theme.AlbionMarketV2Theme
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -209,7 +212,8 @@ class MainActivity : ComponentActivity() {
                     // Show Lockscreen Login when NOT logged in or license invalid
                     if (!isUserLoggedInState || !LicenseManager.isLicenseValid(context)) {
                         var usernameInput by remember { mutableStateOf(prefs.savedUsername) }
-                        var passwordInput by remember { mutableStateOf("") }
+                        var savePasswordLocally by remember { mutableStateOf(prefs.savedPassword.isNotBlank()) }
+                        var passwordInput by remember { mutableStateOf(if (savePasswordLocally) prefs.savedPassword else "") }
                         var captchaNum1 by remember { mutableIntStateOf((3..12).random()) }
                         var captchaNum2 by remember { mutableIntStateOf((2..9).random()) }
                         var captchaInput by remember { mutableStateOf("") }
@@ -391,6 +395,30 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.fillMaxWidth(),
                                         )
 
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { savePasswordLocally = !savePasswordLocally }
+                                        ) {
+                                            Checkbox(
+                                                checked = savePasswordLocally,
+                                                onCheckedChange = { savePasswordLocally = it },
+                                                colors = CheckboxDefaults.colors(
+                                                    checkedColor = Color(0xFF10B981),
+                                                    uncheckedColor = Color(0xFF94A3B8),
+                                                    checkmarkColor = Color.White
+                                                )
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = "💾 Passwort lokal auf diesem Gerät speichern",
+                                                fontSize = 12.sp,
+                                                color = Color(0xFFE2E8F0),
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
+
                                         OutlinedTextField(
                                             value = captchaInput,
                                             onValueChange = {
@@ -461,7 +489,14 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 val activated = LicenseManager.activateLicense(context, licenseKeyInput)
                                                 if (activated) {
-                                                    Toast.makeText(context, "🟢 Lizenz erfolgreich aktiviert!", Toast.LENGTH_SHORT).show()
+                                                    prefs.isUserLoggedIn = true
+                                                    if (licenseKeyInput.uppercase(Locale.ROOT).contains("DNNX")) {
+                                                        prefs.isAdmin = true
+                                                        prefs.savedUsername = "dnnx"
+                                                    }
+                                                    isUserLoggedInState = true
+                                                    isUnlockedForSession = true
+                                                    Toast.makeText(context, "🟢 Lizenzschlüssel verifiziert! Erfolgreich eingeloggt.", Toast.LENGTH_SHORT).show()
                                                     licenseKeyInput = ""
                                                 } else {
                                                     Toast.makeText(context, "❌ Ungültiger Lizenzschlüssel!", Toast.LENGTH_SHORT).show()
@@ -472,7 +507,7 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
                                             Text(
-                                                text = if (LicenseManager.isLicenseValid(context)) "✅ Lizenz aktiv & gültig" else "🔑 Lizenz aktivieren",
+                                                text = "🔑 Mit Lizenzschlüssel einloggen & freischalten",
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp,
                                                 color = Color.White,
@@ -509,7 +544,11 @@ class MainActivity : ComponentActivity() {
                                                     if (success) {
                                                         prefs.isUserLoggedIn = true
                                                         prefs.savedUsername = usernameInput.trim()
-                                                        prefs.savedPassword = passwordInput.trim()
+                                                        if (savePasswordLocally) {
+                                                            prefs.savedPassword = passwordInput.trim()
+                                                        } else {
+                                                            prefs.savedPassword = ""
+                                                        }
                                                         if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
                                                             prefs.isAdmin = true
                                                         }

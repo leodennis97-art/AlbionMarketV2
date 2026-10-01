@@ -192,7 +192,7 @@ object AdminControlManager {
         val now = Date()
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
-            val bannedUntil = obj.optString("bannedUntil", null)
+            val bannedUntil = obj.optString("bannedUntil", "")
             val isBanned = !bannedUntil.isNullOrBlank()
             list.add(
                 AdminDevice(
@@ -595,13 +595,13 @@ fun AdminUsersTab(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${usr.username} ${if (usr.isAdmin) "👑 (Admin)" else ""}",
+                                text = "${usr.username} ${if (usr.isAdmin) "👑 (Admin - Keine Lizenz erforderlich)" else ""}",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 12.sp,
                                 color = if (usr.isAdmin) Color(0xFFFFD700) else Color.White
                             )
                             Text("Passwort: ${usr.password}", fontSize = 10.sp, color = Color(0xFF38BDF8), fontFamily = FontFamily.Monospace)
-                            Text("Lizenz aktiv: ${if (usr.isLicensed) "Ja" else "Nein"}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                            Text(if (usr.isAdmin) "Lizenz: Unbegrenzt (Admin)" else "Lizenz aktiv: ${if (usr.isLicensed) "Ja" else "Nein"}", fontSize = 10.sp, color = if (usr.isAdmin) Color(0xFF10B981) else Color(0xFF94A3B8))
                         }
 
                         if (!usr.isAdmin) {
