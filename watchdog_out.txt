@@ -1,0 +1,3 @@
+[Echtzeit Watchdog] ⚡ Starte AlbionDataPro Localhost Server...
+[APK Auto-Sync] Neu erstellte app-debug.apk (14.44 MB) aus Build-Ordner nach downloads/ kopiert.
+[Localhost Server] 🟢 AlbionDataPro 24/7 Server läuft in Echtzeit auf Port 4000

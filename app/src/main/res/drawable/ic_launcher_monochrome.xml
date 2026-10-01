@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Dark Mode / Themed Monochromatic Shield Frame -->
+    <path
+        android:pathData="M54,12 L90,28 L90,62 C90,84 54,98 54,98 C54,98 18,84 18,62 L18,28 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5" />
+
+    <!-- Stylized Monochromatic "A" -->
+    <path
+        android:pathData="M34,68 L42,42 L50,68 M36,62 L48,62"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Stylized Monochromatic "D" -->
+    <path
+        android:pathData="M52,42 L60,42 C67,42 71,47 71,55 C71,63 67,68 60,68 L52,68 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Stylized Monochromatic "P" -->
+    <path
+        android:pathData="M74,68 L74,42 L82,42 C87,42 90,45 90,51 C90,57 87,60 82,60 L74,60"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Core Diamond Emblem -->
+    <path
+        android:pathData="M54,25 L58,32 L54,39 L50,32 Z"
+        android:fillColor="#FFFFFF" />
+</vector>
