@@ -1,5 +1,7 @@
 package com.example.albionmarketv2
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -443,7 +445,14 @@ fun AdminLicensesTab(
                             if (newKey != null) {
                                 generatedKeyResult = newKey
                                 customerNoteInput = ""
-                                Toast.makeText(context, "🟢 Lizenz erstellt!", Toast.LENGTH_SHORT).show()
+
+                                val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                                if (clipboard != null) {
+                                    val clip = ClipData.newPlainText("Albion License Key", newKey)
+                                    clipboard.setPrimaryClip(clip)
+                                }
+
+                                Toast.makeText(context, "🟢 Lizenz erstellt & automatisch in Zwischenablage kopiert!", Toast.LENGTH_LONG).show()
                                 onRefresh()
                             } else {
                                 Toast.makeText(context, "❌ Fehler beim Erstellen", Toast.LENGTH_SHORT).show()
@@ -484,7 +493,16 @@ fun AdminLicensesTab(
                 Card(
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+                            if (clipboard != null) {
+                                val clip = ClipData.newPlainText("Albion License Key", lic.key)
+                                clipboard.setPrimaryClip(clip)
+                                Toast.makeText(context, "📋 Lizenzschlüssel ${lic.key} kopiert!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
                 ) {
                     Row(
                         modifier = Modifier.padding(8.dp).fillMaxWidth(),

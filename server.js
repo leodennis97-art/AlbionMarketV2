@@ -140,6 +140,19 @@ fetchAlbionMarketData();
 
 app.use(express.json());
 
+// CORS & Persistent Keep-Alive Headers for Render Cloud <-> Device Connections
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, X-Albion-Signature');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Keep-Alive', 'timeout=600, max=1000');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
+    next();
+});
+
 // HMAC-SHA256 Response Signing Middleware
 app.use((req, res, next) => {
     const originalJson = res.json;
