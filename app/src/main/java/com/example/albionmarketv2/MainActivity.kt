@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import androidx.core.net.toUri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.ComponentActivity
@@ -90,6 +91,23 @@ class MainActivity : ComponentActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
+
+        // Automatic All Files Access / External Storage Permission Handling
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                        data = "package:$packageName".toUri()
+                    }
+                    startActivity(intent)
+                } catch (_: Exception) {
+                    try {
+                        val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                        startActivity(intent)
+                    } catch (_: Exception) {}
+                }
             }
         }
 

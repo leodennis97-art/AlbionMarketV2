@@ -4859,25 +4859,13 @@ fun AppSettingsDialog(
     onLogout: () -> Unit
 ) {
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
     var sysNotifs by remember { mutableStateOf(uiState.systemNotificationsEnabled) }
     var goldNotifs by remember { mutableStateOf(uiState.goldNotificationsEnabled) }
-    var selectedLang by remember { mutableStateOf(uiState.appLanguage) }
-    var isServerConnected by remember { mutableStateOf(true) }
+    val selectedLang by remember { mutableStateOf(uiState.appLanguage) }
 
     val prefs = remember { AppPreferences(context) }
     var botNameInput by remember { mutableStateOf(prefs.aiBotName) }
-    var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
     var showAdminControlDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(Unit) {
-        coroutineScope.launch(Dispatchers.IO) {
-            val stats = ServerSyncManager.pingServer(context)
-            withContext(Dispatchers.Main) {
-                isServerConnected = (stats != null)
-            }
-        }
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -4887,31 +4875,6 @@ fun AppSettingsDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier.verticalScroll(rememberScrollState())
             ) {
-                // Live Tunnel Connection Status Card
-                Card(
-                    shape = RoundedCornerShape(10.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (isServerConnected) Color(0xFF065F46) else Color(0xFF7F1D1D)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = if (isServerConnected) Color(0xFF10B981) else Color(0xFFEF4444),
-                            modifier = Modifier.size(10.dp)
-                        ) {}
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = if (isServerConnected) "🟢 Verbunden mit ngrok-Tunnel (Online)" else "🔴 Getrennt – Versuche automatisch zu verbinden...",
-                            color = Color.White,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
                 // Rainbow Animated Banner
                 RainbowMadeByDnnxText()
 
@@ -4967,97 +4930,6 @@ fun AppSettingsDialog(
 
                 HorizontalDivider()
 
-                // App Version Card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text("📱 App-Version", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                            Text("v1.3.8", fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                Toast.makeText(context, "Prüfe auf Updates...", Toast.LENGTH_SHORT).show()
-                                coroutineScope.launch {
-                                    try {
-                                        ServerSyncManager.pingServer(context)
-                                        Toast.makeText(context, "Du verwendest bereits die neueste Version v1.3.8 (Server verbunden)!", Toast.LENGTH_LONG).show()
-                                    } catch (_: Exception) {
-                                        Toast.makeText(context, "Du verwendest v1.3.8 (Standalone-Modus aktiv)", Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("🔄 Nach Updates suchen (v1.3.8)", fontSize = 11.sp)
-                        }
-
-                        Button(
-                            onClick = {
-                                Toast.makeText(context, "Verbinde mit Localhost & übernehme Änderungen...", Toast.LENGTH_SHORT).show()
-                                coroutineScope.launch {
-                                    try {
-                                        val stats = ServerSyncManager.pingServer(context)
-                                        val updatedMarket = ServerSyncManager.testAndConnectToServer(context)
-                                        val installedUpdate = OtaUpdateManager.downloadAndInstallUpdate(context)
-
-                                        if (installedUpdate) {
-                                            Toast.makeText(context, "🟢 Patch/Update von Localhost heruntergeladen & gestartet!", Toast.LENGTH_LONG).show()
-                                        } else if (stats != null || updatedMarket) {
-                                            Toast.makeText(context, "⚡ Änderungen vom Localhost-Server erfolgreich übernommen!", Toast.LENGTH_LONG).show()
-                                        } else {
-                                            Toast.makeText(context, "⚡ Einstellungen & Lizensdauer lokal aktualisiert!", Toast.LENGTH_SHORT).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Fehler beim Übernehmen der Änderungen: ${e.message}", Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("⚡ Änderungen übernehmen (Hot-Reload / Localhost)", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
-                            }
-                        }
-                    }
-                }
-
-                // Welcome / Updates & Remaining License Duration Card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    border = BorderStroke(1.dp, Color(0xFF10B981)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("🚀 Neueste Updates & Lizenz-Status", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color(0xFF10B981))
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = LicenseManager.getExpirationDateString(context),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (LicenseManager.isLicenseValid(context)) Color(0xFF10B981) else MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "• v1.3.4: Live 24/7 Server-Sync, Anti-Cheat Schutz, Echtzeit-Uhrzeit & Gold-Bot Signale.",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
                 // Zugangsdaten & Konto Card
                 Card(
                     shape = RoundedCornerShape(12.dp),
@@ -5083,45 +4955,7 @@ fun AppSettingsDialog(
                     }
                 }
 
-                // Server Connection Status & Toggle Card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    border = BorderStroke(1.dp, if (isServerConnected) Color(0xFF66BB6A) else Color(0xFFFF5252)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column {
-                                Text("🌐 Server-Verbindung", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = if (isServerConnected) "Server verbunden: Ja (24/7 Aktiv)" else "Server verbunden: Nein",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isServerConnected) Color(0xFF66BB6A) else Color(0xFFFF5252)
-                                )
-                            }
-                            Switch(
-                                checked = isServerConnected,
-                                onCheckedChange = { connected ->
-                                    isServerConnected = connected
-                                    if (connected) {
-                                        Toast.makeText(context, "Mit Server verbunden!", Toast.LENGTH_SHORT).show()
-                                    } else {
-                                        Toast.makeText(context, "Verbindung zum Server getrennt.", Toast.LENGTH_SHORT).show()
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // KI Bot Name Card
+                // KI Bot Name Card (Real-Time Reactive)
                 Card(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
@@ -5144,105 +4978,9 @@ fun AppSettingsDialog(
                     }
                 }
 
-                // License Status Card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("🔑 Lizenz- & Abo-Status", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = LicenseManager.getExpirationDateString(context),
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (LicenseManager.isLicenseValid(context)) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Hardware-ID: ${LicenseManager.getHardwareId(context)}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, fontFamily = FontFamily.Monospace)
-                    }
-                }
-
-                // All Files Access Permission Card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("📁 Speicher-Persistenz (nach Deinstallation)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Erlaube den Zugriff auf alle Dateien, damit Preishistorie & Aufträge im Ordner 'Documents/AlbionDataPro' gespeichert bleiben!",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                                    try {
-                                        val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                                            data = "package:${context.packageName}".toUri()
-                                        }
-                                        context.startActivity(intent)
-                                    } catch (_: Exception) {
-                                        val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                                        context.startActivity(intent)
-                                    }
-                                } else {
-                                    Toast.makeText(context, "Berechtigung bereits aktiv", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("📂 'Alle Dateien verwalten' Berechtigung anfordern", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
-                // Battery Optimization Card
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    border = BorderStroke(1.dp, Color(0xFF10B981)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Text("🔋 Akkusparen / Hintergrund-Ausführung 24/7", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Erlaube unbeschränkte Akkunutzung im Hintergrund, damit der 24/7 Server-Sync und Benachrichtigungen nicht gestoppt werden!",
-                            fontSize = 11.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = {
-                                try {
-                                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                                        data = "package:${context.packageName}".toUri()
-                                    }
-                                    context.startActivity(intent)
-                                } catch (_: Exception) {
-                                    val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
-                                    context.startActivity(intent)
-                                }
-                            },
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("⚡ Unbeschränkte Hintergrund-Akkunutzung zulassen", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-
                 HorizontalDivider()
 
-                // System Notifications
+                // System Notifications (Real-Time Reactive)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -5253,13 +4991,16 @@ fun AppSettingsDialog(
                     }
                     Switch(
                         checked = sysNotifs,
-                        onCheckedChange = { sysNotifs = it }
+                        onCheckedChange = {
+                            sysNotifs = it
+                            viewModel.onToggleSystemNotifications(it)
+                        }
                     )
                 }
 
                 HorizontalDivider()
 
-                // Gold Portfolio Notifications
+                // Gold Portfolio Notifications (Real-Time Reactive)
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
@@ -5270,7 +5011,10 @@ fun AppSettingsDialog(
                     }
                     Switch(
                         checked = goldNotifs,
-                        onCheckedChange = { goldNotifs = it }
+                        onCheckedChange = {
+                            goldNotifs = it
+                            viewModel.onToggleGoldNotifications(it)
+                        }
                     )
                 }
 
@@ -5298,20 +5042,7 @@ fun AppSettingsDialog(
             }
         },
         confirmButton = {
-            Button(onClick = {
-                viewModel.onLanguageChanged(selectedLang)
-                viewModel.onToggleSystemNotifications(sysNotifs)
-                viewModel.onToggleGoldNotifications(goldNotifs)
-                prefs.aiBotName = botNameInput
-                prefs.bubbleScale = bubbleScale
-                viewModel.onDismissSettings()
-                Toast.makeText(context, "Einstellungen gespeichert!", Toast.LENGTH_SHORT).show()
-            }) {
-                Text(LanguageManager.getString("save", selectedLang))
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
+            Button(onClick = onDismiss) {
                 Text(LanguageManager.getString("close", selectedLang))
             }
         }
