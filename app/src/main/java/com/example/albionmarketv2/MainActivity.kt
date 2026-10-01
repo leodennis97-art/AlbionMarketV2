@@ -465,7 +465,8 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
 
-                                                if (!LicenseManager.isLicenseValid(context)) {
+                                                val isInputAdmin = usernameInput.trim().equals("dnnx", ignoreCase = true)
+                                                if (!isInputAdmin && !LicenseManager.isLicenseValid(context)) {
                                                     Toast.makeText(context, "❌ Keine gültige Lizenz vorhanden! Bitte zuerst aktivieren.", Toast.LENGTH_LONG).show()
                                                     return@Button
                                                 }
@@ -483,6 +484,9 @@ class MainActivity : ComponentActivity() {
                                                         prefs.isUserLoggedIn = true
                                                         prefs.savedUsername = usernameInput.trim()
                                                         prefs.savedPassword = passwordInput.trim()
+                                                        if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                                            prefs.isAdmin = true
+                                                        }
                                                         isUserLoggedInState = true
                                                         isUnlockedForSession = true
                                                         Toast.makeText(context, "🟢 Verifizierung erfolgreich! Willkommen.", Toast.LENGTH_SHORT).show()
@@ -528,7 +532,17 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     } else {
-                        AlbionResourceScreen()
+                        AlbionResourceScreen(
+                            onLogout = {
+                                prefs.isUserLoggedIn = false
+                                isUserLoggedInState = false
+                                isUnlockedForSession = false
+                                try {
+                                    FloatingBubbleService.stopService(this@MainActivity)
+                                } catch (_: Exception) {}
+                                Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
+                            }
+                        )
 
                         if (ServerSyncManager.isOtaUpdateAvailable) {
                             AlertDialog(

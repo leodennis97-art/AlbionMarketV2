@@ -73,6 +73,7 @@ import java.util.Date
 
 data class AdminUser(
     val username: String,
+    val password: String = "••••••••",
     val isAdmin: Boolean,
     val isLicensed: Boolean,
     val licenseExpiresAt: String
@@ -155,6 +156,7 @@ object AdminControlManager {
             list.add(
                 AdminUser(
                     username = obj.optString("username", "Unbekannt"),
+                    password = obj.optString("password", "••••••••"),
                     isAdmin = obj.optBoolean("isAdmin", false),
                     isLicensed = obj.optBoolean("isLicensed", true),
                     licenseExpiresAt = obj.optString("licenseExpiresAt", "")
@@ -575,10 +577,12 @@ fun AdminUsersTab(
             }
         }
 
-        Text("👥 Alle Benutzer (${users.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+        val sortedUsers = remember(users) { users.sortedBy { it.username.lowercase() } }
+
+        Text("👥 Alle Benutzer (${sortedUsers.size}) - Alphabetisch sortiert", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
-            items(users) { usr ->
+            items(sortedUsers) { usr ->
                 Card(
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -596,6 +600,7 @@ fun AdminUsersTab(
                                 fontSize = 12.sp,
                                 color = if (usr.isAdmin) Color(0xFFFFD700) else Color.White
                             )
+                            Text("Passwort: ${usr.password}", fontSize = 10.sp, color = Color(0xFF38BDF8), fontFamily = FontFamily.Monospace)
                             Text("Lizenz aktiv: ${if (usr.isLicensed) "Ja" else "Nein"}", fontSize = 10.sp, color = Color(0xFF94A3B8))
                         }
 
@@ -631,12 +636,13 @@ fun AdminDevicesTab(
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    val sortedDevices = remember(devices) { devices.sortedWith(compareBy({ it.username.lowercase() }, { it.deviceName.lowercase() })) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-        Text("📱 Registrierte Geräte (${devices.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+        Text("📱 Registrierte Geräte (${sortedDevices.size}) - nach Benutzer & Gerät sortiert", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
 
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
-            items(devices) { dev ->
+            items(sortedDevices) { dev ->
                 Card(
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = if (dev.isBanned) Color(0xFF7F1D1D) else Color(0xFF0F172A)),

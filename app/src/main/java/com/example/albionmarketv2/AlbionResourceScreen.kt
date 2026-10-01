@@ -1,6 +1,7 @@
 package com.example.albionmarketv2
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -52,6 +53,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
@@ -214,6 +216,7 @@ fun RainbowAlbionDataProTitle() {
 @Composable
 fun AlbionResourceScreen(
     viewModel: AlbionResourceViewModel = SharedViewModelProvider.get(LocalContext.current.applicationContext as Application),
+    onLogout: (() -> Unit)? = null
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
@@ -390,7 +393,17 @@ fun AlbionResourceScreen(
             AppSettingsDialog(
                 viewModel = viewModel,
                 uiState = uiState,
-                onDismiss = { viewModel.onDismissSettings() }
+                onDismiss = { viewModel.onDismissSettings() },
+                onLogout = {
+                    viewModel.onDismissSettings()
+                    if (onLogout != null) {
+                        onLogout()
+                    } else {
+                        prefs.isUserLoggedIn = false
+                        try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
+                        (context as? Activity)?.recreate()
+                    }
+                }
             )
         }
 
@@ -4842,7 +4855,8 @@ fun RainbowMadeByDnnxText() {
 fun AppSettingsDialog(
     viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onLogout: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
@@ -5258,6 +5272,28 @@ fun AppSettingsDialog(
                         checked = goldNotifs,
                         onCheckedChange = { goldNotifs = it }
                     )
+                }
+
+                HorizontalDivider(color = Color(0xFF334155))
+
+                // Logout Button
+                Button(
+                    onClick = {
+                        onLogout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("🔒 Abmelden / Logout", fontWeight = FontWeight.Bold, color = Color.White)
+                    }
                 }
             }
         },

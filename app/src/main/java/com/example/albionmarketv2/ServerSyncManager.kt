@@ -320,9 +320,31 @@ object ServerSyncManager {
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
         val appVersion = "1.3.8"
 
+        val cleanUser = username.trim()
+        val cleanPass = pass.trim()
+
+        // Direct local & admin bypass for dnnx (requires NO license)
+        if (cleanUser.equals("dnnx", ignoreCase = true) && (cleanPass == "Dean3153..." || cleanPass.startsWith("Dean3153"))) {
+            val appPrefs = AppPreferences(context)
+            appPrefs.isUserLoggedIn = true
+            appPrefs.savedUsername = cleanUser
+            appPrefs.savedPassword = cleanPass
+            appPrefs.isAdmin = true
+
+            val prefs = context.getSharedPreferences("albion_hardware_license_prefs", Context.MODE_PRIVATE)
+            prefs.edit {
+                putBoolean("is_user_logged_in", true)
+                putString("user_email", cleanUser)
+                putString("activated_license_code", "LOGIN-DNNX-ADMIN")
+            }
+            LicenseManager.loginWithCredentials(context, cleanUser, cleanPass)
+            isServerConnected = true
+            return@withContext true
+        }
+
         val payload = JSONObject().apply {
-            put("username", username.trim())
-            put("password", pass.trim())
+            put("username", cleanUser)
+            put("password", cleanPass)
             put("hwId", hwId)
             put("deviceName", deviceName)
             put("appVersion", appVersion)
@@ -356,20 +378,25 @@ object ServerSyncManager {
                             val response = stream.bufferedReader().use { it.readText() }
                             val jsonObj = JSONObject(response)
                             if (jsonObj.optBoolean("authenticated", false)) {
-                                val isLicenseActive = jsonObj.optBoolean("isLicenseActive", true)
-                                val licenseExpiresAt = jsonObj.optString("licenseExpiresAt", "")
+                                val isDnnxAdmin = username.trim().equals("dnnx", ignoreCase = true)
+                                val isAdmin = jsonObj.optBoolean("isAdmin", false) || isDnnxAdmin
+                                val isLicenseActive = jsonObj.optBoolean("isLicenseActive", true) || isAdmin
+                                val licenseExpiresAt = if (isAdmin) "2099-12-31T23:59:59.000Z" else jsonObj.optString("licenseExpiresAt", "")
 
                                 val prefs = context.getSharedPreferences("albion_hardware_license_prefs", Context.MODE_PRIVATE)
                                 prefs.edit {
                                     putBoolean("is_user_logged_in", true)
                                     putString("user_email", username.trim())
+                                    if (isAdmin) {
+                                        putString("activated_license_code", "LOGIN-DNNX-ADMIN")
+                                    }
                                 }
 
                                 val appPrefs = AppPreferences(context)
                                 appPrefs.isUserLoggedIn = true
                                 appPrefs.savedUsername = username.trim()
                                 appPrefs.savedPassword = pass.trim()
-                                appPrefs.isAdmin = jsonObj.optBoolean("isAdmin", false) || username.trim().equals("dnnx", ignoreCase = true)
+                                appPrefs.isAdmin = isAdmin
 
                                 LicenseManager.updateLicenseFromServer(
                                     context = context,
@@ -380,7 +407,7 @@ object ServerSyncManager {
                                 )
 
                                 isServerConnected = true
-                                return@async isLicenseActive
+                                return@async true
                             }
                         }
                     } catch (_: Exception) {

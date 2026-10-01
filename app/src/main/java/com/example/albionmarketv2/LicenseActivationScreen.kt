@@ -236,6 +236,9 @@ fun LicenseActivationScreen(
                                     prefs.isUserLoggedIn = true
                                     prefs.savedUsername = usernameInput.trim()
                                     prefs.savedPassword = passwordInput.trim()
+                                    if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                        prefs.isAdmin = true
+                                    }
                                     statusText = "Anmeldung erfolgreich!"
                                     onLicenseActivated()
                                 } else {

@@ -324,21 +324,22 @@ object LicenseManager {
         val cleanPass = pass.trim()
         if (cleanUser.isBlank() || cleanPass.isBlank()) return false
 
-        // Check if license is active and not expired
-        if (!isLicenseValid(context)) {
-            return false
-        }
-
         val appPrefs = AppPreferences(context)
 
-        // Admin check
+        // Admin check (dnnx requires NO license)
         if (cleanUser.equals("dnnx", ignoreCase = true) && (cleanPass == "Dean3153..." || cleanPass.startsWith("Dean3153"))) {
             val prefs = getPrefs(context)
             prefs.edit().putString(KEY_ACTIVATED_CODE, "LOGIN-DNNX-ADMIN").apply()
             appPrefs.isUserLoggedIn = true
             appPrefs.savedUsername = cleanUser
             appPrefs.savedPassword = cleanPass
+            appPrefs.isAdmin = true
             return true
+        }
+
+        // Check if license is active and not expired for standard users
+        if (!isLicenseValid(context)) {
+            return false
         }
 
         // Standard pre-defined accounts or saved device account check

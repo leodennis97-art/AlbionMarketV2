@@ -155,12 +155,63 @@ app.use((req, res, next) => {
 app.use('/download', express.static(path.join(__dirname, 'downloads')));
 
 // API Endpoints
-app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.8' }));
-app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl() }));
+app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.8', subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
+app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/devices', (req, res) => res.json(registeredDevices));
 app.get('/api/prices', (req, res) => res.json(marketCache));
-app.get('/api/users', (req, res) => res.json(registeredUsers));
+app.get('/api/users', (req, res) => {
+    const safeUsers = registeredUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        password: u.password || '••••••••',
+        isAdmin: u.isAdmin,
+        isLicensed: u.isLicensed,
+        licenseExpiresAt: u.licenseExpiresAt
+    }));
+    res.json(safeUsers);
+});
 app.get('/api/licenses', (req, res) => res.json(generatedLicenses));
+
+// Auth Login Endpoint
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ authenticated: false, message: 'Missing credentials' });
+    }
+
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    // Admin dnnx - Requires NO license
+    if (cleanUser === 'dnnx' && (cleanPass === 'Dean3153...' || cleanPass.startsWith('Dean3153'))) {
+        return res.json({
+            authenticated: true,
+            isAdmin: true,
+            isLicenseActive: true,
+            licenseExpiresAt: '2099-12-31T23:59:59.000Z'
+        });
+    }
+
+    let user = registeredUsers.find(u => u.username.toLowerCase() === cleanUser);
+
+    if (user && user.password === cleanPass) {
+        const now = new Date();
+        const exp = user.licenseExpiresAt ? new Date(user.licenseExpiresAt) : new Date('2099-12-31T23:59:59.000Z');
+        const isLicenseActive = user.isAdmin || exp > now;
+
+        return res.json({
+            authenticated: true,
+            isAdmin: !!user.isAdmin,
+            isLicenseActive: isLicenseActive,
+            licenseExpiresAt: user.licenseExpiresAt || '2099-12-31T23:59:59.000Z'
+        });
+    }
+
+    return res.status(401).json({
+        authenticated: false,
+        message: 'Zugangsdaten ungültig'
+    });
+});
 
 // Cloud Backup & Restore Endpoints for User Data / Reinstall Persistence
 app.post('/api/user/backup', (req, res) => {
@@ -182,6 +233,41 @@ app.get('/api/user/restore', (req, res) => {
         } catch (_) {}
     }
     res.json({ status: 'not_found', prefsData: {} });
+});
+
+app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+        return res.status(400).json({ authenticated: false, error: 'Benutzername und Passwort erforderlich' });
+    }
+
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    // Admin dnnx: Requires no license
+    if (cleanUser === 'dnnx' && (cleanPass === 'Dean3153...' || cleanPass.startsWith('Dean3153'))) {
+        return res.json({
+            authenticated: true,
+            isAdmin: true,
+            isLicensed: true,
+            isLicenseActive: true,
+            licenseExpiresAt: '2099-12-31T23:59:59.000Z'
+        });
+    }
+
+    const foundUser = registeredUsers.find(u => u.username.toLowerCase() === cleanUser && u.password === cleanPass);
+    if (foundUser) {
+        const isAdmin = foundUser.isAdmin || cleanUser === 'dnnx';
+        return res.json({
+            authenticated: true,
+            isAdmin: isAdmin,
+            isLicensed: true,
+            isLicenseActive: true,
+            licenseExpiresAt: foundUser.licenseExpiresAt || '2099-12-31T23:59:59.000Z'
+        });
+    }
+
+    return res.status(401).json({ authenticated: false, error: 'Ungültige Anmeldedaten' });
 });
 
 app.post('/api/devices/ping', (req, res) => {
