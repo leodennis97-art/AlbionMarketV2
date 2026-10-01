@@ -916,15 +916,39 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
                 val itemIds = currentResources.map { it.fullId }.distinct().toList()
 
-                val prices = AlbionMarketApi.fetchPrices(_uiState.value.server, itemIds)
-                val priceMap = prices.groupBy { it.itemId }
+                val fetchedPrices = AlbionMarketApi.fetchPrices(_uiState.value.server, itemIds)
+                val priceMap = if (fetchedPrices.isNotEmpty()) {
+                    fetchedPrices.groupBy { it.itemId }
+                } else {
+                    val existing = _uiState.value.marketPrices
+                    if (existing.isNotEmpty()) {
+                        existing
+                    } else {
+                        val cached = prefs.getPriceSnapshots(server = _uiState.value.server)
+                        if (cached.isNotEmpty()) {
+                            cached.map {
+                                MarketPrice(
+                                    itemId = it.itemId,
+                                    city = it.city,
+                                    quality = 1,
+                                    sellPriceMin = it.sellPriceMin,
+                                    sellPriceMinDate = "",
+                                    buyPriceMax = it.buyPriceMax,
+                                    buyPriceMaxDate = ""
+                                )
+                            }.groupBy { it.itemId }
+                        } else {
+                            AlbionMarketApi.getFallbackMarketPrices()
+                        }
+                    }
+                }
 
-                val scannedThisCycle = if (prices.isNotEmpty()) prices.size.toLong() else itemIds.size.toLong()
+                val scannedThisCycle = if (fetchedPrices.isNotEmpty()) fetchedPrices.size.toLong() else itemIds.size.toLong()
                 val newTotalScanned = _uiState.value.totalScannedItemsCount + scannedThisCycle
 
                 val currentTimeStr = SimpleDateFormat("HH:mm:ss", Locale.GERMANY).format(Date())
 
-                val newSnapshots = prices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }.map {
+                val newSnapshots = fetchedPrices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }.map {
                     PriceSnapshot(
                         itemId = it.itemId,
                         city = it.city,
