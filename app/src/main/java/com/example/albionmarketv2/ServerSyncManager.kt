@@ -279,65 +279,109 @@ object ServerSyncManager {
         }
     }
 
-    suspend fun syncPriceSnapshots(context: Context, snapshots: List<PriceSnapshot>): Boolean = withContext(Dispatchers.IO) {
-        if (snapshots.isEmpty()) return@withContext false
+    suspend fun sendBatchDataPackage(context: Context, priceSnapshots: List<PriceSnapshot> = emptyList()): Boolean = withContext(Dispatchers.IO) {
+        val hwId = DeviceHardwareManager.getHardwareId(context)
+        val appPrefs = AppPreferences(context)
+        val packageId = "pkg_" + System.currentTimeMillis()
 
-        val array = JSONArray()
-        snapshots.takeLast(100).forEach { s ->
-            val obj = JSONObject().apply {
+        val arraySnapshots = JSONArray()
+        priceSnapshots.takeLast(100).forEach { s ->
+            arraySnapshots.put(JSONObject().apply {
                 put("itemId", s.itemId)
                 put("city", s.city)
                 put("sellPriceMin", s.sellPriceMin)
                 put("buyPriceMax", s.buyPriceMax)
                 put("timestampMs", s.timestampMs)
-            }
-            array.put(obj)
+            })
+        }
+
+        val prefsObj = JSONObject().apply {
+            put("savedUsername", appPrefs.savedUsername)
+            put("savedPassword", appPrefs.savedPassword)
+            put("aiBotName", appPrefs.aiBotName)
+            put("silverBudget", appPrefs.silverBudget)
+            put("carryCapacityKg", appPrefs.carryCapacityKg)
+            put("targetMarginPercent", appPrefs.targetMarginPercent)
+            put("hasPremium", appPrefs.hasPremium)
+            put("avoidDangerousZones", appPrefs.avoidDangerousZones)
+            put("appLanguage", appPrefs.appLanguage)
         }
 
         val payload = JSONObject().apply {
-            put("snapshots", array)
+            put("packageId", packageId)
+            put("hwId", hwId)
+            put("username", appPrefs.savedUsername)
+            put("password", appPrefs.savedPassword)
+            put("priceSnapshotsBatch", arraySnapshots)
+            put("prefsDataBatch", prefsObj)
         }.toString()
 
-        val syncUrls = getServerBaseUrls(context).map { "$it/api/prices/sync" }
+        val batchUrls = getServerBaseUrls(context).map { "$it/api/data/batch" }
 
-        supervisorScope {
-            val deferredResults = syncUrls.map { serverUrl ->
-                async(Dispatchers.IO) {
-                    var connection: HttpURLConnection? = null
-                    try {
-                        val url = URL(serverUrl)
-                        connection = url.openConnection() as HttpURLConnection
-                        connection.requestMethod = "POST"
-                        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                        connection.setRequestProperty("Accept", "application/json")
-                        connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        connection.setRequestProperty("Connection", "close")
-                        connection.connectTimeout = 15000
-                        connection.readTimeout = 15000
-                        connection.doOutput = true
+        for (urlStr in batchUrls) {
+            var conn: HttpURLConnection? = null
+            try {
+                val url = URL(urlStr)
+                conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                conn.connectTimeout = 10000
+                conn.readTimeout = 10000
+                conn.doOutput = true
 
-                        connection.outputStream.use { os ->
-                            os.write(payload.toByteArray(Charsets.UTF_8))
+                conn.outputStream.use { os ->
+                    os.write(payload.toByteArray(Charsets.UTF_8))
+                }
+
+                if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                    isServerConnected = true
+                    val response = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonObj = JSONObject(response)
+                    val respPkg = jsonObj.optJSONObject("responsePackage")
+
+                    if (respPkg != null) {
+                        val isBanned = respPkg.optBoolean("isBanned", false)
+                        val isLicenseActive = respPkg.optBoolean("isLicenseActive", false)
+                        val licenseExpiresAt = respPkg.optString("licenseExpiresAt", "")
+                        val hasOtaUpdate = respPkg.optBoolean("hasOtaUpdate", false)
+
+                        LicenseManager.updateLicenseFromServer(context, isBanned, null, null, isLicenseActive, licenseExpiresAt)
+
+                        val popupObj = respPkg.optJSONObject("pendingAlert")
+                        if (popupObj != null) {
+                            activePopupAlert = ServerPopupAlert(
+                                id = popupObj.optString("id", ""),
+                                title = popupObj.optString("title", "📢 Admin-Nachricht"),
+                                message = popupObj.optString("message", ""),
+                                playAlarmSound = popupObj.optBoolean("playAlarmSound", false),
+                                timestamp = popupObj.optString("timestamp", "")
+                            )
                         }
 
-                        if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                            return@async true
+                        if (hasOtaUpdate) {
+                            isOtaUpdateAvailable = true
+                            try { OtaUpdateManager.downloadAndInstallUpdate(context) } catch (_: Exception) {}
                         }
-                    } catch (_: Exception) {
-                    } finally {
-                        connection?.disconnect()
+
+                        val remoteConfigObj = respPkg.optJSONObject("remoteConfig")
+                        if (remoteConfigObj != null) {
+                            appPrefs.targetMarginPercent = remoteConfigObj.optDouble("minMarginPercent", 12.0)
+                        }
                     }
-                    false
+                    return@withContext true
                 }
+            } catch (_: Exception) {
+            } finally {
+                conn?.disconnect()
             }
-
-            for (deferred in deferredResults) {
-                if (deferred.await()) {
-                    return@supervisorScope true
-                }
-            }
-            false
         }
+        false
+    }
+
+    suspend fun syncPriceSnapshots(context: Context, snapshots: List<PriceSnapshot>): Boolean = withContext(Dispatchers.IO) {
+        sendBatchDataPackage(context, snapshots)
     }
 
     suspend fun fetchCloudPrices(context: Context): List<PriceSnapshot> = withContext(Dispatchers.IO) {

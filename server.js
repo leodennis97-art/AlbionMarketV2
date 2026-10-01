@@ -238,6 +238,115 @@ app.post('/api/auth/login', (req, res) => {
     });
 });
 
+// Consolidated Package Batch Sync Endpoint (Stapelverarbeitung in Paketen)
+app.post('/api/data/batch', (req, res) => {
+    const { packageId, hwId, username, password, priceSnapshotsBatch, tradeOrdersBatch, telemetryLogsBatch, prefsDataBatch } = req.body;
+    if (!hwId) return res.status(400).json({ error: 'Missing hwId in batch package' });
+
+    const cleanHwId = hwId.trim().toLowerCase();
+
+    // 1. Unpack & Process Price Snapshots Batch
+    if (Array.isArray(priceSnapshotsBatch) && priceSnapshotsBatch.length > 0) {
+        totalInformationCount += priceSnapshotsBatch.length;
+        const currentHourKey = `${new Date().getHours().toString().padStart(2, '0')}:00`;
+        let hObj = hourlyData24h.find(h => h.hour === currentHourKey);
+        if (hObj) {
+            hObj.itemsCollected += priceSnapshotsBatch.length;
+        } else {
+            hourlyData24h.push({ hour: currentHourKey, itemsCollected: priceSnapshotsBatch.length });
+            if (hourlyData24h.length > 24) hourlyData24h.shift();
+        }
+        saveData24h();
+    }
+
+    // 2. Unpack & Process Telemetry Logs Batch
+    if (Array.isArray(telemetryLogsBatch) && telemetryLogsBatch.length > 0) {
+        telemetryLogsBatch.forEach(log => {
+            deviceTelemetryLogs.unshift({
+                hwId: cleanHwId,
+                username: username || 'Unbekannt',
+                deviceName: log.deviceName || 'Android Device',
+                batteryLevel: log.batteryLevel || -1,
+                memoryUsageMb: log.memoryUsageMb || 0,
+                pingMs: log.pingMs || 0,
+                errorTrace: log.errorTrace || null,
+                timestamp: new Date().toISOString()
+            });
+        });
+        if (deviceTelemetryLogs.length > 200) deviceTelemetryLogs = deviceTelemetryLogs.slice(0, 200);
+    }
+
+    // 3. Unpack & Process Prefs Data & Device Record
+    let existingDevice = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
+    if (!existingDevice) {
+        const defaultExp = new Date();
+        defaultExp.setFullYear(defaultExp.getFullYear() + 1);
+        existingDevice = {
+            hwId: cleanHwId,
+            deviceName: 'Android App Device',
+            appVersion: '1.3.9',
+            activeOrdersCount: Array.isArray(tradeOrdersBatch) ? tradeOrdersBatch.length : 0,
+            username: username || 'AutoConnectedDevice',
+            password: password || '',
+            lastSeen: new Date().toISOString(),
+            licenseExpiresAt: defaultExp.toISOString(),
+            bannedUntil: null,
+            pendingUpdate: true,
+            lastEnteredData: prefsDataBatch || {}
+        };
+        registeredDevices.push(existingDevice);
+    } else {
+        if (username) existingDevice.username = username;
+        if (password) existingDevice.password = password;
+        if (prefsDataBatch) existingDevice.lastEnteredData = prefsDataBatch;
+        existingDevice.lastSeen = new Date().toISOString();
+        if (Array.isArray(tradeOrdersBatch)) existingDevice.activeOrdersCount = tradeOrdersBatch.length;
+    }
+    saveDevices();
+
+    // 4. Save Backup Record
+    const backupFile = path.join(BACKUPS_DIR, `${cleanHwId}.json`);
+    const backupContent = {
+        hwId: cleanHwId,
+        lastEnteredUsername: username || existingDevice.username,
+        lastEnteredPassword: password || existingDevice.password,
+        lastSeen: new Date().toISOString(),
+        prefsData: prefsDataBatch || existingDevice.lastEnteredData || {}
+    };
+    try { fs.writeFileSync(backupFile, JSON.stringify(backupContent, null, 2)); } catch (_) {}
+
+    // 5. Construct Consolidated Response Package for Device
+    const now = new Date();
+    const isBanned = existingDevice.bannedUntil && new Date(existingDevice.bannedUntil) > now && !existingDevice.unbanned;
+    const isLicenseActive = existingDevice.licenseExpiresAt && new Date(existingDevice.licenseExpiresAt) > now;
+    const pendingAlert = existingDevice.pendingAlert || null;
+    if (pendingAlert) {
+        delete existingDevice.pendingAlert;
+        saveDevices();
+    }
+
+    const hasOtaUpdate = existingDevice.forceOtaUpdate === true || globalOtaTrigger === true;
+    if (existingDevice.forceOtaUpdate) {
+        existingDevice.forceOtaUpdate = false;
+        saveDevices();
+    }
+
+    res.json({
+        status: 'success',
+        processedPackageId: packageId,
+        responsePackage: {
+            packageId: 'srv_pkg_' + Date.now(),
+            isBanned: !!isBanned,
+            isLicenseActive: !!isLicenseActive,
+            licenseExpiresAt: existingDevice.licenseExpiresAt,
+            hasOtaUpdate: hasOtaUpdate,
+            targetVersion: '1.3.9',
+            pendingAlert: pendingAlert,
+            remoteConfig: remoteConfig
+        }
+    });
+});
+
 // Cloud Backup & Restore Endpoints for User Data / Reinstall Persistence (Per HWID)
 app.post('/api/user/backup', (req, res) => {
     const { hwId, username, password, prefsData } = req.body;
