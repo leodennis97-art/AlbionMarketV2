@@ -1,0 +1,6 @@
+{
+    "serverUrl": "https://speller-importer-captivate.ngrok-free.dev",
+    "ngrokUrl": "https://speller-importer-captivate.ngrok-free.dev",
+    "autoConnect": true,
+    "note": "Automatic Ngrok Public Tunnel Configuration URL"
+}

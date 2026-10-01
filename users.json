@@ -1,0 +1,11 @@
+[
+  {
+    "id": "usr_admin_dnnx",
+    "username": "dnnx",
+    "password": "Dean3153...",
+    "isAdmin": true,
+    "isLicensed": true,
+    "licenseExpiresAt": "2099-12-31T23:59:59.000Z",
+    "createdAt": "2026-10-01T08:33:20.374Z"
+  }
+]

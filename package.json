@@ -1,0 +1,16 @@
+{
+  "name": "albion-datapro-server",
+  "version": "1.2.0",
+  "description": "24/7 Central Market Server for AlbionDataPro with Real-Time Auto-Restart Watchdog",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "watch": "node server.js",
+    "server": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "express": "^4.21.2"
+  }
+}
