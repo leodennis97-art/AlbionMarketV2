@@ -140,6 +140,11 @@ object LicenseManager {
     }
 
     fun isLicenseValid(context: Context): Boolean {
+        val appPrefs = AppPreferences(context)
+        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
+            return true
+        }
+
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
 
@@ -232,6 +237,11 @@ object LicenseManager {
     }
 
     fun getExpirationDateString(context: Context): String {
+        val appPrefs = AppPreferences(context)
+        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
+            return "👑 Admin-Konto (Keine Lizenz erforderlich / Unbegrenzt)"
+        }
+
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
 
