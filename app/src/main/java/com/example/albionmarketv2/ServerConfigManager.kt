@@ -18,10 +18,10 @@ object ServerConfigManager {
             val configFile = File(albionFolder, "server_config.json")
             if (!configFile.exists()) {
                 val defaultConfig = JSONObject().apply {
-                    put("serverUrl", "https://witty-catfish-22.loca.lt")
-                    put("ngrokUrl", "https://witty-catfish-22.loca.lt")
+                    put("serverUrl", "https://albionmarketv2-1.onrender.com")
+                    put("ngrokUrl", "https://albionmarketv2-1.onrender.com")
                     put("autoConnect", true)
-                    put("note", "Public Tunnel & Server Configuration URL")
+                    put("note", "24/7 Central Render Cloud Server")
                 }
                 configFile.writeText(defaultConfig.toString(4), Charsets.UTF_8)
             }
@@ -35,8 +35,8 @@ object ServerConfigManager {
                 val configFile = File(altFolder, "server_config.json")
                 if (!configFile.exists()) {
                     val defaultConfig = JSONObject().apply {
-                        put("serverUrl", "https://witty-catfish-22.loca.lt")
-                        put("ngrokUrl", "https://witty-catfish-22.loca.lt")
+                        put("serverUrl", "https://albionmarketv2-1.onrender.com")
+                        put("ngrokUrl", "https://albionmarketv2-1.onrender.com")
                         put("autoConnect", true)
                     }
                     configFile.writeText(defaultConfig.toString(4), Charsets.UTF_8)
