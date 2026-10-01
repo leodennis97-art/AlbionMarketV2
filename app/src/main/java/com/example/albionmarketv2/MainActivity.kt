@@ -169,8 +169,13 @@ class MainActivity : ComponentActivity() {
                     return@AlbionMarketV2Theme
                 }
 
-                var isUserLoggedInState by remember { mutableStateOf(prefs.isUserLoggedIn && LicenseManager.isLicenseValid(context)) }
-                var isUnlockedForSession by remember { mutableStateOf(isUserLoggedInState) }
+                // Enforce re-login / re-verification on every app launch
+                LaunchedEffect(Unit) {
+                    prefs.isUserLoggedIn = false
+                }
+
+                var isUserLoggedInState by remember { mutableStateOf(false) }
+                var isUnlockedForSession by remember { mutableStateOf(false) }
                 var showWelcomeDialog by remember { mutableStateOf(value = false) }
 
                 // Real-Time Background Server Authentication & Data Sync (Immediate + every 1s)
@@ -204,7 +209,7 @@ class MainActivity : ComponentActivity() {
                     // Show Lockscreen Login when NOT logged in or license invalid
                     if (!isUserLoggedInState || !LicenseManager.isLicenseValid(context)) {
                         var usernameInput by remember { mutableStateOf(prefs.savedUsername) }
-                        var passwordInput by remember { mutableStateOf(prefs.savedPassword) }
+                        var passwordInput by remember { mutableStateOf("") }
                         var captchaNum1 by remember { mutableIntStateOf((3..12).random()) }
                         var captchaNum2 by remember { mutableIntStateOf((2..9).random()) }
                         var captchaInput by remember { mutableStateOf("") }

@@ -66,7 +66,7 @@ fun LicenseActivationScreen(
     val coroutineScope = rememberCoroutineScope()
     val prefs = remember { AppPreferences(context) }
     var usernameInput by remember { mutableStateOf(prefs.savedUsername) }
-    var passwordInput by remember { mutableStateOf(prefs.savedPassword) }
+    var passwordInput by remember { mutableStateOf("") }
     var captchaNum1 by remember { mutableIntStateOf((3..12).random()) }
     var captchaNum2 by remember { mutableIntStateOf((2..9).random()) }
     var captchaInput by remember { mutableStateOf("") }
