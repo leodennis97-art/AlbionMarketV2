@@ -47,7 +47,7 @@ object ServerSyncManager {
         CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
         val hwId = DeviceHardwareManager.getHardwareId(context)
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val appVersion = "1.3.8"
+        val appVersion = "1.3.9"
 
         val urlsToTry = getServerBaseUrls(context).map { "$it/api/devices/ping" }
 
@@ -291,7 +291,7 @@ object ServerSyncManager {
                         conn.requestMethod = "POST"
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                         conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        conn.setRequestProperty("User-Agent", "AlbionDataPro/1.3.8")
+                        conn.setRequestProperty("User-Agent", "AlbionDataPro/1.3.9")
                         conn.connectTimeout = 10000
                         conn.readTimeout = 10000
                         conn.doOutput = true
@@ -318,7 +318,7 @@ object ServerSyncManager {
         CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
         val hwId = DeviceHardwareManager.getHardwareId(context)
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val appVersion = "1.3.8"
+        val appVersion = "1.3.9"
 
         val cleanUser = username.trim()
         val cleanPass = pass.trim()
@@ -448,7 +448,7 @@ object ServerSyncManager {
 
         val hwId = DeviceHardwareManager.getHardwareId(context)
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val appVersion = "1.3.8"
+        val appVersion = "1.3.9"
 
         val payload = JSONObject().apply {
             put("username", username.trim())

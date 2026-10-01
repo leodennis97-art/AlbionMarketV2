@@ -239,8 +239,8 @@ class MainActivity : ComponentActivity() {
                                 },
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("Willkommen bei AlbionDataPro v1.3.8!", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
-                                        Text("• v1.3.8: Blitzschnelle lokale Verbindung & optimierter automatischer Server-Sync.", fontSize = 12.sp, color = Color.White)
+                                        Text("Willkommen bei AlbionDataPro v1.3.9!", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                        Text("• v1.3.9: Blitzschneller 24/7 Cloud-Sync, Sicherheitssperre & automatisches OTA-Update.", fontSize = 12.sp, color = Color.White)
                                         Text("• v1.3.4: Live 24/7 Server-Sync, Anti-Cheat Schutz, Echtzeit-Uhrzeit & Gold-Bot Signale.", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                         Text("Gib deine Zugangsdaten ein und verifiziere dich, um das Spiel zu betreten.", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                     }
