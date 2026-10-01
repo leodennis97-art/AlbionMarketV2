@@ -155,7 +155,7 @@ app.use((req, res, next) => {
 app.use('/download', express.static(path.join(__dirname, 'downloads')));
 
 // API Endpoints
-app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.8', subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
+app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.9', subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/devices', (req, res) => res.json(registeredDevices));
 app.get('/api/prices', (req, res) => res.json(marketCache));
@@ -283,7 +283,7 @@ app.post('/api/devices/ping', (req, res) => {
         existingDevice = {
             hwId: cleanHwId,
             deviceName: deviceName || 'Android App Device',
-            appVersion: appVersion || '1.3.8',
+            appVersion: appVersion || '1.3.9',
             activeOrdersCount: activeOrdersCount || 0,
             username: username || 'AutoConnectedDevice',
             lastSeen: new Date().toISOString(),
@@ -310,8 +310,8 @@ app.post('/api/devices/ping', (req, res) => {
         isBanned: !!isBanned,
         isLicenseActive: !!isLicenseActive,
         licenseExpiresAt: existingDevice.licenseExpiresAt,
-        hasOtaUpdate: (appVersion !== '1.3.8'),
-        targetVersion: '1.3.8'
+        hasOtaUpdate: (appVersion !== '1.3.9'),
+        targetVersion: '1.3.9'
     });
 });
 
@@ -422,7 +422,7 @@ app.get(['/', '/admin'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.8)</title>
+    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.9)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
         .container { max-width: 1100px; margin: 0 auto; }
@@ -451,7 +451,7 @@ app.get(['/', '/admin'], (req, res) => {
     <div class="container">
         <div class="card">
             <h1>🛡️ AlbionDataPro Central Admin & Tunnel Dashboard</h1>
-            <p>Version: <span class="badge">v1.3.8</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
+            <p>Version: <span class="badge">v1.3.9</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
 
             <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>
             <div class="url-box">${tunnelUrl}</div>
@@ -634,7 +634,7 @@ app.get(['/', '/admin'], (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v1.3.8) läuft auf Port ${PORT}`);
+    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v1.3.9) läuft auf Port ${PORT}`);
 });
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;

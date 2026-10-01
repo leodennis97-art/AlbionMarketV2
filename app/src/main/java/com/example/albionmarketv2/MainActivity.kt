@@ -33,12 +33,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.widget.Toast
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -546,6 +549,64 @@ class MainActivity : ComponentActivity() {
                                     ServerSyncManager.pingServer(this@MainActivity)
                                 } catch (e: Exception) {
                                     e.printStackTrace()
+                                }
+                            }
+                        }
+                    } else if (!ServerSyncManager.isServerConnected) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color(0xFF0F172A))
+                                .padding(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Card(
+                                shape = RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                border = BorderStroke(2.dp, Color(0xFFEF4444)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(24.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = "Offline gesperrt",
+                                        tint = Color(0xFFEF4444),
+                                        modifier = Modifier.size(56.dp)
+                                    )
+
+                                    Text(
+                                        text = "📡 SERVERVERBINDUNG UND INTERNET ERFORDERLICH",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
+                                        color = Color(0xFFEF4444),
+                                        textAlign = TextAlign.Center
+                                    )
+
+                                    Text(
+                                        text = "Die Nutzung der App erfordert eine aktive Internet- und Serververbindung.\n\nOhne aktive Serververbindung ist die Anwendung aus Sicherheitsgründen sofort gesperrt.\n\nSobald die Verbindung wiederhergestellt ist, wird die App automatisch freigeschaltet.",
+                                        fontSize = 13.sp,
+                                        color = Color(0xFF94A3B8),
+                                        textAlign = TextAlign.Center
+                                    )
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    CircularProgressIndicator(
+                                        color = Color(0xFFEF4444),
+                                        strokeWidth = 3.dp,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+
+                                    Text(
+                                        text = "Verbindung zum Server wird hergestellt...",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF38BDF8),
+                                        fontWeight = FontWeight.SemiBold
+                                    )
                                 }
                             }
                         }
