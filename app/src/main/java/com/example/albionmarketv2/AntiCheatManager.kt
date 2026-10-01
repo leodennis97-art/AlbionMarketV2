@@ -135,11 +135,6 @@ object AntiCheatManager {
         val debugger = isDebuggerConnected(context)
         val hooked = isHookingFrameworkDetected()
 
-        if (debugger || hooked) {
-            // Self-protection: Terminate immediately if tampering detected
-            // System.exit(0)
-        }
-
         val payload = JSONObject().apply {
             put("hwId", hwId)
             put("packageName", packageName)
@@ -149,15 +144,23 @@ object AntiCheatManager {
             put("signatureHash", "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED")
         }.toString()
 
-        for (serverUrl in SERVER_URLS) {
+        val targetEndpoints = mutableListOf<String>()
+        for (base in ServerSyncManager.getServerBaseUrls(context)) {
+            targetEndpoints.add("$base/api/anticheat/verify")
+        }
+        for (localUrl in SERVER_URLS) {
+            if (!targetEndpoints.contains(localUrl)) targetEndpoints.add(localUrl)
+        }
+
+        for (serverUrl in targetEndpoints) {
             var connection: HttpURLConnection? = null
             try {
                 val url = URL(serverUrl)
                 connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
                 connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-                connection.connectTimeout = 1500
-                connection.readTimeout = 1500
+                connection.connectTimeout = 2000
+                connection.readTimeout = 2000
                 connection.doOutput = true
 
                 connection.outputStream.use { os ->

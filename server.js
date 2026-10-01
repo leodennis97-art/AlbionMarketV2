@@ -25,6 +25,18 @@ let hourlyData24h = Array.from({ length: 24 }, (_, i) => ({
 }));
 let totalInformationCount = 45280;
 
+let remoteConfig = {
+    minMarginPercent: 12.0,
+    maintenanceMode: false,
+    blacklistedCities: [],
+    aiAnalyzerEnabled: true,
+    lastUpdated: new Date().toISOString()
+};
+
+let guildSharedOrders = [];
+let deviceTelemetryLogs = [];
+let sseClients = [];
+
 const DEVICES_FILE = path.join(__dirname, 'devices.json');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const LICENSES_FILE = path.join(__dirname, 'licenses.json');
@@ -295,6 +307,8 @@ app.post('/api/devices/ping', (req, res) => {
             lastSeen: new Date().toISOString(),
             licenseExpiresAt: defaultExp.toISOString(),
             bannedUntil: null,
+            banReason: null,
+            unbanned: false,
             pendingUpdate: true,
             lastEnteredData: prefsData || {}
         };
@@ -323,7 +337,14 @@ app.post('/api/devices/ping', (req, res) => {
     try { fs.writeFileSync(backupFile, JSON.stringify(backupContent, null, 2)); } catch (_) {}
 
     const now = new Date();
-    const isBanned = existingDevice.bannedUntil && new Date(existingDevice.bannedUntil) > now;
+    // If explicitly unbanned by Admin, never auto-ban
+    let isBanned = existingDevice.bannedUntil && new Date(existingDevice.bannedUntil) > now;
+    if (existingDevice.unbanned === true) {
+        isBanned = false;
+        existingDevice.bannedUntil = null;
+        existingDevice.banReason = null;
+    }
+
     const isLicenseActive = existingDevice.licenseExpiresAt && new Date(existingDevice.licenseExpiresAt) > now;
 
     // Retrieve pending popup alert for this device / user
@@ -333,15 +354,156 @@ app.post('/api/devices/ping', (req, res) => {
         saveDevices();
     }
 
+    // OTA update ONLY happens if explicitly commanded by Admin
+    const hasOtaUpdate = existingDevice.forceOtaUpdate === true || globalOtaTrigger === true;
+    if (existingDevice.forceOtaUpdate) {
+        existingDevice.forceOtaUpdate = false;
+        saveDevices();
+    }
+
     res.json({
         status: isBanned ? 'banned' : 'success',
         isBanned: !!isBanned,
+        bannedUntil: existingDevice.bannedUntil || null,
+        banReason: isBanned ? (existingDevice.banReason || 'Verstoß gegen Nutzungsbedingungen') : null,
+        unbanned: existingDevice.unbanned === true,
         isLicenseActive: !!isLicenseActive,
         licenseExpiresAt: existingDevice.licenseExpiresAt,
-        hasOtaUpdate: (appVersion !== '1.3.9'),
+        hasOtaUpdate: hasOtaUpdate,
         targetVersion: '1.3.9',
-        popupAlert: pendingAlert
+        popupAlert: pendingAlert,
+        remoteConfig: remoteConfig
     });
+});
+
+// SSE Real-Time Event Stream Endpoint
+app.get('/api/events', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    sseClients.push(res);
+    req.on('close', () => {
+        sseClients = sseClients.filter(c => c !== res);
+    });
+});
+
+function broadcastSSE(eventType, data) {
+    const payload = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+    sseClients.forEach(client => client.write(payload));
+}
+
+// Remote Live-Config Endpoints
+app.get('/api/remote-config', (req, res) => res.json(remoteConfig));
+app.post('/api/admin/remote-config', (req, res) => {
+    const { minMarginPercent, maintenanceMode, blacklistedCities, aiAnalyzerEnabled } = req.body;
+    if (minMarginPercent !== undefined) remoteConfig.minMarginPercent = parseFloat(minMarginPercent);
+    if (maintenanceMode !== undefined) remoteConfig.maintenanceMode = !!maintenanceMode;
+    if (Array.isArray(blacklistedCities)) remoteConfig.blacklistedCities = blacklistedCities;
+    if (aiAnalyzerEnabled !== undefined) remoteConfig.aiAnalyzerEnabled = !!aiAnalyzerEnabled;
+    remoteConfig.lastUpdated = new Date().toISOString();
+
+    broadcastSSE('remote_config_updated', remoteConfig);
+    res.json({ status: 'success', remoteConfig });
+});
+
+// Guild Mesh Sync Endpoints (Shared Trade Orders)
+app.get('/api/guild/orders', (req, res) => res.json(guildSharedOrders));
+app.post('/api/guild/order/share', (req, res) => {
+    const { author, resourceId, resourceName, buyCity, buyPrice, sellCity, sellPrice, netProfit } = req.body;
+    if (!resourceId) return res.status(400).json({ error: 'Missing resourceId' });
+
+    const newOrder = {
+        id: 'g_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        author: author || 'Anonym',
+        resourceId,
+        resourceName,
+        buyCity,
+        buyPrice: parseInt(buyPrice) || 0,
+        sellCity,
+        sellPrice: parseInt(sellPrice) || 0,
+        netProfit: parseInt(netProfit) || 0,
+        timestamp: new Date().toISOString()
+    };
+
+    guildSharedOrders.unshift(newOrder);
+    if (guildSharedOrders.length > 50) guildSharedOrders.pop();
+
+    broadcastSSE('guild_order_shared', newOrder);
+    res.json({ status: 'success', order: newOrder, totalShared: guildSharedOrders.length });
+});
+
+// Telemetry & Diagnostic Logging
+app.post('/api/telemetry/log', (req, res) => {
+    const { hwId, username, deviceName, batteryLevel, memoryUsageMb, pingMs, errorTrace } = req.body;
+    if (!hwId) return res.status(400).json({ error: 'Missing hwId' });
+
+    const logEntry = {
+        hwId: hwId.trim().toLowerCase(),
+        username: username || 'Unbekannt',
+        deviceName: deviceName || 'Android Device',
+        batteryLevel: batteryLevel || -1,
+        memoryUsageMb: memoryUsageMb || 0,
+        pingMs: pingMs || 0,
+        errorTrace: errorTrace || null,
+        timestamp: new Date().toISOString()
+    };
+
+    deviceTelemetryLogs.unshift(logEntry);
+    if (deviceTelemetryLogs.length > 200) deviceTelemetryLogs.pop();
+
+    broadcastSSE('telemetry_received', logEntry);
+    res.json({ status: 'success' });
+});
+app.get('/api/admin/telemetry', (req, res) => res.json(deviceTelemetryLogs));
+
+// Predictive Analytics & Market Trends
+app.get('/api/market-trends', (req, res) => {
+    const items = (marketCache && Array.isArray(marketCache.items)) ? marketCache.items : [];
+    const highProfitItems = items
+        .filter(i => i.sell_price_min > 0 && i.buy_price_max > 0 && (i.sell_price_min - i.buy_price_max) > 5000)
+        .map(i => ({
+            itemId: i.item_id,
+            city: i.city,
+            sellPrice: i.sell_price_min,
+            buyPrice: i.buy_price_max,
+            estimatedProfit: i.sell_price_min - i.buy_price_max,
+            trendScore: Math.round(((i.sell_price_min - i.buy_price_max) / (i.buy_price_max || 1)) * 100)
+        }))
+        .sort((a, b) => b.estimatedProfit - a.estimatedProfit)
+        .slice(0, 30);
+
+    res.json({
+        totalAnalyzed: items.length,
+        anomaliesCount: highProfitItems.length,
+        topTrends: highProfitItems,
+        timestamp: new Date().toISOString()
+    });
+});
+
+let globalOtaTrigger = false;
+
+// Admin Trigger OTA Update Endpoint (Only installs when admin clicks button)
+app.post('/api/admin/trigger-ota', (req, res) => {
+    const { hwId, isGlobal } = req.body;
+    let count = 0;
+    if (isGlobal) {
+        globalOtaTrigger = true;
+        registeredDevices.forEach(d => {
+            d.forceOtaUpdate = true;
+            count++;
+        });
+    } else if (hwId) {
+        const cleanHwId = hwId.trim().toLowerCase();
+        const device = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
+        if (device) {
+            device.forceOtaUpdate = true;
+            count = 1;
+        }
+    }
+    saveDevices();
+    res.json({ status: 'success', message: `Update-Befehl an ${count} Gerät(e) gesendet.`, count });
 });
 
 app.post('/api/admin/user/create', (req, res) => {
@@ -439,14 +601,61 @@ app.post('/api/admin/license/delete', (req, res) => {
     res.json({ status: 'success', generatedLicenses });
 });
 
+// KI-AntiCheat Integrity & Anomaly Verification Endpoint
+app.post('/api/anticheat/verify', (req, res) => {
+    const { hwId, packageName, isRooted, isDebuggerAttached, isHookDetected, signatureHash } = req.body;
+    if (!hwId) return res.status(400).json({ status: 'error', message: 'Missing hwId' });
+
+    const cleanHwId = hwId.trim().toLowerCase();
+    let device = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
+
+    const isViolation = isDebuggerAttached === true || isHookDetected === true || (signatureHash && signatureHash !== "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED");
+
+    if (isViolation) {
+        if (!device) {
+            device = {
+                hwId: cleanHwId,
+                deviceName: 'Flagged Device',
+                appVersion: '1.3.9',
+                username: 'Unknown',
+                bannedUntil: null,
+                banReason: null,
+                unbanned: false
+            };
+            registeredDevices.push(device);
+        }
+
+        // CRITICAL RULE: If device was explicitly unbanned by Admin, NEVER auto-ban!
+        if (device.unbanned === true) {
+            return res.json({ status: 'clean', isBanned: false, message: 'Gerät manuell entbannt (KI Auto-Bann geschützt)' });
+        }
+
+        const banExp = new Date();
+        banExp.setDate(banExp.getDate() + 3650);
+        device.bannedUntil = banExp.toISOString();
+        device.banReason = "🤖 KI-AntiCheat Bann: Debugger / Memory-Hooking / Cheat-Tool entdeckt";
+        device.unbanned = false;
+        saveDevices();
+
+        return res.json({
+            status: 'flagged',
+            isBanned: true,
+            banReason: device.banReason
+        });
+    }
+
+    res.json({ status: 'clean', isBanned: false });
+});
+
 app.post('/api/admin/device/ban', (req, res) => {
     const { hwId, banReason } = req.body;
-    const device = registeredDevices.find(d => d.hwId === hwId);
+    const device = registeredDevices.find(d => d.hwId === hwId || d.hwId.toLowerCase() === (hwId || '').toLowerCase());
     if (device) {
         const banExp = new Date();
         banExp.setDate(banExp.getDate() + 3650); // Ban for 10 years basically
         device.bannedUntil = banExp.toISOString();
-        device.banReason = banReason || 'Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)';
+        device.banReason = banReason && banReason.trim() ? banReason.trim() : 'Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)';
+        device.unbanned = false; // Reset unbanned flag when explicitly banned by admin
         saveDevices();
     }
     res.json({ status: 'success', registeredDevices });
@@ -454,10 +663,11 @@ app.post('/api/admin/device/ban', (req, res) => {
 
 app.post('/api/admin/device/unban', (req, res) => {
     const { hwId } = req.body;
-    const device = registeredDevices.find(d => d.hwId === hwId);
+    const device = registeredDevices.find(d => d.hwId === hwId || d.hwId.toLowerCase() === (hwId || '').toLowerCase());
     if (device) {
         device.bannedUntil = null;
         device.banReason = null;
+        device.unbanned = true; // Explicitly marked unbanned to prevent auto-ban and free up HWID
         saveDevices();
     }
     res.json({ status: 'success', registeredDevices });
@@ -596,12 +806,15 @@ app.get(['/', '/admin'], (req, res) => {
                 <tbody>
                     ${registeredDevices.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Keine Geräte verbunden.</td></tr>' :
                     registeredDevices.map(d => {
-                        const isBanned = d.bannedUntil && new Date(d.bannedUntil) > new Date();
+                        const isBanned = d.bannedUntil && new Date(d.bannedUntil) > new Date() && !d.unbanned;
+                        const statusBadge = isBanned
+                            ? `<span class="badge" style="background:#ef4444;">🔴 Gesperrt (${d.banReason || 'Verstoß'})</span>`
+                            : (d.unbanned ? `<span class="badge" style="background:#10b981;">🟢 Aktiv (Entbannt)</span>` : `<span class="badge" style="background:#10b981;">🟢 Aktiv</span>`);
                         return `<tr>
                             <td><code>${d.hwId}</code></td>
                             <td>${d.deviceName}</td>
-                            <td><span class="badge" style="background:${d.appVersion === '1.3.8' ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
-                            <td><span class="badge" style="background:${isBanned ? '#ef4444' : '#10b981'};">${isBanned ? 'Gesperrt' : 'Aktiv'}</span></td>
+                            <td><span class="badge" style="background:${d.appVersion === '1.3.9' ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
+                            <td>${statusBadge}</td>
                             <td>
                                 ${isBanned ? `<button class="btn" onclick="unbanDevice('${d.hwId}')">Entsperren</button>` : `<button class="btn btn-danger" onclick="banDevice('${d.hwId}')">Sperren</button>`}
                                 <button class="btn btn-danger" onclick="deleteDevice('${d.hwId}')" style="margin-left: 6px;">Löschen</button>
@@ -660,10 +873,12 @@ app.get(['/', '/admin'], (req, res) => {
         }
 
         async function banDevice(hwId) {
+            const reason = prompt("Bitte Grund für den Bann eingeben:", "Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)");
+            if (reason === null) return;
             await fetch('/api/admin/device/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hwId })
+                body: JSON.stringify({ hwId, banReason: reason })
             });
             location.reload();
         }

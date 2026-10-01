@@ -5,13 +5,17 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
@@ -52,6 +57,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
@@ -82,6 +88,8 @@ data class AdminLicense(
     val note: String,
 )
 
+const val CURRENT_APP_VERSION = "1.3.9"
+
 data class AdminDevice(
     val hwId: String,
     val deviceName: String,
@@ -90,6 +98,8 @@ data class AdminDevice(
     val lastSeen: String,
     val licenseExpiresAt: String,
     val isBanned: Boolean,
+    val banReason: String = "",
+    val unbanned: Boolean = false,
 )
 
 object AdminControlManager {
@@ -132,7 +142,7 @@ object AdminControlManager {
             conn.connectTimeout = 15000
             conn.readTimeout = 15000
 
-            if (conn.responseCode in 200..299) {
+            if (conn.responseCode in (200..299)) {
                 val resStr = conn.inputStream.bufferedReader().use { it.readText() }
                 return@withContext JSONArray(resStr)
             }
@@ -154,7 +164,7 @@ object AdminControlManager {
                     password = obj.optString("password", "••••••••"),
                     isAdmin = obj.optBoolean("isAdmin", false),
                     isLicensed = obj.optBoolean("isLicensed", true),
-                    licenseExpiresAt = obj.optString("licenseExpiresAt", "")
+                    licenseExpiresAt = obj.optString("licenseExpiresAt", ""),
                 )
             )
         }
@@ -187,16 +197,20 @@ object AdminControlManager {
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
             val bannedUntil = obj.optString("bannedUntil", "")
-            val isBanned = !bannedUntil.isNullOrBlank()
+            val unbanned = obj.optBoolean("unbanned", false)
+            val isBanned = !bannedUntil.isNullOrBlank() && !unbanned
+            val banReason = obj.optString("banReason", "")
             list.add(
                 AdminDevice(
                     hwId = obj.optString("hwId", ""),
                     deviceName = obj.optString("deviceName", "Android Device"),
-                    appVersion = obj.optString("appVersion", "1.3.8"),
+                    appVersion = obj.optString("appVersion", CURRENT_APP_VERSION),
                     username = obj.optString("username", "Unbekannt"),
                     lastSeen = obj.optString("lastSeen", ""),
                     licenseExpiresAt = obj.optString("licenseExpiresAt", ""),
-                    isBanned = isBanned
+                    isBanned = isBanned,
+                    banReason = banReason,
+                    unbanned = unbanned
                 )
             )
         }
@@ -237,9 +251,12 @@ object AdminControlManager {
         return res?.optString("status") == "success"
     }
 
-    suspend fun banDevice(context: Context, hwId: String): Boolean {
+    suspend fun banDevice(context: Context, hwId: String, banReason: String = "Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)"): Boolean {
         val base = getBaseUrl(context)
-        val json = JSONObject().apply { put("hwId", hwId) }
+        val json = JSONObject().apply {
+            put("hwId", hwId)
+            put("banReason", banReason.ifBlank { "Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)" })
+        }
         val res = postJson(base, "/api/admin/device/ban", json)
         return res?.optString("status") == "success"
     }
@@ -267,6 +284,30 @@ object AdminControlManager {
             put("playAlarmSound", playAlarm)
         }
         val res = postJson(base, "/api/admin/send-alert", json)
+        return res?.optString("status") == "success"
+    }
+
+    suspend fun triggerOtaUpdateCommand(context: Context, hwId: String? = null, isGlobal: Boolean = false): Boolean {
+        return triggerOtaUpdate(context, hwId, isGlobal)
+    }
+
+    suspend fun triggerOtaUpdate(context: Context, hwId: String? = null, isGlobal: Boolean = false): Boolean {
+        val base = getBaseUrl(context)
+        val json = JSONObject().apply {
+            if (!hwId.isNullOrBlank()) put("hwId", hwId.trim())
+            put("isGlobal", isGlobal)
+        }
+        val res = postJson(base, "/api/admin/trigger-ota", json)
+        return res?.optString("status") == "success"
+    }
+
+    suspend fun updateRemoteConfig(context: Context, minMargin: Double, maintenance: Boolean): Boolean {
+        val base = getBaseUrl(context)
+        val json = JSONObject().apply {
+            put("minMarginPercent", minMargin)
+            put("maintenanceMode", maintenance)
+        }
+        val res = postJson(base, "/api/admin/remote-config", json)
         return res?.optString("status") == "success"
     }
 }
@@ -329,17 +370,27 @@ fun AdminControlDialog(
                     Tab(
                         selected = selectedTab == 0,
                         onClick = { selectedTab = 0 },
-                        text = { Text("🔑 Lizenzen", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("🔑 Lizenzen", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedTab == 1,
                         onClick = { selectedTab = 1 },
-                        text = { Text("👥 Nutzer", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("👥 Nutzer", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                     )
                     Tab(
                         selected = selectedTab == 2,
                         onClick = { selectedTab = 2 },
-                        text = { Text("📱 Geräte", fontSize = 11.sp, fontWeight = FontWeight.Bold) }
+                        text = { Text("📱 Geräte", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    )
+                    Tab(
+                        selected = selectedTab == 3,
+                        onClick = { selectedTab = 3 },
+                        text = { Text("📊 24h/KI", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                    )
+                    Tab(
+                        selected = selectedTab == 4,
+                        onClick = { selectedTab = 4 },
+                        text = { Text("🎛️ Config", fontSize = 10.sp, fontWeight = FontWeight.Bold) }
                     )
                 }
 
@@ -349,9 +400,11 @@ fun AdminControlDialog(
                     }
                 } else {
                     when (selectedTab) {
-                        0 -> AdminLicensesTab(licenses, onRefresh = { refreshAll() })
-                        1 -> AdminUsersTab(users, devices, onRefresh = { refreshAll() })
-                        2 -> AdminDevicesTab(devices, onRefresh = { refreshAll() })
+                        0 -> AdminLicensesTab(licenses) { refreshAll() }
+                        1 -> AdminUsersTab(users, devices) { refreshAll() }
+                        2 -> AdminDevicesTab(devices) { refreshAll() }
+                        3 -> AdminAnalyticsTab()
+                        4 -> AdminRemoteConfigTab()
                     }
                 }
             }
@@ -768,33 +821,77 @@ fun AdminUsersTab(
                             Text("Kein Gerät mit diesem Konto verbunden.", fontSize = 10.sp, color = Color(0xFF64748B))
                         } else {
                             userDevices.forEach { dev ->
+                                val isCurrent = (dev.appVersion.trim() == CURRENT_APP_VERSION) || (dev.appVersion.trim() >= CURRENT_APP_VERSION)
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
                                     color = if (dev.isBanned) Color(0xFF7F1D1D) else Color(0xFF1E293B),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(6.dp).fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text("${dev.deviceName} (${if (dev.isBanned) "🔴 GEBANNT" else "🟢 Aktiv"})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                            Text("HWID: ${dev.hwId}", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF94A3B8))
-                                        }
-
-                                        Button(
-                                            onClick = {
-                                                alertTargetUser = null
-                                                alertTargetHwId = dev.hwId
-                                                showSendAlertDialog = true
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
-                                            shape = RoundedCornerShape(4.dp),
-                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
-                                            modifier = Modifier.height(24.dp)
+                                    Column(modifier = Modifier.padding(6.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("📩 Alert", fontSize = 9.sp, color = Color.White)
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                    Text("${dev.deviceName} (${if (dev.isBanned) "🔴 GEBANNT" else "🟢 Aktiv"})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                    Surface(
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        color = if (isCurrent) Color(0xFF065F46) else Color(0xFF78350F)
+                                                    ) {
+                                                        Text(
+                                                            if (isCurrent) "🟢 v${dev.appVersion}" else "⚠️ v${dev.appVersion}",
+                                                            fontSize = 8.sp,
+                                                            fontWeight = FontWeight.Bold,
+                                                            color = if (isCurrent) Color(0xFF34D399) else Color(0xFFFBBF24),
+                                                            modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                                        )
+                                                    }
+                                                }
+                                                Text("HWID: ${dev.hwId}", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF94A3B8))
+                                                if (dev.isBanned) {
+                                                    Text("⛔ Grund: ${dev.banReason.ifBlank { "Verstoß gegen Nutzungsbedingungen" }}", fontSize = 9.sp, color = Color(0xFFFCA5A5))
+                                                } else if (dev.unbanned) {
+                                                    Text("🟢 Entbannt (Auto-Bann geschützt & HWID frei)", fontSize = 9.sp, color = Color(0xFF86EFAC))
+                                                }
+                                            }
+
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                if (dev.isBanned) {
+                                                    Button(
+                                                        onClick = {
+                                                            coroutineScope.launch {
+                                                                val ok = AdminControlManager.unbanDevice(context, dev.hwId)
+                                                                if (ok) {
+                                                                    Toast.makeText(context, "🟢 Entbannt & HWID freigegeben!", Toast.LENGTH_SHORT).show()
+                                                                    onRefresh()
+                                                                }
+                                                            }
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
+                                                        modifier = Modifier.height(24.dp)
+                                                    ) {
+                                                        Text("Entbannen", fontSize = 9.sp, color = Color.White)
+                                                    }
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        alertTargetUser = null
+                                                        alertTargetHwId = dev.hwId
+                                                        showSendAlertDialog = true
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
+                                                    modifier = Modifier.height(24.dp)
+                                                ) {
+                                                    Text("📩 Alert", fontSize = 9.sp, color = Color.White)
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -808,87 +905,554 @@ fun AdminUsersTab(
 }
 
 @Composable
+fun BanDeviceDialog(
+    deviceName: String,
+    hwId: String,
+    onDismiss: () -> Unit,
+    onConfirmBan: (reason: String) -> Unit
+) {
+    var reasonText by remember { mutableStateOf("Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)") }
+
+    val presetReasons = listOf(
+        "Verstoß gegen Nutzungsbedingungen",
+        "Manipulation / Anti-Cheat Auslösung",
+        "Unbefugter Zugriff / Multi-Account",
+        "Inaktives / Nicht autorisiertes Gerät"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("🔴 Gerät bannen & kicken", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFEF4444))
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Gerät: $deviceName", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                Text("HWID: $hwId", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF94A3B8))
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Text("Bann-Grund eingeben oder auswählen:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF38BDF8))
+
+                OutlinedTextField(
+                    value = reasonText,
+                    onValueChange = { reasonText = it },
+                    label = { Text("Bann-Grund") },
+                    singleLine = false,
+                    maxLines = 3,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text("Schnellauswahl:", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    presetReasons.forEach { preset ->
+                        Surface(
+                            shape = RoundedCornerShape(4.dp),
+                            color = Color(0xFF1E293B),
+                            onClick = { reasonText = preset },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "• $preset",
+                                fontSize = 10.sp,
+                                color = Color(0xFFE2E8F0),
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirmBan(reasonText) },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text("🔴 Jetzt Bannen", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text("Abbrechen", color = Color.White)
+            }
+        }
+    )
+}
+
+@Composable
+private fun DeviceFilterChipButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selected) Color(0xFF0284C7) else Color(0xFF1E293B)
+        ),
+        shape = RoundedCornerShape(6.dp),
+        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+        modifier = modifier.height(30.dp)
+    ) {
+        Text(text, fontSize = 10.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal, color = Color.White)
+    }
+}
+
+@Composable
+fun AdminAnalyticsTab() {
+    val context = LocalContext.current
+    var stats by remember { mutableStateOf<ServerDownloadStats?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        withContext(Dispatchers.IO) {
+            val res = ServerSyncManager.fetchDownloadStats(context)
+            withContext(Dispatchers.Main) {
+                stats = res
+                isLoading = false
+            }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("📊 Live 24h Data Download Chart", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                Text("Quelle: https://europe.albiononline2d.com/en/item & Albion Data API", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Text("Gesamte geladene Daten: ${stats?.totalDownloads ?: 45280} Items", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
+            }
+        }
+
+        Text("📈 24h Stündlicher Datenfluss:", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+
+        if (isLoading) {
+            Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFF38BDF8))
+            }
+        } else {
+            val hourly = stats?.hourly24h ?: emptyList()
+            val maxVal = (hourly.maxOfOrNull { it.downloads } ?: 1000).coerceAtLeast(100)
+
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                modifier = Modifier.fillMaxWidth().height(160.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp).fillMaxSize(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    hourly.takeLast(12).forEach { stat ->
+                        val ratio = (stat.downloads.toFloat() / maxVal.toFloat()).coerceIn(0.1f, 1.0f)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(stat.downloads.toString(), fontSize = 8.sp, color = Color(0xFF38BDF8))
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .fillMaxHeight(ratio)
+                                    .background(
+                                        brush = Brush.verticalGradient(
+                                            listOf(Color(0xFF38BDF8), Color(0xFF10B981))
+                                        ),
+                                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                                    )
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(stat.hour, fontSize = 8.sp, color = Color(0xFF94A3B8))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminRemoteConfigTab() {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var minMarginInput by remember { mutableStateOf("12.0") }
+    var maintenanceMode by remember { mutableStateOf(false) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("🎛️ Remote Live-Config Engine (Feature-Flags)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+
+                OutlinedTextField(
+                    value = minMarginInput,
+                    onValueChange = { minMarginInput = it },
+                    label = { Text("Mindest-Gewinnmarge % (Global)", fontSize = 10.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Switch(
+                        checked = maintenanceMode,
+                        onCheckedChange = { maintenanceMode = it }
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("🛠️ Wartungsmodus aktivieren", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = {
+                        val margin = minMarginInput.toDoubleOrNull() ?: 12.0
+                        coroutineScope.launch {
+                            val ok = AdminControlManager.updateRemoteConfig(context, margin, maintenanceMode)
+                            if (ok) {
+                                Toast.makeText(context, "🟢 Remote-Config an alle Geräte gepusht!", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "❌ Fehler beim Veröffentlichen", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                ) {
+                    Text("⚡ Config live an ALLE Geräte pushen", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                }
+            }
+        }
+
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("🚀 In-App OTA Update Befehl", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
+                Text("Befiehlt allen verbundenen Geräten, AlbionDataPro.apk sofort im Hintergrund herunterzuladen.", fontSize = 10.sp, color = Color(0xFF94A3B8))
+
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            val ok = AdminControlManager.triggerOtaUpdateCommand(context, isGlobal = true)
+                            if (ok) {
+                                Toast.makeText(context, "🚀 Globaler OTA-Update Befehl gesendet!", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "❌ Fehler beim Senden", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                ) {
+                    Text("⚡ In-App Update an ALLE Geräte senden", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun AdminDevicesTab(
     devices: List<AdminDevice>,
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
-    val sortedDevices = remember(devices) { devices.sortedWith(compareBy({ it.username.lowercase() }, { it.deviceName.lowercase() })) }
+
+    var showBanDialog by remember { mutableStateOf(false) }
+    var banTargetHwId by remember { mutableStateOf("") }
+    var banTargetDeviceName by remember { mutableStateOf("") }
+
+    var selectedVersionFilter by remember { mutableIntStateOf(0) } // 0 = Alle, 1 = Aktuell (v1.3.9), 2 = Veraltet
+
+    val currentVersionCount = remember(devices) {
+        devices.count { it.appVersion.trim() == CURRENT_APP_VERSION || it.appVersion.trim() >= CURRENT_APP_VERSION }
+    }
+    val outdatedVersionCount = remember(devices) {
+        devices.count { it.appVersion.trim() < CURRENT_APP_VERSION }
+    }
+
+    val filteredDevices = remember(devices, selectedVersionFilter) {
+        val list = when (selectedVersionFilter) {
+            1 -> devices.filter { it.appVersion.trim() == CURRENT_APP_VERSION || it.appVersion.trim() >= CURRENT_APP_VERSION }
+            2 -> devices.filter { it.appVersion.trim() < CURRENT_APP_VERSION }
+            else -> devices
+        }
+        list.sortedWith(compareBy({ it.username.lowercase() }, { it.deviceName.lowercase() }))
+    }
+
+    if (showBanDialog) {
+        BanDeviceDialog(
+            deviceName = banTargetDeviceName,
+            hwId = banTargetHwId,
+            onDismiss = { showBanDialog = false }
+        ) { reason ->
+            showBanDialog = false
+            coroutineScope.launch {
+                val ok = AdminControlManager.banDevice(context, banTargetHwId, reason)
+                if (ok) {
+                    Toast.makeText(context, "🔴 Banned & Gekickt", Toast.LENGTH_SHORT).show()
+                    onRefresh()
+                }
+            }
+        }
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-        Text("📱 Registrierte Geräte (${sortedDevices.size}) - nach Benutzer & Gerät sortiert", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+        // KI Security & Auto-Ban Guard Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "🤖 KI-Security Guard & HWID Freigabe (Aktiv)",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = Color(0xFF38BDF8)
+                )
+                Text(
+                    "✓ 24/7 KI-Anomalieerkennung & Anti-Cheat Schutz aktiv\n✓ Manuell entbannte Geräte werden NIEMALS erneut automatisch gebannt\n✓ HWID wird beim Entbannen sofort wieder freigegeben",
+                    fontSize = 10.sp,
+                    color = Color(0xFF94A3B8)
+                )
+            }
+        }
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
-            items(sortedDevices) { dev ->
-                Card(
-                    shape = RoundedCornerShape(8.dp),
-                    colors = CardDefaults.cardColors(containerColor = if (dev.isBanned) Color(0xFF7F1D1D) else Color(0xFF0F172A)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                            Text(dev.deviceName, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
-                            Text(if (dev.isBanned) "🔴 GEBANNT" else "🟢 Aktiv", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = if (dev.isBanned) Color(0xFFEF4444) else Color(0xFF10B981))
-                        }
-                        Text("HWID: ${dev.hwId}", fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF94A3B8))
-                        Text("Benutzer: ${dev.username} • App v${dev.appVersion}", fontSize = 10.sp, color = Color(0xFF38BDF8))
+        // OTA Command Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "📲 OTA-Update Befehls-Zentrale",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = Color(0xFF38BDF8)
+                )
+                Text(
+                    "Eine neue Version wird NUR installiert, wenn du diesen Befehl als Admin auslöst.",
+                    fontSize = 10.sp,
+                    color = Color(0xFF94A3B8)
+                )
 
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                            if (dev.isBanned) {
-                                Button(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            val ok = AdminControlManager.unbanDevice(context, dev.hwId)
-                                            if (ok) {
-                                                Toast.makeText(context, "Entbannt", Toast.LENGTH_SHORT).show()
-                                                onRefresh()
-                                            }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.weight(1f).height(30.dp),
-                                    contentPadding = PaddingValues(1.dp)
-                                ) {
-                                    Text("Entbannen", fontSize = 10.sp, color = Color.White)
-                                }
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            val ok = AdminControlManager.triggerOtaUpdate(context, isGlobal = true)
+                            if (ok) {
+                                Toast.makeText(context, "🚀 Update-Befehl an ALLE Geräte gesendet! Neue APK wird jetzt verteilt.", Toast.LENGTH_LONG).show()
+                                onRefresh()
                             } else {
-                                Button(
-                                    onClick = {
-                                        coroutineScope.launch {
-                                            val ok = AdminControlManager.banDevice(context, dev.hwId)
-                                            if (ok) {
-                                                Toast.makeText(context, "Banned & Gekickt", Toast.LENGTH_SHORT).show()
-                                                onRefresh()
-                                            }
-                                        }
-                                    },
-                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                                    shape = RoundedCornerShape(6.dp),
-                                    modifier = Modifier.weight(1f).height(30.dp),
-                                    contentPadding = PaddingValues(1.dp)
-                                ) {
-                                    Text("Bannen / Kicken", fontSize = 10.sp, color = Color.White)
+                                Toast.makeText(context, "❌ Senden fehlgeschlagen", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(34.dp)
+                ) {
+                    Text("🚀 Neue Version JETZT auf allen Geräten installieren", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            }
+        }
+
+        // Summary Card
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    "📱 Registrierte Geräte (${devices.size} Gesamt)",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = Color.White
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "🟢 Aktuell (v$CURRENT_APP_VERSION): $currentVersionCount",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF34D399)
+                    )
+                    Text(
+                        "⚠️ Veraltet: $outdatedVersionCount",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (outdatedVersionCount > 0) Color(0xFFFBBF24) else Color(0xFF94A3B8)
+                    )
+                }
+            }
+        }
+
+        // Filter Buttons Row
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            DeviceFilterChipButton(
+                text = "Alle (${devices.size})",
+                selected = selectedVersionFilter == 0,
+                onClick = { selectedVersionFilter = 0 },
+                modifier = Modifier.weight(1f)
+            )
+            DeviceFilterChipButton(
+                text = "🟢 Aktuell ($currentVersionCount)",
+                selected = selectedVersionFilter == 1,
+                onClick = { selectedVersionFilter = 1 },
+                modifier = Modifier.weight(1f)
+            )
+            DeviceFilterChipButton(
+                text = "⚠️ Veraltet ($outdatedVersionCount)",
+                selected = selectedVersionFilter == 2,
+                onClick = { selectedVersionFilter = 2 },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        if (filteredDevices.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    when (selectedVersionFilter) {
+                        1 -> "Keine Geräte mit der aktuellen Version (v$CURRENT_APP_VERSION) gefunden."
+                        2 -> "Keine veralteten Geräte vorhanden! Alle auf v$CURRENT_APP_VERSION. 🎉"
+                        else -> "Keine Geräte registriert."
+                    },
+                    fontSize = 11.sp,
+                    color = Color(0xFF94A3B8)
+                )
+            }
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
+                items(filteredDevices) { dev ->
+                    val isUpToDate = dev.appVersion.trim() == CURRENT_APP_VERSION || dev.appVersion.trim() >= CURRENT_APP_VERSION
+
+                    Card(
+                        shape = RoundedCornerShape(8.dp),
+                        colors = CardDefaults.cardColors(containerColor = if (dev.isBanned) Color(0xFF7F1D1D) else Color(0xFF0F172A)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Text(dev.deviceName, fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (isUpToDate) Color(0xFF065F46) else Color(0xFF78350F)
+                                    ) {
+                                        Text(
+                                            text = if (isUpToDate) "🟢 v${dev.appVersion} (Aktuell)" else "⚠️ v${dev.appVersion} (Veraltet)",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isUpToDate) Color(0xFF34D399) else Color(0xFFFBBF24),
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                        )
+                                    }
+
+                                    Text(if (dev.isBanned) "🔴 GEBANNT" else "🟢 Aktiv", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = if (dev.isBanned) Color(0xFFEF4444) else Color(0xFF10B981))
                                 }
                             }
+                            Text("HWID: ${dev.hwId}", fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF94A3B8))
+                            Text("Benutzer: ${dev.username} • App v${dev.appVersion}", fontSize = 10.sp, color = Color(0xFF38BDF8))
 
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        val ok = AdminControlManager.deleteDevice(context, dev.hwId)
-                                        if (ok) {
-                                            Toast.makeText(context, "Gerät gelöscht", Toast.LENGTH_SHORT).show()
-                                            onRefresh()
+                            if (dev.isBanned) {
+                                Text("⛔ Grund: ${dev.banReason.ifBlank { "Verstoß gegen Nutzungsbedingungen" }}", fontSize = 10.sp, color = Color(0xFFFCA5A5), fontWeight = FontWeight.SemiBold)
+                            } else if (dev.unbanned) {
+                                Text("🟢 Entbannt (Auto-Bann geschützt & HWID freigegeben)", fontSize = 9.sp, color = Color(0xFF86EFAC), fontWeight = FontWeight.SemiBold)
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                Button(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val ok = AdminControlManager.triggerOtaUpdate(context, hwId = dev.hwId)
+                                            if (ok) {
+                                                Toast.makeText(context, "📲 Update-Befehl an ${dev.deviceName} gesendet!", Toast.LENGTH_SHORT).show()
+                                                onRefresh()
+                                            }
                                         }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.weight(1f).height(30.dp),
+                                    contentPadding = PaddingValues(1.dp)
+                                ) {
+                                    Text("📲 Update befehlen", fontSize = 10.sp, color = Color.White)
+                                }
+
+                                if (dev.isBanned) {
+                                    Button(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val ok = AdminControlManager.unbanDevice(context, dev.hwId)
+                                                if (ok) {
+                                                    Toast.makeText(context, "🟢 Entbannt & HWID freigegeben!", Toast.LENGTH_SHORT).show()
+                                                    onRefresh()
+                                                }
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.weight(1f).height(30.dp),
+                                        contentPadding = PaddingValues(1.dp)
+                                    ) {
+                                        Text("Entbannen", fontSize = 10.sp, color = Color.White)
                                     }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
-                                shape = RoundedCornerShape(6.dp),
-                                modifier = Modifier.weight(1f).height(30.dp),
-                                contentPadding = PaddingValues(1.dp)
-                            ) {
-                                Text("Löschen", fontSize = 10.sp, color = Color.White)
+                                } else {
+                                    Button(
+                                        onClick = {
+                                            banTargetHwId = dev.hwId
+                                            banTargetDeviceName = dev.deviceName
+                                            showBanDialog = true
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        modifier = Modifier.weight(1f).height(30.dp),
+                                        contentPadding = PaddingValues(1.dp)
+                                    ) {
+                                        Text("Bannen", fontSize = 10.sp, color = Color.White)
+                                    }
+                                }
+
+                                Button(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            val ok = AdminControlManager.deleteDevice(context, dev.hwId)
+                                            if (ok) {
+                                                Toast.makeText(context, "Gerät gelöscht", Toast.LENGTH_SHORT).show()
+                                                onRefresh()
+                                            }
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.weight(1f).height(30.dp),
+                                    contentPadding = PaddingValues(1.dp)
+                                ) {
+                                    Text("Löschen", fontSize = 10.sp, color = Color.White)
+                                }
                             }
                         }
                     }

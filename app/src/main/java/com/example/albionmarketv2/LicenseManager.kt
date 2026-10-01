@@ -217,13 +217,21 @@ object LicenseManager {
         return 0L
     }
 
-    fun updateLicenseFromServer(context: Context, isBanned: Boolean, bannedUntilStr: String?, isLicenseActive: Boolean, licenseExpiresAtStr: String?) {
+    fun updateLicenseFromServer(
+        context: Context,
+        isBanned: Boolean,
+        bannedUntilStr: String?,
+        banReasonStr: String? = null,
+        isLicenseActive: Boolean,
+        licenseExpiresAtStr: String?
+    ) {
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
 
         prefs.edit()
             .putBoolean("server_banned_$hwId", isBanned)
             .putString("server_banned_until_$hwId", bannedUntilStr ?: "")
+            .putString("server_ban_reason_$hwId", banReasonStr ?: "")
             .apply()
 
         if (licenseExpiresAtStr != null && licenseExpiresAtStr.isNotBlank()) {
@@ -240,6 +248,12 @@ object LicenseManager {
         return prefs.getBoolean("server_banned_$hwId", false)
     }
 
+    fun getBanReason(context: Context): String {
+        val prefs = getPrefs(context)
+        val hwId = getHardwareId(context)
+        return prefs.getString("server_ban_reason_$hwId", "") ?: ""
+    }
+
     fun getExpirationDateString(context: Context): String {
         val appPrefs = AppPreferences(context)
         if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
@@ -251,7 +265,10 @@ object LicenseManager {
 
         if (isServerBanned(context)) {
             val bannedUntil = prefs.getString("server_banned_until_$hwId", "")
-            return "🚫 Gerät vom Server gebannt${if (!bannedUntil.isNullOrEmpty()) " bis: $bannedUntil" else ""}"
+            val banReason = prefs.getString("server_ban_reason_$hwId", "")
+            val reasonStr = if (!banReason.isNullOrEmpty()) " • Grund: $banReason" else ""
+            val untilStr = if (!bannedUntil.isNullOrEmpty()) " bis: $bannedUntil" else ""
+            return "🚫 Gerät vom Server gebannt$untilStr$reasonStr"
         }
 
         val lifetimeDevices = prefs.getString("admin_lifetime_devices", "") ?: ""

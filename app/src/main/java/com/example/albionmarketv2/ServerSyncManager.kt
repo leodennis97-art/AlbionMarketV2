@@ -106,6 +106,7 @@ object ServerSyncManager {
 
                             val isBanned = jsonObj.optBoolean("isBanned", false)
                             val bannedUntil = jsonObj.optString("bannedUntil", "")
+                            val banReason = jsonObj.optString("banReason", "")
                             val isLicenseActive = jsonObj.optBoolean("isLicenseActive", false)
                             val licenseExpiresAt = jsonObj.optString("licenseExpiresAt", "")
                             val hasOtaUpdate = jsonObj.optBoolean("hasOtaUpdate", false)
@@ -121,7 +122,13 @@ object ServerSyncManager {
                                 )
                             }
 
-                            LicenseManager.updateLicenseFromServer(context, isBanned, bannedUntil, isLicenseActive, licenseExpiresAt)
+                            val remoteConfigObj = jsonObj.optJSONObject("remoteConfig")
+                            if (remoteConfigObj != null) {
+                                val minMargin = remoteConfigObj.optDouble("minMarginPercent", 12.0)
+                                appPrefs.targetMarginPercent = minMargin
+                            }
+
+                            LicenseManager.updateLicenseFromServer(context, isBanned, bannedUntil, banReason, isLicenseActive, licenseExpiresAt)
 
                             if (hasOtaUpdate) {
                                 isOtaUpdateAvailable = true
@@ -165,6 +172,47 @@ object ServerSyncManager {
             isServerConnected = false
             null
         }
+    }
+
+    suspend fun sendTelemetryLog(
+        context: Context,
+        batteryLevel: Int = -1,
+        memoryUsageMb: Long = 0L,
+        pingMs: Long = 0L,
+        errorTrace: String? = null
+    ): Boolean = withContext(Dispatchers.IO) {
+        val hwId = DeviceHardwareManager.getHardwareId(context)
+        val prefs = AppPreferences(context)
+        val payload = JSONObject().apply {
+            put("hwId", hwId)
+            put("username", prefs.savedUsername)
+            put("deviceName", "${Build.MANUFACTURER} ${Build.MODEL}")
+            put("batteryLevel", batteryLevel)
+            put("memoryUsageMb", memoryUsageMb)
+            put("pingMs", pingMs)
+            if (errorTrace != null) put("errorTrace", errorTrace)
+        }.toString()
+
+        val urls = getServerBaseUrls(context).map { "$it/api/telemetry/log" }
+        for (urlStr in urls) {
+            var conn: HttpURLConnection? = null
+            try {
+                val url = URL(urlStr)
+                conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                conn.connectTimeout = 3000
+                conn.readTimeout = 3000
+                conn.doOutput = true
+                conn.outputStream.use { os -> os.write(payload.toByteArray(Charsets.UTF_8)) }
+                if (conn.responseCode == HttpURLConnection.HTTP_OK) return@withContext true
+            } catch (_: Exception) {
+            } finally {
+                conn?.disconnect()
+            }
+        }
+        false
     }
 
     suspend fun fetchDownloadStats(context: Context? = null): ServerDownloadStats = withContext(Dispatchers.IO) {
