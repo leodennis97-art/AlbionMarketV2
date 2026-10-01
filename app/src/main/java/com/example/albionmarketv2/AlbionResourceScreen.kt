@@ -8,10 +8,8 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import androidx.core.net.toUri
-import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
-import kotlinx.coroutines.*
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -112,14 +110,11 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -3979,7 +3974,7 @@ fun CraftingTabContent(
                                     )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "${idx + 1}. ${res.nameDe} (${bonusCity})",
+                                        text = "${idx + 1}. ${res.nameDe} ($bonusCity)",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -4082,7 +4077,7 @@ fun CraftingTabContent(
 
         val royalCities = listOf("Bridgewatch", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Caerleon", "Brecilien")
 
-        items(filteredItems.distinctBy { it.fullId }.take(25), key = { "${it.fullId}_${it.tier}_${it.category.name}" }) { res ->
+        items(filteredItems.asSequence().distinctBy { it.fullId }.take(25).toList(), key = { "${it.fullId}_${it.tier}_${it.category.name}" }) { res ->
             val recipe = try { CraftingRepository.getRecipeFor(res) } catch (_: Exception) { CraftingRecipe(res.fullId, res.nameDe, res.nameEn, res.tier, res.category, emptyList()) }
             val itemSellPrice = try { CraftingRepository.getPriceInCity(res.fullId, selectedCity, priceMap) } catch (_: Exception) { 1500 }
             val totalCraftingCost = recipe.ingredients.sumOf { ing ->
@@ -4494,7 +4489,7 @@ fun IslandTabContent(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    val top3Income = remember { buildings.sortedByDescending { it.estimatedDailyIncomeSilver }.take(3) }
+                    val top3Income = remember { buildings.asSequence().sortedByDescending { it.estimatedDailyIncomeSilver }.take(3).toList() }
                     top3Income.forEachIndexed { idx, bldg ->
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -4948,7 +4943,7 @@ fun AppSettingsDialog(
                         Text(savedEmail.ifBlank { "Nicht hinterlegt / Standard" }, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("Aktivierter Lizenzschlüssel:", fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(if (activatedCode.isNotBlank()) activatedCode else "Kein Schlüssel aktiv", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), fontFamily = FontFamily.Monospace)
+                        Text(activatedCode.ifBlank { "Kein Schlüssel aktiv" }, fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981), fontFamily = FontFamily.Monospace)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("Hardware-ID:", fontWeight = FontWeight.SemiBold, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(hwId, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface, fontFamily = FontFamily.Monospace)

@@ -326,13 +326,21 @@ app.post('/api/devices/ping', (req, res) => {
     const isBanned = existingDevice.bannedUntil && new Date(existingDevice.bannedUntil) > now;
     const isLicenseActive = existingDevice.licenseExpiresAt && new Date(existingDevice.licenseExpiresAt) > now;
 
+    // Retrieve pending popup alert for this device / user
+    const pendingAlert = existingDevice.pendingAlert || null;
+    if (pendingAlert) {
+        delete existingDevice.pendingAlert;
+        saveDevices();
+    }
+
     res.json({
         status: isBanned ? 'banned' : 'success',
         isBanned: !!isBanned,
         isLicenseActive: !!isLicenseActive,
         licenseExpiresAt: existingDevice.licenseExpiresAt,
         hasOtaUpdate: (appVersion !== '1.3.9'),
-        targetVersion: '1.3.9'
+        targetVersion: '1.3.9',
+        popupAlert: pendingAlert
     });
 });
 
@@ -365,6 +373,33 @@ app.post('/api/admin/user/delete', (req, res) => {
     registeredUsers = registeredUsers.filter(u => u.username !== username);
     saveUsers();
     res.json({ status: 'success', registeredUsers });
+});
+
+// Admin Broadcast / Direct Screen Alert Endpoint
+app.post('/api/admin/send-alert', (req, res) => {
+    const { targetUsername, hwId, message, playAlarmSound } = req.body;
+    if (!message) return res.status(400).json({ error: 'Nachricht erforderlich' });
+
+    let count = 0;
+    registeredDevices.forEach(d => {
+        const matchesUser = targetUsername && d.username && d.username.toLowerCase() === targetUsername.trim().toLowerCase();
+        const matchesHwId = hwId && d.hwId && d.hwId.toLowerCase() === hwId.trim().toLowerCase();
+        const isBroadcast = !targetUsername && !hwId;
+
+        if (isBroadcast || matchesUser || matchesHwId) {
+            d.pendingAlert = {
+                id: 'alert_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+                title: '📢 Admin-Nachricht',
+                message: message.trim(),
+                playAlarmSound: !!playAlarmSound,
+                timestamp: new Date().toISOString()
+            };
+            count++;
+        }
+    });
+
+    saveDevices();
+    res.json({ status: 'success', sentToCount: count, message: `Nachricht an ${count} Gerät(e) gesendet.` });
 });
 
 // License Generation Endpoint
@@ -405,12 +440,13 @@ app.post('/api/admin/license/delete', (req, res) => {
 });
 
 app.post('/api/admin/device/ban', (req, res) => {
-    const { hwId } = req.body;
+    const { hwId, banReason } = req.body;
     const device = registeredDevices.find(d => d.hwId === hwId);
     if (device) {
         const banExp = new Date();
-        banExp.setDate(banExp.getDate() + 30);
+        banExp.setDate(banExp.getDate() + 3650); // Ban for 10 years basically
         device.bannedUntil = banExp.toISOString();
+        device.banReason = banReason || 'Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)';
         saveDevices();
     }
     res.json({ status: 'success', registeredDevices });
@@ -421,6 +457,7 @@ app.post('/api/admin/device/unban', (req, res) => {
     const device = registeredDevices.find(d => d.hwId === hwId);
     if (device) {
         device.bannedUntil = null;
+        device.banReason = null;
         saveDevices();
     }
     res.json({ status: 'success', registeredDevices });

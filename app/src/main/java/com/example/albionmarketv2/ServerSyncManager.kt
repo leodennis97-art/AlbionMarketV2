@@ -1,7 +1,6 @@
 package com.example.albionmarketv2
 
 import android.content.Context
-import android.net.wifi.WifiManager
 import android.os.Build
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,7 +14,6 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Locale
 
 data class HourlyDownloadStat(
     val hour: String,
@@ -27,10 +25,19 @@ data class ServerDownloadStats(
     val hourly24h: List<HourlyDownloadStat>,
 )
 
+data class ServerPopupAlert(
+    val id: String,
+    val title: String,
+    val message: String,
+    val playAlarmSound: Boolean,
+    val timestamp: String
+)
+
 object ServerSyncManager {
 
     var isOtaUpdateAvailable by mutableStateOf(false)
     var isServerConnected by mutableStateOf(false)
+    var activePopupAlert by mutableStateOf<ServerPopupAlert?>(null)
     var lastSuccessfulUrl: String? = null
 
     fun getServerBaseUrls(context: Context? = null): List<String> {
@@ -102,6 +109,17 @@ object ServerSyncManager {
                             val isLicenseActive = jsonObj.optBoolean("isLicenseActive", false)
                             val licenseExpiresAt = jsonObj.optString("licenseExpiresAt", "")
                             val hasOtaUpdate = jsonObj.optBoolean("hasOtaUpdate", false)
+
+                            val popupObj = jsonObj.optJSONObject("popupAlert")
+                            if (popupObj != null) {
+                                activePopupAlert = ServerPopupAlert(
+                                    id = popupObj.optString("id", ""),
+                                    title = popupObj.optString("title", "📢 Admin-Nachricht"),
+                                    message = popupObj.optString("message", ""),
+                                    playAlarmSound = popupObj.optBoolean("playAlarmSound", false),
+                                    timestamp = popupObj.optString("timestamp", "")
+                                )
+                            }
 
                             LicenseManager.updateLicenseFromServer(context, isBanned, bannedUntil, isLicenseActive, licenseExpiresAt)
 
@@ -271,6 +289,77 @@ object ServerSyncManager {
                 }
             }
             false
+        }
+    }
+
+    suspend fun fetchCloudPrices(context: Context): List<PriceSnapshot> = withContext(Dispatchers.IO) {
+        val urlsToTry = getServerBaseUrls(context).map { "$it/api/prices/recent" }
+
+        supervisorScope {
+            val deferredResults = urlsToTry.map { serverUrl ->
+                async(Dispatchers.IO) {
+                    var connection: HttpURLConnection? = null
+                    try {
+                        val url = URL(serverUrl)
+                        connection = url.openConnection() as HttpURLConnection
+                        connection.requestMethod = "GET"
+                        connection.setRequestProperty("Accept", "application/json")
+                        connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                        connection.connectTimeout = 8000
+                        connection.readTimeout = 8000
+
+                        if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                            val response = connection.inputStream.bufferedReader().use { it.readText() }
+                            val list = mutableListOf<PriceSnapshot>()
+                            if (response.trim().startsWith("[")) {
+                                val jsonArray = JSONArray(response)
+                                for (i in 0 until jsonArray.length()) {
+                                    val obj = jsonArray.getJSONObject(i)
+                                    list.add(
+                                        PriceSnapshot(
+                                            itemId = obj.optString("itemId", ""),
+                                            city = obj.optString("city", ""),
+                                            sellPriceMin = obj.optInt("sellPriceMin", 0),
+                                            buyPriceMax = obj.optInt("buyPriceMax", 0),
+                                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                                        )
+                                    )
+                                }
+                            } else if (response.trim().startsWith("{")) {
+                                val jsonObj = JSONObject(response)
+                                val snapshotsArr = jsonObj.optJSONArray("snapshots")
+                                if (snapshotsArr != null) {
+                                    for (i in 0 until snapshotsArr.length()) {
+                                        val obj = snapshotsArr.getJSONObject(i)
+                                        list.add(
+                                            PriceSnapshot(
+                                                itemId = obj.optString("itemId", ""),
+                                                city = obj.optString("city", ""),
+                                                sellPriceMin = obj.optInt("sellPriceMin", 0),
+                                                buyPriceMax = obj.optInt("buyPriceMax", 0),
+                                                timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                                            )
+                                        )
+                                    }
+                                }
+                            }
+                            return@async list
+                        }
+                    } catch (_: Exception) {
+                    } finally {
+                        connection?.disconnect()
+                    }
+                    null
+                }
+            }
+
+            for (deferred in deferredResults) {
+                val result = deferred.await()
+                if (!result.isNullOrEmpty()) {
+                    return@supervisorScope result
+                }
+            }
+            emptyList()
         }
     }
 

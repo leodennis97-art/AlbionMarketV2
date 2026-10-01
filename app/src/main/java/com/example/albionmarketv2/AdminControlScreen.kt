@@ -5,8 +5,6 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,28 +20,24 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -71,14 +65,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.Date
 
 data class AdminUser(
     val username: String,
     val password: String = "••••••••",
     val isAdmin: Boolean,
     val isLicensed: Boolean,
-    val licenseExpiresAt: String
+    val licenseExpiresAt: String,
 )
 
 data class AdminLicense(
@@ -86,7 +79,7 @@ data class AdminLicense(
     val tier: String,
     val price: String,
     val created: String,
-    val note: String
+    val note: String,
 )
 
 data class AdminDevice(
@@ -96,7 +89,7 @@ data class AdminDevice(
     val username: String,
     val lastSeen: String,
     val licenseExpiresAt: String,
-    val isBanned: Boolean
+    val isBanned: Boolean,
 )
 
 object AdminControlManager {
@@ -120,7 +113,7 @@ object AdminControlManager {
                 os.write(json.toString().toByteArray(Charsets.UTF_8))
             }
 
-            if (conn.responseCode in 200..299) {
+            if (conn.responseCode in (200..299)) {
                 val resStr = conn.inputStream.bufferedReader().use { it.readText() }
                 return@withContext JSONObject(resStr)
             }
@@ -191,7 +184,6 @@ object AdminControlManager {
         val base = getBaseUrl(context)
         val arr = getJsonArray(base, "/api/devices") ?: return emptyList()
         val list = mutableListOf<AdminDevice>()
-        val now = Date()
         for (i in 0 until arr.length()) {
             val obj = arr.getJSONObject(i)
             val bannedUntil = obj.optString("bannedUntil", "")
@@ -263,6 +255,18 @@ object AdminControlManager {
         val base = getBaseUrl(context)
         val json = JSONObject().apply { put("hwId", hwId) }
         val res = postJson(base, "/api/admin/device/delete", json)
+        return res?.optString("status") == "success"
+    }
+
+    suspend fun sendAlertMessage(context: Context, targetUsername: String?, hwId: String?, message: String, playAlarm: Boolean): Boolean {
+        val base = getBaseUrl(context)
+        val json = JSONObject().apply {
+            if (!targetUsername.isNullOrBlank()) put("targetUsername", targetUsername.trim())
+            if (!hwId.isNullOrBlank()) put("hwId", hwId.trim())
+            put("message", message.trim())
+            put("playAlarmSound", playAlarm)
+        }
+        val res = postJson(base, "/api/admin/send-alert", json)
         return res?.optString("status") == "success"
     }
 }
@@ -346,7 +350,7 @@ fun AdminControlDialog(
                 } else {
                     when (selectedTab) {
                         0 -> AdminLicensesTab(licenses, onRefresh = { refreshAll() })
-                        1 -> AdminUsersTab(users, onRefresh = { refreshAll() })
+                        1 -> AdminUsersTab(users, devices, onRefresh = { refreshAll() })
                         2 -> AdminDevicesTab(devices, onRefresh = { refreshAll() })
                     }
                 }
@@ -398,7 +402,7 @@ fun AdminLicensesTab(
                 Text("➕ Neue Lizenz generieren", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                    tiers.take(3).forEach { (code, label) ->
+                    tiers.take(3).forEach { (code, _) ->
                         Button(
                             onClick = { selectedTier = code },
                             colors = ButtonDefaults.buttonColors(
@@ -414,7 +418,7 @@ fun AdminLicensesTab(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                    tiers.drop(3).forEach { (code, label) ->
+                    tiers.drop(3).forEach { (code, _) ->
                         Button(
                             onClick = { selectedTier = code },
                             colors = ButtonDefaults.buttonColors(
@@ -537,12 +541,89 @@ fun AdminLicensesTab(
 @Composable
 fun AdminUsersTab(
     users: List<AdminUser>,
+    devices: List<AdminDevice>,
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var newUsername by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
+
+    var alertTargetUser by remember { mutableStateOf<String?>(null) }
+    var alertTargetHwId by remember { mutableStateOf<String?>(null) }
+    var alertMessageInput by remember { mutableStateOf("") }
+    var alertPlayAlarmSound by remember { mutableStateOf(true) }
+    var showSendAlertDialog by remember { mutableStateOf(false) }
+
+    if (showSendAlertDialog) {
+        AlertDialog(
+            onDismissRequest = { showSendAlertDialog = false },
+            title = {
+                Text(
+                    text = if (alertTargetUser != null) "📢 Nachricht an '$alertTargetUser'" else if (alertTargetHwId != null) "📢 Nachricht an HWID '$alertTargetHwId'" else "📢 Broadcast an ALLE Geräte",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 14.sp,
+                    color = Color.White
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = alertMessageInput,
+                        onValueChange = { alertMessageInput = it },
+                        label = { Text("Bildschirm-Nachricht", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth().height(100.dp)
+                    )
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { alertPlayAlarmSound = !alertPlayAlarmSound }
+                    ) {
+                        Checkbox(
+                            checked = alertPlayAlarmSound,
+                            onCheckedChange = { alertPlayAlarmSound = it },
+                            colors = CheckboxDefaults.colors(checkedColor = Color(0xFFEF4444))
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("🚨 Lauten Alarm-Ton beim Empfang abspielen", fontSize = 11.sp, color = Color.White)
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (alertMessageInput.isBlank()) return@Button
+                        coroutineScope.launch {
+                            val ok = AdminControlManager.sendAlertMessage(
+                                context,
+                                targetUsername = alertTargetUser,
+                                hwId = alertTargetHwId,
+                                message = alertMessageInput,
+                                playAlarm = alertPlayAlarmSound
+                            )
+                            if (ok) {
+                                Toast.makeText(context, "📢 Nachricht an Gerät(e) übertragen!", Toast.LENGTH_LONG).show()
+                                showSendAlertDialog = false
+                                alertMessageInput = ""
+                            } else {
+                                Toast.makeText(context, "❌ Übertragung fehlgeschlagen", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                ) {
+                    Text("Senden", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = { showSendAlertDialog = false }) {
+                    Text("Abbrechen")
+                }
+            }
+        )
+    }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         Card(
@@ -551,7 +632,21 @@ fun AdminUsersTab(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("👤 Neuen Benutzer erstellen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("👤 Neuen Benutzer erstellen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                    Button(
+                        onClick = {
+                            alertTargetUser = null
+                            alertTargetHwId = null
+                            showSendAlertDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                    ) {
+                        Text("📢 Broadcast an ALLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
 
                 OutlinedTextField(
                     value = newUsername,
@@ -597,47 +692,112 @@ fun AdminUsersTab(
 
         val sortedUsers = remember(users) { users.sortedBy { it.username.lowercase() } }
 
-        Text("👥 Alle Benutzer (${sortedUsers.size}) - Alphabetisch sortiert", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+        Text("👥 Benutzer & Zugeordnete Geräte (${sortedUsers.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
 
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
             items(sortedUsers) { usr ->
+                val userDevices = remember(devices, usr) {
+                    devices.filter { it.username.trim().equals(usr.username.trim(), ignoreCase = true) }
+                }
+
                 Card(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(10.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    border = BorderStroke(1.dp, if (usr.isAdmin) Color(0xFFFFD700) else Color(0xFF334155)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(8.dp).fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "${usr.username} ${if (usr.isAdmin) "👑 (Admin - Keine Lizenz erforderlich)" else ""}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = if (usr.isAdmin) Color(0xFFFFD700) else Color.White
-                            )
-                            Text("Passwort: ${usr.password}", fontSize = 10.sp, color = Color(0xFF38BDF8), fontFamily = FontFamily.Monospace)
-                            Text(if (usr.isAdmin) "Lizenz: Unbegrenzt (Admin)" else "Lizenz aktiv: ${if (usr.isLicensed) "Ja" else "Nein"}", fontSize = 10.sp, color = if (usr.isAdmin) Color(0xFF10B981) else Color(0xFF94A3B8))
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${usr.username} ${if (usr.isAdmin) "👑 (Admin)" else ""}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp,
+                                    color = if (usr.isAdmin) Color(0xFFFFD700) else Color.White
+                                )
+                                Text("Passwort: ${usr.password}", fontSize = 10.sp, color = Color(0xFF38BDF8), fontFamily = FontFamily.Monospace)
+                                Text(if (usr.isAdmin) "Lizenz: Unbegrenzt (Admin)" else "Lizenz aktiv: ${if (usr.isLicensed) "Ja" else "Nein"}", fontSize = 10.sp, color = if (usr.isAdmin) Color(0xFF10B981) else Color(0xFF94A3B8))
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Button(
+                                    onClick = {
+                                        alertTargetUser = usr.username
+                                        alertTargetHwId = null
+                                        showSendAlertDialog = true
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Text("📢 Nachricht", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                }
+
+                                if (!usr.isAdmin) {
+                                    Button(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                val deleted = AdminControlManager.deleteUser(context, usr.username)
+                                                if (deleted) {
+                                                    Toast.makeText(context, "Benutzer gelöscht", Toast.LENGTH_SHORT).show()
+                                                    onRefresh()
+                                                }
+                                            }
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Text("Löschen", fontSize = 10.sp, color = Color.White)
+                                    }
+                                }
+                            }
                         }
 
-                        if (!usr.isAdmin) {
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        val deleted = AdminControlManager.deleteUser(context, usr.username)
-                                        if (deleted) {
-                                            Toast.makeText(context, "Benutzer gelöscht", Toast.LENGTH_SHORT).show()
-                                            onRefresh()
+                        HorizontalDivider(color = Color(0xFF1E293B))
+
+                        // Device List for this user
+                        Text("📱 Geräte (${userDevices.size}):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                        if (userDevices.isEmpty()) {
+                            Text("Kein Gerät mit diesem Konto verbunden.", fontSize = 10.sp, color = Color(0xFF64748B))
+                        } else {
+                            userDevices.forEach { dev ->
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (dev.isBanned) Color(0xFF7F1D1D) else Color(0xFF1E293B),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(6.dp).fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text("${dev.deviceName} (${if (dev.isBanned) "🔴 GEBANNT" else "🟢 Aktiv"})", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text("HWID: ${dev.hwId}", fontSize = 9.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF94A3B8))
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                alertTargetUser = null
+                                                alertTargetHwId = dev.hwId
+                                                showSendAlertDialog = true
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
+                                            shape = RoundedCornerShape(4.dp),
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 1.dp),
+                                            modifier = Modifier.height(24.dp)
+                                        ) {
+                                            Text("📩 Alert", fontSize = 9.sp, color = Color.White)
                                         }
                                     }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
-                            ) {
-                                Text("Löschen", fontSize = 10.sp, color = Color.White)
+                                }
                             }
                         }
                     }

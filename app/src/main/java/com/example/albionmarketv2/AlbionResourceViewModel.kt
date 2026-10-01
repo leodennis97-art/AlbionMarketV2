@@ -914,11 +914,26 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     query = _uiState.value.searchQuery
                 )
 
-                val itemIds = currentResources.map { it.fullId }.distinct().toList()
+                val itemIds = currentResources.asSequence().map { it.fullId }.distinct().toList()
 
                 val fetchedPrices = AlbionMarketApi.fetchPrices(_uiState.value.server, itemIds)
-                val priceMap = if (fetchedPrices.isNotEmpty()) {
-                    fetchedPrices.groupBy { it.itemId }
+                val cloudSnapshots = try { ServerSyncManager.fetchCloudPrices(getApplication()) } catch (_: Exception) { emptyList() }
+                val cloudPrices = cloudSnapshots.asSequence().filter { it.sellPriceMin > 0 }.map {
+                    MarketPrice(
+                        itemId = it.itemId,
+                        city = it.city,
+                        quality = 1,
+                        sellPriceMin = it.sellPriceMin,
+                        sellPriceMinDate = "",
+                        buyPriceMax = it.buyPriceMax,
+                        buyPriceMaxDate = ""
+                    )
+                }.toList()
+
+                val combinedPrices = (fetchedPrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.sellPriceMin}" }
+
+                val priceMap = if (combinedPrices.isNotEmpty()) {
+                    combinedPrices.groupBy { it.itemId }
                 } else {
                     val existing = _uiState.value.marketPrices
                     if (existing.isNotEmpty()) {

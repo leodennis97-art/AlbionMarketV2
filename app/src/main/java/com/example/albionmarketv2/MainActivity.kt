@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.RingtoneManager
 import androidx.core.net.toUri
 import android.os.Build
 import android.os.Bundle
@@ -180,6 +181,51 @@ class MainActivity : ComponentActivity() {
                 var isUserLoggedInState by remember { mutableStateOf(false) }
                 var isUnlockedForSession by remember { mutableStateOf(false) }
                 var showWelcomeDialog by remember { mutableStateOf(value = false) }
+
+                // Live Popup Alert Handling for Admin Messages & Screen Alarm
+                val currentPopupAlert = ServerSyncManager.activePopupAlert
+                if (currentPopupAlert != null) {
+                    LaunchedEffect(currentPopupAlert.id) {
+                        if (currentPopupAlert.playAlarmSound) {
+                            try {
+                                val alarmUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                                val ringtone = RingtoneManager.getRingtone(context, alarmUri)
+                                ringtone?.play()
+                            } catch (_: Exception) {}
+                        }
+                    }
+
+                    AlertDialog(
+                        onDismissRequest = { ServerSyncManager.activePopupAlert = null },
+                        title = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = "Alert",
+                                    tint = Color(0xFFEF4444),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(currentPopupAlert.title, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.White)
+                            }
+                        },
+                        text = {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(currentPopupAlert.message, fontSize = 14.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                                Text("Gesendet: ${currentPopupAlert.timestamp}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = { ServerSyncManager.activePopupAlert = null },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
+                            ) {
+                                Text("Gelesen / Schließen", fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    )
+                }
 
                 // Real-Time Background Server Authentication & Data Sync (Immediate + every 1s)
                 LaunchedEffect(isUserLoggedInState) {
