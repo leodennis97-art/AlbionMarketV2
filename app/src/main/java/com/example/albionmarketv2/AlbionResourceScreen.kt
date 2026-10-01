@@ -217,6 +217,7 @@ fun AlbionResourceScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
+    val prefs = remember { AppPreferences(context) }
 
     Scaffold(
         topBar = {
@@ -271,8 +272,10 @@ fun AlbionResourceScreen(
                             )
                         }
 
-                        IconButton(onClick = { viewModel.onOpenSettings() }) {
-                            Icon(Icons.Default.Settings, contentDescription = "Einstellungen")
+                        if (prefs.isAdmin) {
+                            IconButton(onClick = { viewModel.onOpenSettings() }) {
+                                Icon(Icons.Default.Settings, contentDescription = "Einstellungen")
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -4851,6 +4854,7 @@ fun AppSettingsDialog(
     val prefs = remember { AppPreferences(context) }
     var botNameInput by remember { mutableStateOf(prefs.aiBotName) }
     var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
+    var showAdminControlDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         coroutineScope.launch(Dispatchers.IO) {
@@ -4923,6 +4927,27 @@ fun AppSettingsDialog(
                         color = Color.Black,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
+                    )
+                }
+
+                // AlbionDataProAdmin Button
+                Button(
+                    onClick = { showAdminControlDialog = true },
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "🛡️ AlbionDataProAdmin - Live-Zentrale",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                }
+
+                if (showAdminControlDialog) {
+                    AdminControlDialog(
+                        onDismiss = { showAdminControlDialog = false }
                     )
                 }
 

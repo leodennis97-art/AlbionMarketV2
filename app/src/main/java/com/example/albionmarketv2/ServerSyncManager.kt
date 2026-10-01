@@ -36,7 +36,7 @@ object ServerSyncManager {
     fun getServerBaseUrls(context: Context? = null): List<String> {
         val urls = mutableListOf<String>()
         // Exclusive 24/7 Cloud Server URL
-        urls.add("https://v2albionmarkthack.onrender.com")
+        urls.add("https://albionmarketv2-1.onrender.com")
         if (context != null) {
             urls.addAll(ServerConfigManager.getCustomServerUrls(context))
         }
@@ -72,6 +72,8 @@ object ServerSyncManager {
                         val url = URL(serverUrl)
                         connection = url.openConnection() as HttpURLConnection
                         connection.requestMethod = "POST"
+                        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                        connection.setRequestProperty("Accept", "application/json")
                         connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
                         connection.setRequestProperty("User-Agent", "AlbionDataPro/$appVersion")
                         connection.setRequestProperty("Connection", "keep-alive")
@@ -240,10 +242,12 @@ object ServerSyncManager {
                         val url = URL(serverUrl)
                         connection = url.openConnection() as HttpURLConnection
                         connection.requestMethod = "POST"
+                        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                        connection.setRequestProperty("Accept", "application/json")
                         connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
                         connection.setRequestProperty("Connection", "close")
-                        connection.connectTimeout = 10000
-                        connection.readTimeout = 10000
+                        connection.connectTimeout = 15000
+                        connection.readTimeout = 15000
                         connection.doOutput = true
 
                         connection.outputStream.use { os ->
@@ -336,9 +340,11 @@ object ServerSyncManager {
                         val url = URL(serverUrl)
                         connection = url.openConnection() as HttpURLConnection
                         connection.requestMethod = "POST"
+                        connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                        connection.setRequestProperty("Accept", "application/json")
                         connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        connection.connectTimeout = 10000
-                        connection.readTimeout = 10000
+                        connection.connectTimeout = 15000
+                        connection.readTimeout = 15000
                         connection.doOutput = true
 
                         connection.outputStream.use { os ->
@@ -363,6 +369,7 @@ object ServerSyncManager {
                                 appPrefs.isUserLoggedIn = true
                                 appPrefs.savedUsername = username.trim()
                                 appPrefs.savedPassword = pass.trim()
+                                appPrefs.isAdmin = jsonObj.optBoolean("isAdmin", false) || username.trim().equals("dnnx", ignoreCase = true)
 
                                 LicenseManager.updateLicenseFromServer(
                                     context = context,

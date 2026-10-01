@@ -433,6 +433,10 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getBoolean("is_user_logged_in", false)
         set(value) = prefs.edit().putBoolean("is_user_logged_in", value).apply()
 
+    var isAdmin: Boolean
+        get() = prefs.getBoolean("is_admin_user", false) || savedUsername.lowercase() == "dnnx"
+        set(value) = prefs.edit().putBoolean("is_admin_user", value).apply()
+
     var savedUsername: String
         get() {
             val encrypted = prefs.getString("saved_username_encrypted", "") ?: ""
