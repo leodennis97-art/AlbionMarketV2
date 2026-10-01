@@ -1,5 +1,6 @@
 package com.example.albionmarketv2
 
+import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -28,12 +29,22 @@ object NotificationHelper {
         notificationManager.createNotificationChannel(channel)
     }
 
+    private fun isDeviceOrAppLocked(context: Context): Boolean {
+        val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
+        val isKeyguardLocked = (keyguardManager?.isKeyguardLocked == true) || (keyguardManager?.isDeviceLocked == true)
+        val prefs = AppPreferences(context)
+        val isAppLocked = !prefs.isUserLoggedIn || !ServerSyncManager.isServerConnected
+        return isKeyguardLocked || isAppLocked
+    }
+
     fun showTradeNotification(
         context: Context,
         title: String,
         message: String,
         notificationId: Int = System.currentTimeMillis().toInt(),
     ) {
+        if (isDeviceOrAppLocked(context)) return
+
         createNotificationChannel(context)
 
         val intent = Intent(context, MainActivity::class.java).apply {
@@ -73,6 +84,8 @@ object NotificationHelper {
         opp: TradeOpportunity,
         notificationId: Int = System.currentTimeMillis().toInt(),
     ) {
+        if (isDeviceOrAppLocked(context)) return
+
         createNotificationChannel(context)
 
         val prefs = AppPreferences(context)
@@ -159,6 +172,8 @@ object NotificationHelper {
         currentGoldPrice: Int,
         notificationId: Int = System.currentTimeMillis().toInt(),
     ) {
+        if (isDeviceOrAppLocked(context)) return
+
         createNotificationChannel(context)
 
         val numberFormat = NumberFormat.getNumberInstance(Locale.GERMANY)

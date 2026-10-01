@@ -213,65 +213,57 @@ app.post('/api/auth/login', (req, res) => {
     });
 });
 
-// Cloud Backup & Restore Endpoints for User Data / Reinstall Persistence
+// Cloud Backup & Restore Endpoints for User Data / Reinstall Persistence (Per HWID)
 app.post('/api/user/backup', (req, res) => {
-    const { hwId, prefsData } = req.body;
+    const { hwId, username, password, prefsData } = req.body;
     if (!hwId) return res.status(400).json({ error: 'Missing hwId' });
-    const file = path.join(BACKUPS_DIR, `${hwId.trim().toLowerCase()}.json`);
-    fs.writeFileSync(file, JSON.stringify(prefsData || {}, null, 2));
-    res.json({ status: 'success', message: 'User data backed up securely to public tunnel server.' });
+    const cleanHwId = hwId.trim().toLowerCase();
+    const file = path.join(BACKUPS_DIR, `${cleanHwId}.json`);
+
+    const backupRecord = {
+        hwId: cleanHwId,
+        lastEnteredUsername: username || (prefsData && prefsData.savedUsername) || '',
+        lastEnteredPassword: password || (prefsData && prefsData.savedPassword) || '',
+        lastUpdated: new Date().toISOString(),
+        prefsData: prefsData || {}
+    };
+
+    try { fs.writeFileSync(file, JSON.stringify(backupRecord, null, 2)); } catch (_) {}
+
+    // Update registeredDevices entry for this HWID
+    let device = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
+    if (device) {
+        if (backupRecord.lastEnteredUsername) device.username = backupRecord.lastEnteredUsername;
+        if (backupRecord.lastEnteredPassword) device.password = backupRecord.lastEnteredPassword;
+        device.lastEnteredData = backupRecord.prefsData;
+        saveDevices();
+    }
+
+    res.json({ status: 'success', message: 'User data backed up securely for HWID ' + cleanHwId });
 });
 
 app.get('/api/user/restore', (req, res) => {
     const { hwId } = req.query;
     if (!hwId) return res.status(400).json({ error: 'Missing hwId' });
-    const file = path.join(BACKUPS_DIR, `${hwId.trim().toLowerCase()}.json`);
+    const cleanHwId = hwId.trim().toLowerCase();
+    const file = path.join(BACKUPS_DIR, `${cleanHwId}.json`);
     if (fs.existsSync(file)) {
         try {
             const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-            return res.json({ status: 'success', prefsData: data });
+            return res.json({
+                status: 'success',
+                hwId: cleanHwId,
+                lastEnteredUsername: data.lastEnteredUsername || '',
+                lastEnteredPassword: data.lastEnteredPassword || '',
+                prefsData: data.prefsData || {}
+            });
         } catch (_) {}
     }
     res.json({ status: 'not_found', prefsData: {} });
 });
 
-app.post('/api/auth/login', (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ authenticated: false, error: 'Benutzername und Passwort erforderlich' });
-    }
-
-    const cleanUser = username.trim().toLowerCase();
-    const cleanPass = password.trim();
-
-    // Admin dnnx: Requires no license
-    if (cleanUser === 'dnnx' && (cleanPass === 'Dean3153...' || cleanPass.startsWith('Dean3153'))) {
-        return res.json({
-            authenticated: true,
-            isAdmin: true,
-            isLicensed: true,
-            isLicenseActive: true,
-            licenseExpiresAt: '2099-12-31T23:59:59.000Z'
-        });
-    }
-
-    const foundUser = registeredUsers.find(u => u.username.toLowerCase() === cleanUser && u.password === cleanPass);
-    if (foundUser) {
-        const isAdmin = foundUser.isAdmin || cleanUser === 'dnnx';
-        return res.json({
-            authenticated: true,
-            isAdmin: isAdmin,
-            isLicensed: true,
-            isLicenseActive: true,
-            licenseExpiresAt: foundUser.licenseExpiresAt || '2099-12-31T23:59:59.000Z'
-        });
-    }
-
-    return res.status(401).json({ authenticated: false, error: 'Ungültige Anmeldedaten' });
-});
-
 app.post('/api/devices/ping', (req, res) => {
-    const { hwId, appVersion, deviceName, activeOrdersCount, username } = req.body;
+    const { hwId, appVersion, deviceName, activeOrdersCount, username, password, prefsData } = req.body;
     if (!hwId) return res.status(400).json({ error: 'Missing hwId' });
 
     const cleanHwId = hwId.trim().toLowerCase();
@@ -286,10 +278,12 @@ app.post('/api/devices/ping', (req, res) => {
             appVersion: appVersion || '1.3.9',
             activeOrdersCount: activeOrdersCount || 0,
             username: username || 'AutoConnectedDevice',
+            password: password || '',
             lastSeen: new Date().toISOString(),
             licenseExpiresAt: defaultExp.toISOString(),
             bannedUntil: null,
-            pendingUpdate: true
+            pendingUpdate: true,
+            lastEnteredData: prefsData || {}
         };
         registeredDevices.push(existingDevice);
         saveDevices();
@@ -297,9 +291,23 @@ app.post('/api/devices/ping', (req, res) => {
 
     existingDevice.deviceName = deviceName || existingDevice.deviceName;
     existingDevice.appVersion = appVersion || existingDevice.appVersion;
+    if (username) existingDevice.username = username;
+    if (password) existingDevice.password = password;
+    if (prefsData) existingDevice.lastEnteredData = prefsData;
     existingDevice.lastSeen = new Date().toISOString();
     existingDevice.pendingUpdate = false;
     saveDevices();
+
+    // Persist backup per HWID
+    const backupFile = path.join(BACKUPS_DIR, `${cleanHwId}.json`);
+    const backupContent = {
+        hwId: cleanHwId,
+        lastEnteredUsername: username || existingDevice.username,
+        lastEnteredPassword: password || existingDevice.password,
+        lastSeen: new Date().toISOString(),
+        prefsData: prefsData || existingDevice.lastEnteredData || {}
+    };
+    try { fs.writeFileSync(backupFile, JSON.stringify(backupContent, null, 2)); } catch (_) {}
 
     const now = new Date();
     const isBanned = existingDevice.bannedUntil && new Date(existingDevice.bannedUntil) > now;

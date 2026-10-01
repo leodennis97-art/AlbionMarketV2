@@ -233,13 +233,16 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             val keyguardManager = getSystemService(KEYGUARD_SERVICE) as? KeyguardManager
             val isKeyguardLocked = (keyguardManager?.isKeyguardLocked == true) || (keyguardManager?.isDeviceLocked == true)
             val prefs = AppPreferences(this)
-            val isAuthValid = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(this)
+            val isAuthValid = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(this) && ServerSyncManager.isServerConnected
 
             val shouldShow = !isKeyguardLocked && isAuthValid
 
             serviceScope.launch(Dispatchers.Main) {
                 if (composeView?.isAttachedToWindow == true) {
                     composeView?.visibility = if (shouldShow) View.VISIBLE else View.GONE
+                }
+                if (!shouldShow && !isAuthValid) {
+                    stopSelf()
                 }
             }
         } catch (e: Exception) {
