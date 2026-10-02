@@ -6,6 +6,15 @@ import android.content.Context
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Toast
+import androidx.core.content.edit
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,29 +28,35 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -57,13 +72,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -71,6 +85,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -89,6 +104,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
+import kotlin.random.Random
 
 data class AdminUser(
     val username: String,
@@ -106,7 +126,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "1.3.9"
+const val CURRENT_APP_VERSION = "1.3.17"
 
 data class AdminDevice(
     val hwId: String,
@@ -120,7 +140,62 @@ data class AdminDevice(
     val unbanned: Boolean = false,
 )
 
+// Sealed response result for high-end error handling
+sealed class AdminApiResult<out T> {
+    data class Success<out T>(val data: T) : AdminApiResult<T>()
+    data class Error(val message: String, val statusCode: Int = -1) : AdminApiResult<Nothing>()
+}
+
+// Persistent Audit Log Manager for tracking Administrative Events
+object AdminAuditLogManager {
+    private const val PREF_NAME = "albion_admin_audit_logs"
+    private const val KEY_LOGS = "audit_log_entries"
+
+    fun logAction(context: Context, action: String) {
+        try {
+            val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val currentJson = prefs.getString(KEY_LOGS, "[]") ?: "[]"
+            val arr = JSONArray(currentJson)
+
+            val timeFormat = SimpleDateFormat("HH:mm:ss - dd.MM", Locale.getDefault())
+            val timestamp = timeFormat.format(Date())
+            val entry = "$timestamp | $action"
+
+            val newArr = JSONArray()
+            newArr.put(entry)
+            for (i in 0 until minOf(arr.length(), 49)) {
+                newArr.put(arr.getString(i))
+            }
+            prefs.edit { putString(KEY_LOGS, newArr.toString()) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun getLogs(context: Context): List<String> {
+        return try {
+            val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            val currentJson = prefs.getString(KEY_LOGS, "[]") ?: "[]"
+            val arr = JSONArray(currentJson)
+            val list = mutableListOf<String>()
+            for (i in 0 until arr.length()) {
+                list.add(arr.getString(i))
+            }
+            list
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    fun clearLogs(context: Context) {
+        val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+        prefs.edit { remove(KEY_LOGS) }
+    }
+}
+
 object AdminControlManager {
+
+    private const val ADMIN_API_KEY = "AlbionDataPro_Military_Admin_SuperSecret_2026#Key"
 
     private fun getBaseUrl(context: Context): String {
         return ServerSyncManager.getServerBaseUrls(context).firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
@@ -133,15 +208,18 @@ object AdminControlManager {
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             conn.setRequestProperty("Accept", "application/json")
-            conn.connectTimeout = 15000
-            conn.readTimeout = 15000
+            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+            conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
+            conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
+            conn.connectTimeout = 12000
+            conn.readTimeout = 12000
             conn.doOutput = true
 
             conn.outputStream.use { os ->
                 os.write(json.toString().toByteArray(Charsets.UTF_8))
             }
 
-            if (conn.responseCode in (200..299)) {
+            if (conn.responseCode in 200..299) {
                 val resStr = conn.inputStream.bufferedReader().use { it.readText() }
                 return@withContext JSONObject(resStr)
             }
@@ -151,18 +229,41 @@ object AdminControlManager {
         null
     }
 
-    private suspend fun getJsonArray(baseUrl: String, endpoint: String): JSONArray? = withContext(Dispatchers.IO) {
+    private suspend fun getJsonArray(baseUrl: String, endpoint: String, jsonKey: String = ""): JSONArray? = withContext(Dispatchers.IO) {
         try {
             val url = URL("$baseUrl$endpoint")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.setRequestProperty("Accept", "application/json")
-            conn.connectTimeout = 15000
-            conn.readTimeout = 15000
+            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+            conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
+            conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
+            conn.connectTimeout = 12000
+            conn.readTimeout = 12000
 
-            if (conn.responseCode in (200..299)) {
-                val resStr = conn.inputStream.bufferedReader().use { it.readText() }
-                return@withContext JSONArray(resStr)
+            if (conn.responseCode in 200..299) {
+                val resStr = conn.inputStream.bufferedReader().use { it.readText() }.trim()
+                if (resStr.startsWith("[")) {
+                    return@withContext JSONArray(resStr)
+                } else if (resStr.startsWith("{")) {
+                    val jsonObj = JSONObject(resStr)
+                    if (jsonKey.isNotBlank() && jsonObj.has(jsonKey)) {
+                        val v = jsonObj.opt(jsonKey)
+                        if (v is JSONArray) return@withContext v
+                    }
+                    for (k in listOf("users", "licenses", "devices", "data", "list", "items", "result")) {
+                        if (jsonObj.has(k)) {
+                            val v = jsonObj.opt(k)
+                            if (v is JSONArray) return@withContext v
+                        }
+                    }
+                    val keys = jsonObj.keys()
+                    while (keys.hasNext()) {
+                        val key = keys.next()
+                        val v = jsonObj.opt(key)
+                        if (v is JSONArray) return@withContext v
+                    }
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -170,12 +271,13 @@ object AdminControlManager {
         null
     }
 
-    suspend fun fetchUsers(context: Context): List<AdminUser> {
+    suspend fun fetchUsersWithStatus(context: Context): AdminApiResult<List<AdminUser>> {
         val base = getBaseUrl(context)
-        val arr = getJsonArray(base, "/api/users") ?: return emptyList()
+        val arr = getJsonArray(base, "/api/users", "users")
+            ?: return AdminApiResult.Error("Verbindung zum Server fehlgeschlagen (/api/users)")
         val list = mutableListOf<AdminUser>()
         for (i in 0 until arr.length()) {
-            val obj = arr.getJSONObject(i)
+            val obj = arr.optJSONObject(i) ?: continue
             list.add(
                 AdminUser(
                     username = obj.optString("username", "Unbekannt"),
@@ -186,15 +288,18 @@ object AdminControlManager {
                 )
             )
         }
-        return list
+        return AdminApiResult.Success(list)
     }
 
-    suspend fun fetchLicenses(context: Context): List<AdminLicense> {
+
+
+    suspend fun fetchLicensesWithStatus(context: Context): AdminApiResult<List<AdminLicense>> {
         val base = getBaseUrl(context)
-        val arr = getJsonArray(base, "/api/licenses") ?: return emptyList()
+        val arr = getJsonArray(base, "/api/licenses", "licenses")
+            ?: return AdminApiResult.Error("Verbindung zum Server fehlgeschlagen (/api/licenses)")
         val list = mutableListOf<AdminLicense>()
         for (i in 0 until arr.length()) {
-            val obj = arr.getJSONObject(i)
+            val obj = arr.optJSONObject(i) ?: continue
             list.add(
                 AdminLicense(
                     key = obj.optString("key", ""),
@@ -205,18 +310,22 @@ object AdminControlManager {
                 )
             )
         }
-        return list
+        return AdminApiResult.Success(list)
     }
 
-    suspend fun fetchDevices(context: Context): List<AdminDevice> {
+
+
+    suspend fun fetchDevicesWithStatus(context: Context): AdminApiResult<List<AdminDevice>> {
         val base = getBaseUrl(context)
-        val arr = getJsonArray(base, "/api/devices") ?: return emptyList()
+        val arr = getJsonArray(base, "/api/devices", "devices")
+            ?: return AdminApiResult.Error("Verbindung zum Server fehlgeschlagen (/api/devices)")
         val list = mutableListOf<AdminDevice>()
         for (i in 0 until arr.length()) {
-            val obj = arr.getJSONObject(i)
+            val obj = arr.optJSONObject(i) ?: continue
             val bannedUntil = obj.optString("bannedUntil", "")
             val unbanned = obj.optBoolean("unbanned", false)
-            val isBanned = !bannedUntil.isNullOrBlank() && !unbanned
+            val serverIsBanned = obj.optBoolean("isBanned", false)
+            val isBanned = serverIsBanned || (!bannedUntil.isNullOrBlank() && !unbanned)
             val banReason = obj.optString("banReason", "")
             list.add(
                 AdminDevice(
@@ -232,24 +341,70 @@ object AdminControlManager {
                 )
             )
         }
-        return list
+        return AdminApiResult.Success(list)
     }
 
-    suspend fun createUser(context: Context, user: String, pass: String): Boolean {
-        val base = getBaseUrl(context)
-        val json = JSONObject().apply {
-            put("username", user)
-            put("password", pass)
+
+
+    suspend fun createUserWithStatus(context: Context, user: String, pass: String): AdminApiResult<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val base = getBaseUrl(context)
+            val json = JSONObject().apply {
+                put("username", user)
+                put("password", pass)
+            }
+            val url = URL("$base/api/admin/user/create")
+            val conn = url.openConnection() as HttpURLConnection
+            conn.requestMethod = "POST"
+            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+            conn.setRequestProperty("Accept", "application/json")
+            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+            conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
+            conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
+            conn.connectTimeout = 12000
+            conn.readTimeout = 12000
+            conn.doOutput = true
+
+            conn.outputStream.use { os ->
+                os.write(json.toString().toByteArray(Charsets.UTF_8))
+            }
+
+            if (conn.responseCode in 200..299) {
+                AdminAuditLogManager.logAction(context, "👤 Benutzer '$user' angelegt")
+                return@withContext AdminApiResult.Success(Unit)
+            } else {
+                val errStr = try {
+                    conn.errorStream?.bufferedReader()?.use { it.readText() }
+                } catch (_: Exception) {
+                    null
+                }
+                val errMsg = if (!errStr.isNullOrBlank()) {
+                    try {
+                        JSONObject(errStr).optString("error", "HTTP ${conn.responseCode}")
+                    } catch (_: Exception) {
+                        errStr
+                    }
+                } else {
+                    "HTTP Fehler ${conn.responseCode}"
+                }
+                return@withContext AdminApiResult.Error(errMsg, conn.responseCode)
+            }
+        } catch (e: Exception) {
+            return@withContext AdminApiResult.Error(e.localizedMessage ?: "Verbindungsfehler", -1)
         }
-        val res = postJson(base, "/api/admin/user/create", json)
-        return res?.optString("status") == "success"
     }
+
+
 
     suspend fun deleteUser(context: Context, user: String): Boolean {
         val base = getBaseUrl(context)
         val json = JSONObject().apply { put("username", user) }
         val res = postJson(base, "/api/admin/user/delete", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🗑️ Benutzer '$user' gelöscht")
+        }
+        return ok
     }
 
     suspend fun generateLicense(context: Context, tier: String, note: String): String? {
@@ -259,14 +414,22 @@ object AdminControlManager {
             put("customerNote", note)
         }
         val res = postJson(base, "/api/admin/license/generate", json)
-        return res?.optJSONObject("license")?.optString("key")
+        val key = res?.optJSONObject("license")?.optString("key")
+        if (key != null) {
+            AdminAuditLogManager.logAction(context, "⚡ Lizenz '${tier.uppercase()}' generiert ($key)")
+        }
+        return key
     }
 
     suspend fun deleteLicense(context: Context, key: String): Boolean {
         val base = getBaseUrl(context)
         val json = JSONObject().apply { put("key", key) }
         val res = postJson(base, "/api/admin/license/delete", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🗑️ Lizenz '$key' gelöscht")
+        }
+        return ok
     }
 
     suspend fun banDevice(context: Context, hwId: String, banReason: String = "Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)"): Boolean {
@@ -276,21 +439,55 @@ object AdminControlManager {
             put("banReason", banReason.ifBlank { "Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)" })
         }
         val res = postJson(base, "/api/admin/device/ban", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🔴 HWID '$hwId' gebannt")
+        }
+        return ok
+    }
+
+    suspend fun banUserDevices(context: Context, username: String): Boolean {
+        val base = getBaseUrl(context)
+        val json = JSONObject().apply { put("username", username) }
+        val res = postJson(base, "/api/admin/user/ban", json)
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🔴 Benutzer '$username' gebannt")
+        }
+        return ok
     }
 
     suspend fun unbanDevice(context: Context, hwId: String): Boolean {
         val base = getBaseUrl(context)
         val json = JSONObject().apply { put("hwId", hwId) }
         val res = postJson(base, "/api/admin/device/unban", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🟢 HWID '$hwId' entbannt")
+        }
+        return ok
+    }
+
+    suspend fun unbanAllDevices(context: Context): Boolean {
+        val base = getBaseUrl(context)
+        val json = JSONObject()
+        val res = postJson(base, "/api/admin/device/unban-all", json)
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🟢 Alle gebannten Geräte entbannt")
+        }
+        return ok
     }
 
     suspend fun deleteDevice(context: Context, hwId: String): Boolean {
         val base = getBaseUrl(context)
         val json = JSONObject().apply { put("hwId", hwId) }
         val res = postJson(base, "/api/admin/device/delete", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🗑️ Gerät HWID '$hwId' gelöscht")
+        }
+        return ok
     }
 
     suspend fun sendAlertMessage(context: Context, targetUsername: String?, hwId: String?, message: String, playAlarm: Boolean): Boolean {
@@ -302,7 +499,12 @@ object AdminControlManager {
             put("playAlarmSound", playAlarm)
         }
         val res = postJson(base, "/api/admin/send-alert", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            val targetStr = targetUsername ?: (hwId ?: "ALLE")
+            AdminAuditLogManager.logAction(context, "📢 Alert an $targetStr gesendet")
+        }
+        return ok
     }
 
     suspend fun triggerOtaUpdateCommand(context: Context, hwId: String? = null, isGlobal: Boolean = false): Boolean {
@@ -316,7 +518,11 @@ object AdminControlManager {
             put("isGlobal", isGlobal)
         }
         val res = postJson(base, "/api/admin/trigger-ota", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🚀 OTA Update gesendet (Global=$isGlobal)")
+        }
+        return ok
     }
 
     suspend fun updateRemoteConfig(context: Context, minMargin: Double, maintenance: Boolean): Boolean {
@@ -326,7 +532,85 @@ object AdminControlManager {
             put("maintenanceMode", maintenance)
         }
         val res = postJson(base, "/api/admin/remote-config", json)
-        return res?.optString("status") == "success"
+        val ok = res?.optString("status") == "success"
+        if (ok) {
+            AdminAuditLogManager.logAction(context, "🎛️ Remote Config gepusht (Margin: $minMargin%, Wartung: $maintenance)")
+        }
+        return ok
+    }
+
+    // High-End Multi-Endpoint Live Diagnostics Ping
+    suspend fun runEndpointDiagnostics(context: Context): Map<String, Long> = withContext(Dispatchers.IO) {
+        val base = getBaseUrl(context)
+        val endpoints = listOf("/api/users", "/api/licenses", "/api/devices", "/api/remote-config")
+        val results = mutableMapOf<String, Long>()
+
+        for (ep in endpoints) {
+            val start = System.currentTimeMillis()
+            try {
+                val url = URL("$base$ep")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+                conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
+                conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
+                conn.connectTimeout = 6000
+                conn.readTimeout = 6000
+                conn.responseCode
+                val duration = System.currentTimeMillis() - start
+                results[ep] = duration
+            } catch (_: Exception) {
+                results[ep] = -1L
+            }
+        }
+        results
+    }
+
+    // High-End Formatted Database State Exporter
+    fun exportDatabaseDump(users: List<AdminUser>, licenses: List<AdminLicense>, devices: List<AdminDevice>): String {
+        return try {
+            val root = JSONObject().apply {
+                put("exportedAt", SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date()))
+                put("appVersion", CURRENT_APP_VERSION)
+                put("totalUsers", users.size)
+                put("totalLicenses", licenses.size)
+                put("totalDevices", devices.size)
+
+                val usersArr = JSONArray()
+                users.forEach { u ->
+                    usersArr.put(JSONObject().apply {
+                        put("username", u.username)
+                        put("isAdmin", u.isAdmin)
+                        put("isLicensed", u.isLicensed)
+                    })
+                }
+                put("users", usersArr)
+
+                val licensesArr = JSONArray()
+                licenses.forEach { l ->
+                    licensesArr.put(JSONObject().apply {
+                        put("key", l.key)
+                        put("tier", l.tier)
+                        put("note", l.note)
+                    })
+                }
+                put("licenses", licensesArr)
+
+                val devicesArr = JSONArray()
+                devices.forEach { d ->
+                    devicesArr.put(JSONObject().apply {
+                        put("hwId", d.hwId)
+                        put("deviceName", d.deviceName)
+                        put("appVersion", d.appVersion)
+                        put("isBanned", d.isBanned)
+                    })
+                }
+                put("devices", devicesArr)
+            }
+            root.toString(2)
+        } catch (e: Exception) {
+            "Export error: ${e.message}"
+        }
     }
 }
 
@@ -343,31 +627,193 @@ private fun copyToClipboardWithHaptics(context: Context, view: View, label: Stri
     }
 }
 
+// Helper to generate a strong random password for new users
+private fun generateRandomPassword(length: Int = 10): String {
+    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$"
+    return (1..length)
+        .asSequence()
+        .map { chars[Random.nextInt(chars.length)] }
+        .joinToString("")
+}
+
+@Composable
+fun PulsingStatusDot(
+    isOnline: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "StatusPulse")
+    val alphaAnim by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseAlpha"
+    )
+
+    val color = if (isOnline) Color(0xFF10B981) else Color(0xFFEF4444)
+
+    Box(
+        modifier = modifier
+            .size(8.dp)
+            .clip(CircleShape)
+            .background(color.copy(alpha = alphaAnim))
+    )
+}
+
+@Composable
+fun AdminSimpleView(
+    viewModel: AlbionResourceViewModel,
+    users: List<AdminUser>,
+    licenses: List<AdminLicense>,
+    devices: List<AdminDevice>,
+    onRefresh: () -> Unit
+) {
+    val view = LocalView.current
+    var selectedTab by remember { mutableIntStateOf(0) }
+
+    val categories = listOf(
+        "👤 Benutzer" to Color(0xFF38BDF8),
+        "💎 Lizenzen" to Color(0xFF8B5CF6),
+        "📱 Geräte" to Color(0xFF10B981),
+        "🎛️ Server" to Color(0xFF0EA5E9),
+        "📊 Statistik" to Color(0xFFF59E0B)
+    )
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Fixed Category Tab Bar at the top
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp)
+        ) {
+            itemsIndexed(categories) { index, (title, color) ->
+                val isSelected = selectedTab == index
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSelected) color else Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, color),
+                    modifier = Modifier.clickable {
+                        try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                        selectedTab = index
+                    }
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isSelected) Color.White else color,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+        }
+
+        // Remaining screen space display area for the selected category
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, categories[selectedTab].second),
+            modifier = Modifier.fillMaxWidth().heightIn(min = 440.dp, max = 620.dp)
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                when (selectedTab) {
+                    0 -> {
+                        Text("Kategorie: Benutzer & Konten", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                        Text("Subkategorie: Verwaltung & Registrierung", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                        AdminUsersTab(users = users, devices = devices, onRefresh = onRefresh)
+                    }
+                    1 -> {
+                        Text("Kategorie: Lizenzen & Tarife", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
+                        Text("Subkategorie: Generator & Schlüssel", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                        AdminLicensesTab(licenses = licenses, onRefresh = onRefresh)
+                    }
+                    2 -> {
+                        Text("Kategorie: Geräte & Sicherheit", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
+                        Text("Subkategorie: Verbundene Hardware & Massen-Aktionen", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                        AdminDevicesTab(devices = devices, initialFilterOverride = 0, onRefresh = onRefresh)
+                    }
+                    3 -> {
+                        Text("Kategorie: Server & Konfiguration", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0EA5E9))
+                        Text("Subkategorie: Netzwerk, Feature Flags & OTA", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                        AdminRemoteConfigTab(viewModel = viewModel)
+                    }
+                    4 -> {
+                        Text("Kategorie: Statistik & Diagnostik", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFF59E0B))
+                        Text("Subkategorie: 24h Datenfluss & Audit Radar", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                        AdminAnalyticsTab(licenses = licenses)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        AdminAuditAndDiagnosticsTab(users = users, licenses = licenses, devices = devices, onRefresh = onRefresh)
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
+}
+
 @Composable
 fun AdminControlDialog(
+    viewModel: AlbionResourceViewModel,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
     val view = LocalView.current
     val coroutineScope = rememberCoroutineScope()
-    var selectedTab by remember { mutableIntStateOf(0) }
 
     var users by remember { mutableStateOf<List<AdminUser>>(emptyList()) }
     var licenses by remember { mutableStateOf<List<AdminLicense>>(emptyList()) }
     var devices by remember { mutableStateOf<List<AdminDevice>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var lastPingMs by remember { mutableLongStateOf(0L) }
 
-    // Fast parallel data refresh via Coroutines async
+    // Rotation animation for refresh icon
+    val infiniteTransition = rememberInfiniteTransition(label = "RefreshSpin")
+    val rotationAngle by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "SpinAngle"
+    )
+
+    // Fast parallel data refresh via Coroutines async with latency measurement
     fun refreshAll() {
         isLoading = true
+        errorMessage = null
+        val startTime = System.currentTimeMillis()
         coroutineScope.launch {
             coroutineScope {
-                val usersDef = async { AdminControlManager.fetchUsers(context) }
-                val licensesDef = async { AdminControlManager.fetchLicenses(context) }
-                val devicesDef = async { AdminControlManager.fetchDevices(context) }
-                users = usersDef.await()
-                licenses = licensesDef.await()
-                devices = devicesDef.await()
+                val usersDef = async { AdminControlManager.fetchUsersWithStatus(context) }
+                val licensesDef = async { AdminControlManager.fetchLicensesWithStatus(context) }
+                val devicesDef = async { AdminControlManager.fetchDevicesWithStatus(context) }
+
+                val usersRes = usersDef.await()
+                val licensesRes = licensesDef.await()
+                val devicesRes = devicesDef.await()
+
+                lastPingMs = System.currentTimeMillis() - startTime
+
+                if (usersRes is AdminApiResult.Success) users = usersRes.data
+                if (licensesRes is AdminApiResult.Success) licenses = licensesRes.data
+                if (devicesRes is AdminApiResult.Success) devices = devicesRes.data
+
+                val errors = listOfNotNull(
+                    (usersRes as? AdminApiResult.Error)?.message,
+                    (licensesRes as? AdminApiResult.Error)?.message,
+                    (devicesRes as? AdminApiResult.Error)?.message
+                )
+
+                if (errors.isNotEmpty()) {
+                    errorMessage = errors.first()
+                }
             }
             isLoading = false
         }
@@ -380,7 +826,7 @@ fun AdminControlDialog(
     // Dashboard Statistics Metrics
     val totalAdmins = remember(users) { users.count { it.isAdmin } }
     val totalBannedDevices = remember(devices) { devices.count { it.isBanned } }
-    val totalOutdatedDevices = remember(devices) { devices.count { it.appVersion.trim() < CURRENT_APP_VERSION } }
+    val totalOutdatedDevices = remember(devices) { devices.count { OtaUpdateManager.compareVersionStrings(it.appVersion, CURRENT_APP_VERSION) < 0 } }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -393,7 +839,7 @@ fun AdminControlDialog(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
                         modifier = Modifier
-                            .size(28.dp)
+                            .size(32.dp)
                             .clip(CircleShape)
                             .background(
                                 Brush.linearGradient(
@@ -402,20 +848,24 @@ fun AdminControlDialog(
                             ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "AlbionDataPro Admin",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
+                                color = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            PulsingStatusDot(isOnline = errorMessage == null)
+                        }
                         Text(
-                            text = "AlbionDataPro Admin",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp,
-                            color = Color.White
-                        )
-                        Text(
-                            text = "Live Network Control • v$CURRENT_APP_VERSION",
+                            text = if (errorMessage == null) "Live Network • v$CURRENT_APP_VERSION ${if (lastPingMs > 0) "($lastPingMs ms)" else ""}" else "⚠️ Connection Issue",
                             fontSize = 10.sp,
-                            color = Color(0xFF38BDF8)
+                            color = if (errorMessage == null) Color(0xFF38BDF8) else Color(0xFFEF4444)
                         )
                     }
                 }
@@ -428,96 +878,60 @@ fun AdminControlDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.85f),
+                    .heightIn(max = 840.dp)
+                    .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // High-End KPI Statistics Header Card
+                // High-End Error State Banner
+                AnimatedVisibility(visible = errorMessage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF7F1D1D).copy(alpha = 0.85f),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFCA5A5), modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = errorMessage ?: "Verbindung fehlgeschlagen",
+                                    fontSize = 11.sp,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            OutlinedButton(
+                                onClick = { refreshAll() },
+                                shape = RoundedCornerShape(6.dp),
+                                border = BorderStroke(1.dp, Color.White),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.height(26.dp)
+                            ) {
+                                Text("Erneut", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+
+                // High-End Interactive KPI Statistics Header Card
                 AdminKpiHeader(
                     totalUsers = users.size,
                     totalAdmins = totalAdmins,
                     totalLicenses = licenses.size,
                     totalDevices = devices.size,
                     bannedDevices = totalBannedDevices,
-                    outdatedDevices = totalOutdatedDevices
-                )
-
-                TabRow(
-                    selectedTabIndex = selectedTab,
-                    containerColor = Color(0xFF0F172A),
-                    contentColor = Color(0xFF38BDF8),
-                    indicator = {},
-                    divider = {}
-                ) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = {
-                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                            selectedTab = 0
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Lock, contentDescription = null, modifier = Modifier.size(13.dp), tint = if (selectedTab == 0) Color(0xFF38BDF8) else Color(0xFF94A3B8))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("Lizenzen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = {
-                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                            selectedTab = 1
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Person, contentDescription = null, modifier = Modifier.size(13.dp), tint = if (selectedTab == 1) Color(0xFF38BDF8) else Color(0xFF94A3B8))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("Nutzer", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = {
-                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                            selectedTab = 2
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Phone, contentDescription = null, modifier = Modifier.size(13.dp), tint = if (selectedTab == 2) Color(0xFF38BDF8) else Color(0xFF94A3B8))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("Geräte", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 3,
-                        onClick = {
-                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                            selectedTab = 3
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Star, contentDescription = null, modifier = Modifier.size(13.dp), tint = if (selectedTab == 3) Color(0xFF38BDF8) else Color(0xFF94A3B8))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("24h/KI", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    )
-                    Tab(
-                        selected = selectedTab == 4,
-                        onClick = {
-                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                            selectedTab = 4
-                        },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Settings, contentDescription = null, modifier = Modifier.size(13.dp), tint = if (selectedTab == 4) Color(0xFF38BDF8) else Color(0xFF94A3B8))
-                                Spacer(modifier = Modifier.width(3.dp))
-                                Text("Config", fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    )
+                    outdatedDevices = totalOutdatedDevices,
+                    activeTab = 0
+                ) { _, _ ->
+                    try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
                 }
 
                 if (isLoading) {
@@ -531,13 +945,13 @@ fun AdminControlDialog(
                         ShimmerLoadingCard(height = 70.dp)
                     }
                 } else {
-                    when (selectedTab) {
-                        0 -> AdminLicensesTab(licenses) { refreshAll() }
-                        1 -> AdminUsersTab(users, devices) { refreshAll() }
-                        2 -> AdminDevicesTab(devices) { refreshAll() }
-                        3 -> AdminAnalyticsTab()
-                        4 -> AdminRemoteConfigTab()
-                    }
+                    AdminSimpleView(
+                        viewModel = viewModel,
+                        users = users,
+                        licenses = licenses,
+                        devices = devices,
+                        onRefresh = { refreshAll() }
+                    )
                 }
             }
         },
@@ -551,9 +965,16 @@ fun AdminControlDialog(
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Aktualisieren", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier
+                            .size(16.dp)
+                            .then(if (isLoading) Modifier.rotate(rotationAngle) else Modifier)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(if (isLoading) "Lädt..." else "Aktualisieren", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -568,7 +989,9 @@ fun AdminKpiHeader(
     totalLicenses: Int,
     totalDevices: Int,
     bannedDevices: Int,
-    outdatedDevices: Int
+    outdatedDevices: Int,
+    activeTab: Int,
+    onSelectTabAndFilter: (tab: Int, filter: Int) -> Unit
 ) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -579,28 +1002,34 @@ fun AdminKpiHeader(
         item {
             KpiStatCard(
                 title = "Benutzer",
-                value = "$totalUsers",
+                value = totalUsers.toString(),
                 subtitle = "👑 $totalAdmins Admins",
                 color = Color(0xFF38BDF8),
-                icon = Icons.Default.Person
+                icon = Icons.Default.Person,
+                isSelected = activeTab == 1,
+                onClick = { onSelectTabAndFilter(1, 0) }
             )
         }
         item {
             KpiStatCard(
                 title = "Lizenzen",
-                value = "$totalLicenses",
+                value = totalLicenses.toString(),
                 subtitle = "Generiert",
                 color = Color(0xFF10B981),
-                icon = Icons.Default.Lock
+                icon = Icons.Default.Lock,
+                isSelected = activeTab == 0,
+                onClick = { onSelectTabAndFilter(0, 0) }
             )
         }
         item {
             KpiStatCard(
                 title = "Geräte",
-                value = "$totalDevices",
+                value = totalDevices.toString(),
                 subtitle = if (bannedDevices > 0) "🔴 $bannedDevices Gebannt" else "🟢 Alle Aktiv",
                 color = if (bannedDevices > 0) Color(0xFFEF4444) else Color(0xFF8B5CF6),
-                icon = Icons.Default.Phone
+                icon = Icons.Default.Phone,
+                isSelected = activeTab == 2,
+                onClick = { onSelectTabAndFilter(2, if (bannedDevices > 0) 3 else 0) }
             )
         }
         item {
@@ -609,7 +1038,9 @@ fun AdminKpiHeader(
                 value = "v$CURRENT_APP_VERSION",
                 subtitle = if (outdatedDevices > 0) "⚠️ $outdatedDevices Veraltet" else "🟢 Alle Aktuell",
                 color = if (outdatedDevices > 0) Color(0xFFF59E0B) else Color(0xFF10B981),
-                icon = Icons.Default.Lock
+                icon = Icons.Default.Lock,
+                isSelected = activeTab == 2 && outdatedDevices > 0,
+                onClick = { onSelectTabAndFilter(2, if (outdatedDevices > 0) 2 else 0) }
             )
         }
     }
@@ -621,13 +1052,17 @@ private fun KpiStatCard(
     value: String,
     subtitle: String,
     color: Color,
-    icon: ImageVector
+    icon: ImageVector,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
 ) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = Color(0xFF0F172A),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.3f)),
-        modifier = Modifier.width(115.dp)
+        border = BorderStroke(if (isSelected) 2.dp else 1.dp, if (isSelected) color else color.copy(alpha = 0.3f)),
+        modifier = Modifier
+            .width(115.dp)
+            .clickable { onClick() }
     ) {
         Column(
             modifier = Modifier.padding(8.dp),
@@ -681,6 +1116,65 @@ fun AdminSearchBar(
     )
 }
 
+// Confirmation Dialog for Destructive Actions
+@Composable
+fun ConfirmDeleteDialog(
+    title: String,
+    message: String,
+    itemName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(20.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(message, fontSize = 11.sp, color = Color(0xFFCBD5E1))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF0F172A),
+                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = itemName,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFFFCA5A5),
+                        modifier = Modifier.padding(8.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text("🔴 unwiderruflich Löschen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text("Abbrechen", color = Color.White, fontSize = 11.sp)
+            }
+        },
+        containerColor = Color(0xFF1E293B)
+    )
+}
+
 @Composable
 fun AdminLicensesTab(
     licenses: List<AdminLicense>,
@@ -693,6 +1187,9 @@ fun AdminLicensesTab(
     var customerNoteInput by remember { mutableStateOf("") }
     var generatedKeyResult by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+    var tierFilter by remember { mutableStateOf("ALL") }
+
+    var deleteTargetLicense by remember { mutableStateOf<AdminLicense?>(null) }
 
     val tiers = listOf(
         "1m" to "1 Monat (15€)",
@@ -702,13 +1199,50 @@ fun AdminLicensesTab(
         "lifetime" to "Lifetime (250€)"
     )
 
-    val filteredLicenses = remember(licenses, searchQuery) {
-        if (searchQuery.isBlank()) licenses
-        else licenses.filter {
+    // Calculate Estimated Total Revenue Value of generated keys
+    val totalRevenueValue = remember(licenses) {
+        licenses.sumOf {
+            when (it.tier.lowercase()) {
+                "1m" -> 15
+                "3m" -> 30
+                "6m" -> 50
+                "12m" -> 100
+                "lifetime" -> 250
+                else -> 15
+            }
+        }
+    }
+
+    val filteredLicenses = remember(licenses, searchQuery, tierFilter) {
+        val list = if (tierFilter == "ALL") licenses else licenses.filter { it.tier.equals(tierFilter, ignoreCase = true) }
+        if (searchQuery.isBlank()) list
+        else list.filter {
             it.key.contains(searchQuery, ignoreCase = true) ||
                     it.tier.contains(searchQuery, ignoreCase = true) ||
                     it.note.contains(searchQuery, ignoreCase = true)
         }
+    }
+
+    if (deleteTargetLicense != null) {
+        ConfirmDeleteDialog(
+            title = "Lizenz löschen",
+            message = "Möchtest du diese generierte Lizenz wirklich löschen?",
+            itemName = "${deleteTargetLicense?.key} (${deleteTargetLicense?.tier?.uppercase()})",
+            onDismiss = { deleteTargetLicense = null },
+            onConfirm = {
+                val key = deleteTargetLicense?.key ?: return@ConfirmDeleteDialog
+                deleteTargetLicense = null
+                coroutineScope.launch {
+                    val deleted = AdminControlManager.deleteLicense(context, key)
+                    if (deleted) {
+                        Toast.makeText(context, "🟢 Lizenz gelöscht", Toast.LENGTH_SHORT).show()
+                        onRefresh()
+                    } else {
+                        Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
@@ -719,7 +1253,26 @@ fun AdminLicensesTab(
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("➕ Neue Lizenz generieren", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("➕ Neue Lizenz generieren", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF10B981).copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, Color(0xFF10B981))
+                    ) {
+                        Text(
+                            "💎 Volumen: $totalRevenueValue €",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                     tiers.take(3).forEach { (code, _) ->
@@ -847,6 +1400,28 @@ fun AdminLicensesTab(
             }
         }
 
+        // Tier Filter Bar
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            item {
+                DeviceFilterChipButton("Alle (${licenses.size})", selected = tierFilter == "ALL", onClick = { tierFilter = "ALL" })
+            }
+            item {
+                DeviceFilterChipButton("1M", selected = tierFilter == "1m", onClick = { tierFilter = "1m" })
+            }
+            item {
+                DeviceFilterChipButton("3M", selected = tierFilter == "3m", onClick = { tierFilter = "3m" })
+            }
+            item {
+                DeviceFilterChipButton("6M", selected = tierFilter == "6m", onClick = { tierFilter = "6m" })
+            }
+            item {
+                DeviceFilterChipButton("12M", selected = tierFilter == "12m", onClick = { tierFilter = "12m" })
+            }
+            item {
+                DeviceFilterChipButton("Lifetime", selected = tierFilter == "lifetime", onClick = { tierFilter = "lifetime" })
+            }
+        }
+
         AdminSearchBar(
             query = searchQuery,
             onQueryChange = { searchQuery = it },
@@ -862,8 +1437,8 @@ fun AdminLicensesTab(
                 )
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
-                items(filteredLicenses) { lic ->
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                items(filteredLicenses, key = { it.key }) { lic ->
                     Card(
                         shape = RoundedCornerShape(8.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -887,13 +1462,7 @@ fun AdminLicensesTab(
                             IconButton(
                                 onClick = {
                                     try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                                    coroutineScope.launch {
-                                        val deleted = AdminControlManager.deleteLicense(context, lic.key)
-                                        if (deleted) {
-                                            Toast.makeText(context, "Lizenz gelöscht", Toast.LENGTH_SHORT).show()
-                                            onRefresh()
-                                        }
-                                    }
+                                    deleteTargetLicense = lic
                                 }
                             ) {
                                 Icon(imageVector = Icons.Default.Delete, contentDescription = "Löschen", tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
@@ -918,10 +1487,36 @@ fun AdminUsersTab(
     var newUsername by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var searchQuery by remember { mutableStateOf("") }
+    var userTypeFilter by remember { mutableStateOf("ALL") } // ALL, ADMINS, LICENSED, UNLICENSED
 
     var alertTargetUser by remember { mutableStateOf<String?>(null) }
     var alertTargetHwId by remember { mutableStateOf<String?>(null) }
     var showSendAlertDialog by remember { mutableStateOf(false) }
+
+    var deleteTargetUser by remember { mutableStateOf<AdminUser?>(null) }
+    var revealedPasswordsMap by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
+
+    if (deleteTargetUser != null) {
+        ConfirmDeleteDialog(
+            title = "Benutzer löschen",
+            message = "Möchtest du diesen Benutzer und seine Zugänge löschen?",
+            itemName = "Benutzer: ${deleteTargetUser?.username}",
+            onDismiss = { deleteTargetUser = null },
+            onConfirm = {
+                val username = deleteTargetUser?.username ?: return@ConfirmDeleteDialog
+                deleteTargetUser = null
+                coroutineScope.launch {
+                    val deleted = AdminControlManager.deleteUser(context, username)
+                    if (deleted) {
+                        Toast.makeText(context, "🟢 Benutzer gelöscht", Toast.LENGTH_SHORT).show()
+                        onRefresh()
+                    } else {
+                        Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
 
     if (showSendAlertDialog) {
         SendAlertDialog(
@@ -948,8 +1543,17 @@ fun AdminUsersTab(
         )
     }
 
-    val filteredUsers = remember(users, searchQuery) {
-        val sorted = users.sortedBy { it.username.lowercase() }
+    val filteredUsers = remember(users, searchQuery, userTypeFilter) {
+        val typeList = when (userTypeFilter) {
+            "ADMINS" -> users.filter { it.isAdmin }
+            "LICENSED" -> users.filter { it.isLicensed }
+            "UNLICENSED" -> users.filter { !it.isLicensed }
+            else -> users
+        }
+        val sorted = typeList.sortedWith(
+            compareByDescending<AdminUser> { it.isAdmin || it.isLicensed }
+                .thenBy { it.username.lowercase() }
+        )
         if (searchQuery.isBlank()) sorted
         else sorted.filter {
             it.username.contains(searchQuery, ignoreCase = true) ||
@@ -957,7 +1561,7 @@ fun AdminUsersTab(
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth().imePadding()) {
         Card(
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -999,32 +1603,52 @@ fun AdminUsersTab(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                OutlinedTextField(
-                    value = newPassword,
-                    onValueChange = { newPassword = it },
-                    label = { Text("Passwort", fontSize = 10.sp, color = Color(0xFF94A3B8)) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(8.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("Passwort", fontSize = 10.sp, color = Color(0xFF94A3B8)) },
+                        singleLine = true,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            newPassword = generateRandomPassword()
+                        },
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                        modifier = Modifier.height(52.dp)
+                    ) {
+                        Text("🎲 Zufall", fontSize = 10.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                PasswordStrengthMeter(password = newPassword)
 
                 Button(
                     onClick = {
                         if (newUsername.isBlank() || newPassword.isBlank()) return@Button
                         try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
                         coroutineScope.launch {
-                            val created = AdminControlManager.createUser(context, newUsername.trim(), newPassword.trim())
-                            if (created) {
+                            val res = AdminControlManager.createUserWithStatus(context, newUsername.trim(), newPassword.trim())
+                            if (res is AdminApiResult.Success) {
                                 newUsername = ""
                                 newPassword = ""
                                 Toast.makeText(context, "🟢 Benutzer angelegt!", Toast.LENGTH_SHORT).show()
                                 onRefresh()
-                            } else {
-                                Toast.makeText(context, "❌ Fehler beim Anlegen", Toast.LENGTH_SHORT).show()
+                            } else if (res is AdminApiResult.Error) {
+                                Toast.makeText(context, "❌ ${res.message}", Toast.LENGTH_LONG).show()
                             }
                         }
                     },
@@ -1037,6 +1661,13 @@ fun AdminUsersTab(
             }
         }
 
+        // User Type Filters
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            DeviceFilterChipButton("Alle (${users.size})", selected = userTypeFilter == "ALL", onClick = { userTypeFilter = "ALL" }, modifier = Modifier.weight(1f))
+            DeviceFilterChipButton("👑 Admins", selected = userTypeFilter == "ADMINS", onClick = { userTypeFilter = "ADMINS" }, modifier = Modifier.weight(1f))
+            DeviceFilterChipButton("🟢 Aktiv", selected = userTypeFilter == "LICENSED", onClick = { userTypeFilter = "LICENSED" }, modifier = Modifier.weight(1f))
+        }
+
         AdminSearchBar(
             query = searchQuery,
             onQueryChange = { searchQuery = it },
@@ -1046,15 +1677,16 @@ fun AdminUsersTab(
         Text("👥 Registrierte Benutzer (${filteredUsers.size}/${users.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
 
         if (filteredUsers.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
                 Text("Keine Benutzer gefunden.", fontSize = 11.sp, color = Color(0xFF94A3B8))
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
-                items(filteredUsers) { usr ->
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                filteredUsers.forEach { usr ->
                     val userDevices = remember(devices, usr) {
                         devices.filter { it.username.trim().equals(usr.username.trim(), ignoreCase = true) }
                     }
+                    val isPasswordRevealed = revealedPasswordsMap[usr.username] == true
 
                     Card(
                         shape = RoundedCornerShape(10.dp),
@@ -1102,13 +1734,31 @@ fun AdminUsersTab(
                                     ) {
                                         Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(11.dp))
                                         Spacer(modifier = Modifier.width(3.dp))
-                                        Text("Passwort: ${usr.password}", fontSize = 10.sp, color = Color(0xFF38BDF8), fontFamily = FontFamily.Monospace)
+                                        Text(
+                                            text = "Passwort: ${if (isPasswordRevealed) usr.password else "••••••••"}",
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF38BDF8),
+                                            fontFamily = FontFamily.Monospace
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = if (isPasswordRevealed) Icons.Default.Info else Icons.Default.Lock,
+                                            contentDescription = "Anzeigen/Verbergen",
+                                            tint = Color(0xFF94A3B8),
+                                            modifier = Modifier
+                                                .size(12.dp)
+                                                .clickable {
+                                                    revealedPasswordsMap = revealedPasswordsMap.toMutableMap().apply {
+                                                        put(usr.username, !isPasswordRevealed)
+                                                    }
+                                                }
+                                        )
                                     }
 
                                     Text(
-                                        if (usr.isAdmin) "Lizenz: Unbegrenzt (Admin)" else "Lizenz aktiv: ${if (usr.isLicensed) "Ja" else "Nein"}",
+                                        text = getRemainingDaysForUser(usr.licenseExpiresAt, usr.isAdmin),
                                         fontSize = 10.sp,
-                                        color = if (usr.isAdmin) Color(0xFF10B981) else Color(0xFF94A3B8)
+                                        color = if (usr.isAdmin) Color(0xFF10B981) else Color(0xFF38BDF8)
                                     )
                                 }
 
@@ -1125,7 +1775,7 @@ fun AdminUsersTab(
                                         contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                                         modifier = Modifier.height(28.dp)
                                     ) {
-                                        Text("📢 Nachricht", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("📢 Alert", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
                                     }
 
                                     if (!usr.isAdmin) {
@@ -1133,14 +1783,29 @@ fun AdminUsersTab(
                                             onClick = {
                                                 try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
                                                 coroutineScope.launch {
-                                                    val deleted = AdminControlManager.deleteUser(context, usr.username)
-                                                    if (deleted) {
-                                                        Toast.makeText(context, "Benutzer gelöscht", Toast.LENGTH_SHORT).show()
+                                                    val ok = AdminControlManager.banUserDevices(context, usr.username)
+                                                    if (ok) {
+                                                        Toast.makeText(context, "🔴 Benutzer '${usr.username}' gebannt", Toast.LENGTH_SHORT).show()
                                                         onRefresh()
+                                                    } else {
+                                                        Toast.makeText(context, "❌ Fehler beim Bannen", Toast.LENGTH_SHORT).show()
                                                     }
                                                 }
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                            modifier = Modifier.height(28.dp)
+                                        ) {
+                                            Text("🔴 Bannen", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                                                deleteTargetUser = usr
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
                                             shape = RoundedCornerShape(6.dp),
                                             contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
                                             modifier = Modifier.height(28.dp)
@@ -1154,12 +1819,12 @@ fun AdminUsersTab(
                             HorizontalDivider(color = Color(0xFF1E293B))
 
                             // Device List for this user
-                            Text("📱 Verknüpfte Geräte (${userDevices.size}):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                            Text("📱 Verknüpfte Geräte (${userDevices.size}/2 max):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
                             if (userDevices.isEmpty()) {
                                 Text("Kein Gerät mit diesem Konto verbunden.", fontSize = 10.sp, color = Color(0xFF64748B))
                             } else {
                                 userDevices.forEach { dev ->
-                                    val isCurrent = dev.appVersion.trim() == CURRENT_APP_VERSION || dev.appVersion.trim() >= CURRENT_APP_VERSION
+                                    val isCurrent = (dev.appVersion.trim() >= CURRENT_APP_VERSION)
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
                                         color = if (dev.isBanned) Color(0xFF7F1D1D) else Color(0xFF1E293B),
@@ -1265,7 +1930,7 @@ fun SendAlertDialog(
 
     val presetMessages = listOf(
         "⚠️ Wichtiger Server-Wartungshinweis: Bitte App neustarten.",
-        "🚀 Neues Update v1.3.9 verfügbar! Bitte jetzt aktualisieren.",
+        "🚀 Neues Update v1.3.15 verfügbar! Bitte jetzt aktualisieren.",
         "🚨 Sicherheits-Überprüfung gestartet.",
         "💬 Bitte kontaktiere den Support via Telegram."
     )
@@ -1456,7 +2121,9 @@ private fun DeviceFilterChipButton(
 }
 
 @Composable
-fun AdminAnalyticsTab() {
+fun AdminAnalyticsTab(
+    licenses: List<AdminLicense> = emptyList()
+) {
     val context = LocalContext.current
     var stats by remember { mutableStateOf<ServerDownloadStats?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -1471,7 +2138,11 @@ fun AdminAnalyticsTab() {
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    val tierCounts = remember(licenses) {
+        licenses.groupingBy { it.tier.lowercase() }.eachCount()
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxSize()) {
         Card(
             shape = RoundedCornerShape(10.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -1482,6 +2153,34 @@ fun AdminAnalyticsTab() {
                 Text("📊 Live 24h Data Download Chart", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
                 Text("Quelle: https://europe.albiononline2d.com/en/item & Albion Data API", fontSize = 10.sp, color = Color(0xFF94A3B8))
                 Text("Gesamte geladene Daten: ${stats?.totalDownloads ?: 45280} Items", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
+            }
+        }
+
+        // License Tier Breakdown
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("💎 Lizenz-Paket Verteilung (${licenses.size} Gesamt)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf("1m", "3m", "6m", "12m", "lifetime").forEach { tier ->
+                        val count = tierCounts[tier] ?: 0
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF1E293B),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Column(modifier = Modifier.padding(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(tier.uppercase(), fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                Text(count.toString(), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -1534,27 +2233,98 @@ fun AdminAnalyticsTab() {
 }
 
 @Composable
-fun AdminRemoteConfigTab() {
+fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
     val context = LocalContext.current
     val view = LocalView.current
     val coroutineScope = rememberCoroutineScope()
     var minMarginInput by remember { mutableStateOf("12.0") }
     var maintenanceMode by remember { mutableStateOf(false) }
+    var serverUrlInput by remember { mutableStateOf(ServerConfigManager.getCustomServerUrls(context).firstOrNull() ?: "https://albionmarketv2-1.onrender.com") }
+    var syncIntervalSeconds by remember { mutableStateOf("10") }
+    var maxDevicesPerUser by remember { mutableStateOf("3") }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+    ) {
+        // Kategorie 1: Netzwerk & Verbindungseinstellungen
         Card(
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Kategorie: Netzwerk & Verbindung", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+
+                OutlinedTextField(
+                    value = serverUrlInput,
+                    onValueChange = { serverUrlInput = it },
+                    label = { Text("Server-URL / Ngrok Bridge Endpoint", fontSize = 9.sp, color = Color(0xFF94A3B8)) },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = syncIntervalSeconds,
+                        onValueChange = { syncIntervalSeconds = it },
+                        label = { Text("Sync Intervall (Sek.)", fontSize = 9.sp, color = Color(0xFF94A3B8)) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = maxDevicesPerUser,
+                        onValueChange = { maxDevicesPerUser = it },
+                        label = { Text("Max. Geräte / Nutzer", fontSize = 9.sp, color = Color(0xFF94A3B8)) },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                            focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                        ServerConfigManager.updateServerUrl(context, serverUrlInput)
+                        Toast.makeText(context, "Server-URL & Sync gespeichert!", Toast.LENGTH_SHORT).show()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(38.dp)
+                ) {
+                    Text("Server-URL & Sync speichern", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                }
+            }
+        }
+
+        // Kategorie 2: Live Config & Feature Flags
+        Card(
+            shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
             border = BorderStroke(1.dp, Color(0xFF334155)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("🎛️ Remote Live-Config Engine (Feature-Flags)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Kategorie: Live Config & Feature Flags", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
 
                 OutlinedTextField(
                     value = minMarginInput,
                     onValueChange = { minMarginInput = it },
-                    label = { Text("Mindest-Gewinnmarge % (Global)", fontSize = 10.sp, color = Color(0xFF94A3B8)) },
+                    label = { Text("Mindest-Gewinnmarge % (Global)", fontSize = 9.sp, color = Color(0xFF94A3B8)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
@@ -1568,8 +2338,8 @@ fun AdminRemoteConfigTab() {
                         checked = maintenanceMode,
                         onCheckedChange = { maintenanceMode = it }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("🛠️ Wartungsmodus aktivieren", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Wartungsmodus aktivieren", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
@@ -1579,48 +2349,279 @@ fun AdminRemoteConfigTab() {
                         coroutineScope.launch {
                             val ok = AdminControlManager.updateRemoteConfig(context, margin, maintenanceMode)
                             if (ok) {
-                                Toast.makeText(context, "🟢 Remote-Config an alle Geräte gepusht!", Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, "Remote-Config gepusht!", Toast.LENGTH_LONG).show()
                             } else {
-                                Toast.makeText(context, "❌ Fehler beim Veröffentlichen", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "Fehler beim Veröffentlichen", Toast.LENGTH_SHORT).show()
                             }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(38.dp)
                 ) {
-                    Text("⚡ Config live an ALLE Geräte pushen", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                    Text("Config an alle Geräte pushen", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                 }
-            }
-        }
 
-        Card(
-            shape = RoundedCornerShape(10.dp),
-            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-            border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("🚀 In-App OTA Update Befehl", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
-                Text("Befiehlt allen verbundenen Geräten, AlbionDataPro.apk sofort im Hintergrund herunterzuladen.", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 Button(
                     onClick = {
                         try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
                         coroutineScope.launch {
-                            val ok = AdminControlManager.triggerOtaUpdateCommand(context, isGlobal = true)
-                            if (ok) {
-                                Toast.makeText(context, "🚀 Globaler OTA-Update Befehl gesendet!", Toast.LENGTH_LONG).show()
-                            } else {
-                                Toast.makeText(context, "❌ Fehler beim Senden", Toast.LENGTH_SHORT).show()
-                            }
+                            Toast.makeText(context, "Ressourcen werden neu geladen...", Toast.LENGTH_SHORT).show()
+                            viewModel.forceReloadAllResources()
+                            Toast.makeText(context, "Alle Ressourcen aktualisiert!", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF38BDF8)),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(38.dp)
                 ) {
-                    Text("⚡ In-App Update an ALLE Geräte senden", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                    Text("Alle Ressourcen neu laden", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                }
+            }
+        }
+
+        // Kategorie 3: OTA Updates & Massen-Verwaltung
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.4f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Kategorie: OTA Updates & Massen-Verwaltung", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF8B5CF6))
+                Text("Befiehlt allen verbundenen Geräten, AlbionDataPro.apk im Hintergrund herunterzuladen.", fontSize = 9.sp, color = Color(0xFF94A3B8))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                            coroutineScope.launch {
+                                val ok = AdminControlManager.triggerOtaUpdateCommand(context, isGlobal = true)
+                                if (ok) {
+                                    Toast.makeText(context, "Globaler OTA-Update Befehl gesendet!", Toast.LENGTH_LONG).show()
+                                } else {
+                                    Toast.makeText(context, "Fehler beim Senden", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(38.dp)
+                    ) {
+                        Text("Globales OTA Update", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                    }
+
+                    Button(
+                        onClick = {
+                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                            coroutineScope.launch {
+                                val ok = AdminControlManager.unbanAllDevices(context)
+                                if (ok) {
+                                    Toast.makeText(context, "Alle Geräte entbannt!", Toast.LENGTH_LONG).show()
+                                } else {
+                                    Toast.makeText(context, "Fehler beim Entbannen", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF059669)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(38.dp)
+                    ) {
+                        Text("Alle Entbannen", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// New High-End Tab for Audit Event Log & Endpoint Live Diagnostics Radar
+@Composable
+fun AdminAuditAndDiagnosticsTab(
+    users: List<AdminUser>,
+    licenses: List<AdminLicense>,
+    devices: List<AdminDevice>,
+    onRefresh: () -> Unit
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+    val coroutineScope = rememberCoroutineScope()
+
+    var logs by remember { mutableStateOf<List<String>>(emptyList()) }
+    var diagnosticsMap by remember { mutableStateOf<Map<String, Long>>(emptyMap()) }
+    var isRunningDiag by remember { mutableStateOf(false) }
+
+    fun refreshLogs() {
+        logs = AdminAuditLogManager.getLogs(context)
+    }
+
+    fun runDiagnostics() {
+        isRunningDiag = true
+        coroutineScope.launch {
+            diagnosticsMap = AdminControlManager.runEndpointDiagnostics(context)
+            isRunningDiag = false
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshLogs()
+        runDiagnostics()
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        // Multi-Endpoint Diagnostic Radar Card
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Build, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("📡 Multi-Node Diagnostics Radar", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                    }
+                    IconButton(onClick = { runDiagnostics() }, modifier = Modifier.size(24.dp)) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Diagnose", tint = Color.White, modifier = Modifier.size(16.dp))
+                    }
+                }
+
+                if (isRunningDiag) {
+                    Text("⏳ Teste Endpunkte in Echtzeit...", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                } else if (diagnosticsMap.isNotEmpty()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        diagnosticsMap.forEach { (ep, ms) ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(ep, fontSize = 10.sp, fontFamily = FontFamily.Monospace, color = Color(0xFFCBD5E1))
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (ms in 0..500) Color(0xFF065F46) else Color(0xFF7F1D1D)
+                                ) {
+                                    Text(
+                                        text = if (ms >= 0) "$ms ms 🟢" else "Offline 🔴",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (ms in 0..500) Color(0xFF34D399) else Color(0xFFFCA5A5),
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Batch Action Center
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.4f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("⚡ Speed-Dial / Massen-Aktionen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            val dump = AdminControlManager.exportDatabaseDump(users, licenses, devices)
+                            copyToClipboardWithHaptics(context, view, "Admin DB Backup JSON", dump, "📋 DB-Backup JSON in Zwischenablage kopiert!")
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = PaddingValues(1.dp)
+                    ) {
+                        Text("📋 DB Export", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                val ok = AdminControlManager.unbanAllDevices(context)
+                                if (ok) {
+                                    Toast.makeText(context, "🟢 Alle Geräte entbannt!", Toast.LENGTH_SHORT).show()
+                                    onRefresh()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = PaddingValues(1.dp)
+                    ) {
+                        Text("🟢 Massen-Entbannung", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    Button(
+                        onClick = {
+                            AdminAuditLogManager.clearLogs(context)
+                            refreshLogs()
+                            Toast.makeText(context, "🧹 Log-Historie geleert", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = PaddingValues(1.dp)
+                    ) {
+                        Text("🧹 Log Leeren", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
+            }
+        }
+
+        // Event Audit Log List
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("📜 Admin Activity Log (${logs.size} Einträge)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
+            IconButton(onClick = { refreshLogs() }, modifier = Modifier.size(20.dp)) {
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = "Aktualisieren", tint = Color(0xFF38BDF8), modifier = Modifier.size(14.dp))
+            }
+        }
+
+        if (logs.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().height(100.dp), contentAlignment = Alignment.Center) {
+                Text("Noch keine Admin-Aktionen in dieser Sitzung protokolliert.", fontSize = 11.sp, color = Color(0xFF94A3B8))
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                logs.forEach { log ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF0F172A),
+                        border = BorderStroke(1.dp, Color(0xFF1E293B)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF38BDF8), modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = log,
+                                fontSize = 10.sp,
+                                fontFamily = FontFamily.Monospace,
+                                color = Color(0xFFE2E8F0)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -1630,6 +2631,7 @@ fun AdminRemoteConfigTab() {
 @Composable
 fun AdminDevicesTab(
     devices: List<AdminDevice>,
+    initialFilterOverride: Int = 0,
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1640,11 +2642,19 @@ fun AdminDevicesTab(
     var banTargetHwId by remember { mutableStateOf("") }
     var banTargetDeviceName by remember { mutableStateOf("") }
 
-    var selectedVersionFilter by remember { mutableIntStateOf(0) } // 0 = Alle, 1 = Aktuell, 2 = Veraltet, 3 = Gebannt
+    var deleteTargetDevice by remember { mutableStateOf<AdminDevice?>(null) }
+
+    var selectedVersionFilter by remember { mutableIntStateOf(initialFilterOverride) } // 0 = Alle, 1 = Aktuell, 2 = Veraltet, 3 = Gebannt
     var searchQuery by remember { mutableStateOf("") }
 
+    LaunchedEffect(initialFilterOverride) {
+        if (initialFilterOverride != 0) {
+            selectedVersionFilter = initialFilterOverride
+        }
+    }
+
     val currentVersionCount = remember(devices) {
-        devices.count { it.appVersion.trim() == CURRENT_APP_VERSION || it.appVersion.trim() >= CURRENT_APP_VERSION }
+        devices.count { it.appVersion.trim() >= CURRENT_APP_VERSION }
     }
     val outdatedVersionCount = remember(devices) {
         devices.count { it.appVersion.trim() < CURRENT_APP_VERSION }
@@ -1655,7 +2665,7 @@ fun AdminDevicesTab(
 
     val filteredDevices = remember(devices, selectedVersionFilter, searchQuery) {
         val list = when (selectedVersionFilter) {
-            1 -> devices.filter { it.appVersion.trim() == CURRENT_APP_VERSION || it.appVersion.trim() >= CURRENT_APP_VERSION }
+            1 -> devices.filter { it.appVersion.trim() >= CURRENT_APP_VERSION }
             2 -> devices.filter { it.appVersion.trim() < CURRENT_APP_VERSION }
             3 -> devices.filter { it.isBanned }
             else -> devices
@@ -1670,6 +2680,28 @@ fun AdminDevicesTab(
         searched.sortedWith(compareBy({ it.username.lowercase() }, { it.deviceName.lowercase() }))
     }
 
+    if (deleteTargetDevice != null) {
+        ConfirmDeleteDialog(
+            title = "Gerät löschen",
+            message = "Möchtest du dieses registrierte Gerät aus der Datenbank entfernen?",
+            itemName = "Gerät: ${deleteTargetDevice?.deviceName} (HWID: ${deleteTargetDevice?.hwId})",
+            onDismiss = { deleteTargetDevice = null },
+            onConfirm = {
+                val hwId = deleteTargetDevice?.hwId ?: return@ConfirmDeleteDialog
+                deleteTargetDevice = null
+                coroutineScope.launch {
+                    val deleted = AdminControlManager.deleteDevice(context, hwId)
+                    if (deleted) {
+                        Toast.makeText(context, "🟢 Gerät gelöscht", Toast.LENGTH_SHORT).show()
+                        onRefresh()
+                    } else {
+                        Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
+
     if (showBanDialog) {
         BanDeviceDialog(
             deviceName = banTargetDeviceName,
@@ -1682,6 +2714,8 @@ fun AdminDevicesTab(
                     if (ok) {
                         Toast.makeText(context, "🔴 Banned & Gekickt", Toast.LENGTH_SHORT).show()
                         onRefresh()
+                    } else {
+                        Toast.makeText(context, "❌ Fehler beim Bannen", Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -1752,7 +2786,7 @@ fun AdminDevicesTab(
                     shape = RoundedCornerShape(6.dp),
                     modifier = Modifier.fillMaxWidth().height(34.dp)
                 ) {
-                    Text("🚀 Neue Version JETZT auf allen Geräten installieren", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text("🚀 OTA Update jetzt auf allen Geräten installieren", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
             }
         }
@@ -1821,9 +2855,9 @@ fun AdminDevicesTab(
                 )
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxSize()) {
-                items(filteredDevices) { dev ->
-                    val isUpToDate = dev.appVersion.trim() == CURRENT_APP_VERSION || dev.appVersion.trim() >= CURRENT_APP_VERSION
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
+                items(filteredDevices, key = { it.hwId }) { dev ->
+                    val isUpToDate = OtaUpdateManager.compareVersionStrings(dev.appVersion, CURRENT_APP_VERSION) >= 0
 
                     Card(
                         shape = RoundedCornerShape(8.dp),
@@ -1928,13 +2962,7 @@ fun AdminDevicesTab(
                                 Button(
                                     onClick = {
                                         try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                                        coroutineScope.launch {
-                                            val ok = AdminControlManager.deleteDevice(context, dev.hwId)
-                                            if (ok) {
-                                                Toast.makeText(context, "Gerät gelöscht", Toast.LENGTH_SHORT).show()
-                                                onRefresh()
-                                            }
-                                        }
+                                        deleteTargetDevice = dev
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
                                     shape = RoundedCornerShape(6.dp),
@@ -1950,4 +2978,27 @@ fun AdminDevicesTab(
             }
         }
     }
+}
+
+private fun getRemainingDaysForUser(expiresAtStr: String, isAdmin: Boolean): String {
+    if (isAdmin) return "👑 Unbegrenzt (Admin)"
+    if (expiresAtStr.isBlank()) return "Keine Lizenz-Info"
+    val formats = listOf("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd", "dd.MM.yyyy")
+    var dateMs = 0L
+    for (f in formats) {
+        try {
+            val sdf = SimpleDateFormat(f, Locale.US)
+            if (f.contains("Z")) sdf.timeZone = TimeZone.getTimeZone("UTC")
+            val d = sdf.parse(expiresAtStr)
+            if (d != null) {
+                dateMs = d.time
+                break
+            }
+        } catch (_: Exception) {}
+    }
+    if (dateMs <= 0L) return "Ablauf: $expiresAtStr"
+    val diff = dateMs - System.currentTimeMillis()
+    if (diff <= 0L) return "❌ Lizenz abgelaufen"
+    val days = diff / (24L * 3600L * 1000L)
+    return "⏱️ $days Tage verbleibend"
 }
