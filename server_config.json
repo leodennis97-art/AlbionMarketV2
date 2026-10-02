@@ -1,6 +1,6 @@
 {
-    "serverUrl": "https://speller-importer-captivate.ngrok-free.dev",
-    "ngrokUrl": "https://speller-importer-captivate.ngrok-free.dev",
+    "serverUrl": "https://albionmarketv2-1.onrender.com",
+    "ngrokUrl": "https://albionmarketv2-1.onrender.com",
     "autoConnect": true,
-    "note": "Automatic Ngrok Public Tunnel Configuration URL"
+    "note": "Direct Render Cloud Infrastructure URL"
 }
