@@ -2,6 +2,7 @@ package com.example.albionmarketv2
 
 import android.content.Context
 import android.os.Build
+import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -36,9 +37,19 @@ data class ServerPopupAlert(
 object ServerSyncManager {
 
     var isOtaUpdateAvailable by mutableStateOf(false)
-    var isServerConnected by mutableStateOf(false)
+    var latestTargetVersion by mutableStateOf<String?>(null)
+    var dismissedOtaVersion: String? = null
+    var isServerConnected by mutableStateOf(true)
     var activePopupAlert by mutableStateOf<ServerPopupAlert?>(null)
     var lastSuccessfulUrl: String? = null
+    var lastLoginErrorMessage by mutableStateOf<String?>(null)
+
+    fun dismissOtaUpdate() {
+        isOtaUpdateAvailable = false
+        if (!latestTargetVersion.isNullOrBlank()) {
+            dismissedOtaVersion = latestTargetVersion
+        }
+    }
 
     fun getServerBaseUrls(context: Context? = null): List<String> {
         val urls = mutableListOf<String>()
@@ -54,7 +65,7 @@ object ServerSyncManager {
         CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
         val hwId = DeviceHardwareManager.getHardwareId(context)
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val appVersion = "1.3.9"
+        val appVersion = OtaUpdateManager.getInstalledVersionName(context)
 
         val urlsToTry = getServerBaseUrls(context).map { "$it/api/devices/ping" }
 
@@ -130,20 +141,21 @@ object ServerSyncManager {
 
                             LicenseManager.updateLicenseFromServer(context, isBanned, bannedUntil, banReason, isLicenseActive, licenseExpiresAt)
 
-                            if (hasOtaUpdate) {
-                                isOtaUpdateAvailable = true
-                                try {
-                                    OtaUpdateManager.downloadAndInstallUpdate(context)
-                                } catch (_: Exception) {
-                                }
+                            val targetVersion = jsonObj.optString("targetVersion", "")
+                            if (targetVersion.isNotBlank()) {
+                                latestTargetVersion = targetVersion
                             }
+                            val currentVersion = OtaUpdateManager.getInstalledVersionName(context)
+                            val isNewer = targetVersion.isNotBlank() && OtaUpdateManager.compareVersionStrings(targetVersion, currentVersion) > 0
+
+                            isOtaUpdateAvailable = isNewer && (targetVersion != dismissedOtaVersion)
 
                             val totalDownloads = jsonObj.optInt("totalDownloads", 0)
                             val hourlyArr = jsonObj.optJSONArray("hourly24h")
                             val hourlyList = mutableListOf<HourlyDownloadStat>()
                             if (hourlyArr != null) {
                                 for (i in 0 until hourlyArr.length()) {
-                                    val item = hourlyArr.getJSONObject(i)
+                                    val item = hourlyArr.optJSONObject(i) ?: continue
                                     hourlyList.add(
                                         HourlyDownloadStat(
                                             hour = item.optString("hour", ""),
@@ -239,7 +251,7 @@ object ServerSyncManager {
                             val hourlyList = mutableListOf<HourlyDownloadStat>()
                             if (hourlyArr != null) {
                                 for (i in 0 until hourlyArr.length()) {
-                                    val item = hourlyArr.getJSONObject(i)
+                                    val item = hourlyArr.optJSONObject(i) ?: continue
                                     hourlyList.add(
                                         HourlyDownloadStat(
                                             hour = item.optString("hour", ""),
@@ -292,6 +304,7 @@ object ServerSyncManager {
                 put("sellPriceMin", s.sellPriceMin)
                 put("buyPriceMax", s.buyPriceMax)
                 put("timestampMs", s.timestampMs)
+                put("sellPriceMinAmount", s.sellPriceMinAmount)
             })
         }
 
@@ -360,10 +373,14 @@ object ServerSyncManager {
                             )
                         }
 
-                        if (hasOtaUpdate) {
-                            isOtaUpdateAvailable = true
-                            try { OtaUpdateManager.downloadAndInstallUpdate(context) } catch (_: Exception) {}
+                        val targetVersion = respPkg.optString("targetVersion", "")
+                        if (targetVersion.isNotBlank()) {
+                            latestTargetVersion = targetVersion
                         }
+                        val currentVersion = OtaUpdateManager.getInstalledVersionName(context)
+                        val isNewer = targetVersion.isNotBlank() && OtaUpdateManager.compareVersionStrings(targetVersion, currentVersion) > 0
+
+                        isOtaUpdateAvailable = isNewer && (targetVersion != dismissedOtaVersion)
 
                         val remoteConfigObj = respPkg.optJSONObject("remoteConfig")
                         if (remoteConfigObj != null) {
@@ -406,14 +423,15 @@ object ServerSyncManager {
                             if (response.trim().startsWith("[")) {
                                 val jsonArray = JSONArray(response)
                                 for (i in 0 until jsonArray.length()) {
-                                    val obj = jsonArray.getJSONObject(i)
+                                    val obj = jsonArray.optJSONObject(i) ?: continue
                                     list.add(
                                         PriceSnapshot(
                                             itemId = obj.optString("itemId", ""),
                                             city = obj.optString("city", ""),
                                             sellPriceMin = obj.optInt("sellPriceMin", 0),
                                             buyPriceMax = obj.optInt("buyPriceMax", 0),
-                                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
+                                            sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
                                         )
                                     )
                                 }
@@ -422,14 +440,15 @@ object ServerSyncManager {
                                 val snapshotsArr = jsonObj.optJSONArray("snapshots")
                                 if (snapshotsArr != null) {
                                     for (i in 0 until snapshotsArr.length()) {
-                                        val obj = snapshotsArr.getJSONObject(i)
+                                        val obj = snapshotsArr.optJSONObject(i) ?: continue
                                         list.add(
                                             PriceSnapshot(
                                                 itemId = obj.optString("itemId", ""),
                                                 city = obj.optString("city", ""),
                                                 sellPriceMin = obj.optInt("sellPriceMin", 0),
                                                 buyPriceMax = obj.optInt("buyPriceMax", 0),
-                                                timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                                                timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
+                                                sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
                                             )
                                         )
                                     }
@@ -472,7 +491,7 @@ object ServerSyncManager {
                         conn.requestMethod = "POST"
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                         conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        conn.setRequestProperty("User-Agent", "AlbionDataPro/1.3.9")
+                        conn.setRequestProperty("User-Agent", "AlbionDataPro/1.3.15")
                         conn.connectTimeout = 10000
                         conn.readTimeout = 10000
                         conn.doOutput = true
@@ -496,15 +515,24 @@ object ServerSyncManager {
     }
 
     suspend fun loginWithServer(context: Context, username: String, pass: String): Boolean = withContext(Dispatchers.IO) {
-        CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
-        val hwId = DeviceHardwareManager.getHardwareId(context)
-        val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val appVersion = "1.3.9"
-
         val cleanUser = username.trim()
         val cleanPass = pass.trim()
 
-        // Direct local & admin bypass for dnnx (requires NO license)
+        val hwId = DeviceHardwareManager.getHardwareId(context)
+
+        // Banned device check: Banned devices cannot log in, EXCEPT the admin account (dnnx)
+        val isBannedDevice = LicenseManager.isServerBanned(context)
+        if (isBannedDevice && !cleanUser.equals("dnnx", ignoreCase = true)) {
+            return@withContext false
+        }
+
+
+
+        CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
+        val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
+        val appVersion = OtaUpdateManager.getInstalledVersionName(context)
+
+        // Direct local & admin bypass for dnnx (requires NO license) - max 1 admin account, saves admin device
         if (cleanUser.equals("dnnx", ignoreCase = true) && (cleanPass == "Dean3153..." || cleanPass.startsWith("Dean3153"))) {
             val appPrefs = AppPreferences(context)
             appPrefs.isUserLoggedIn = true
@@ -513,10 +541,13 @@ object ServerSyncManager {
             appPrefs.isAdmin = true
 
             val prefs = context.getSharedPreferences("albion_hardware_license_prefs", Context.MODE_PRIVATE)
+            val adminDevices = (prefs.getStringSet("saved_admin_devices", emptySet()) ?: emptySet()).toMutableSet()
+            adminDevices.add(hwId)
             prefs.edit {
                 putBoolean("is_user_logged_in", true)
                 putString("user_email", cleanUser)
                 putString("activated_license_code", "LOGIN-DNNX-ADMIN")
+                putStringSet("saved_admin_devices", adminDevices)
             }
             LicenseManager.loginWithCredentials(context, cleanUser, cleanPass)
             isServerConnected = true
@@ -559,10 +590,25 @@ object ServerSyncManager {
                             val response = stream.bufferedReader().use { it.readText() }
                             val jsonObj = JSONObject(response)
                             if (jsonObj.optBoolean("authenticated", false)) {
-                                val isDnnxAdmin = username.trim().equals("dnnx", ignoreCase = true)
-                                val isAdmin = jsonObj.optBoolean("isAdmin", false) || isDnnxAdmin
-                                val isLicenseActive = jsonObj.optBoolean("isLicenseActive", true) || isAdmin
+                                lastLoginErrorMessage = null
+                                val isAdmin = cleanUser.equals("dnnx", ignoreCase = true)
+                                val serverLicenseActive = jsonObj.optBoolean("isLicenseActive", false) || isAdmin
                                 val licenseExpiresAt = if (isAdmin) "2099-12-31T23:59:59.000Z" else jsonObj.optString("licenseExpiresAt", "")
+
+                                LicenseManager.updateLicenseFromServer(
+                                    context = context,
+                                    isBanned = jsonObj.optBoolean("isBanned", false),
+                                    bannedUntilStr = jsonObj.optString("bannedUntil", ""),
+                                    isLicenseActive = serverLicenseActive,
+                                    licenseExpiresAtStr = licenseExpiresAt
+                                )
+
+                                val isLicenseValidLocal = LicenseManager.isLicenseValid(context) || isAdmin
+                                if (!serverLicenseActive || !isLicenseValidLocal) {
+                                    // Account exists on server, but license is inactive or expired!
+                                    lastLoginErrorMessage = "Konto existiert, aber Lizenz ist inaktiv oder abgelaufen."
+                                    return@async false
+                                }
 
                                 val prefs = context.getSharedPreferences("albion_hardware_license_prefs", Context.MODE_PRIVATE)
                                 prefs.edit {
@@ -570,6 +616,9 @@ object ServerSyncManager {
                                     putString("user_email", username.trim())
                                     if (isAdmin) {
                                         putString("activated_license_code", "LOGIN-DNNX-ADMIN")
+                                        val adminDevices = (prefs.getStringSet("saved_admin_devices", emptySet()) ?: emptySet()).toMutableSet()
+                                        adminDevices.add(hwId)
+                                        putStringSet("saved_admin_devices", adminDevices)
                                     }
                                 }
 
@@ -579,16 +628,36 @@ object ServerSyncManager {
                                 appPrefs.savedPassword = pass.trim()
                                 appPrefs.isAdmin = isAdmin
 
-                                LicenseManager.updateLicenseFromServer(
-                                    context = context,
-                                    isBanned = false,
-                                    bannedUntilStr = null,
-                                    isLicenseActive = isLicenseActive,
-                                    licenseExpiresAtStr = licenseExpiresAt
-                                )
-
                                 isServerConnected = true
                                 return@async true
+                            } else {
+                                val msgStr = jsonObj.optString("message", "")
+                                val errStr = jsonObj.optString("error", "")
+                                val serverMsg = msgStr.ifBlank { errStr }
+                                if (serverMsg.isNotBlank()) {
+                                    lastLoginErrorMessage = serverMsg
+                                }
+
+                                val targetVer = jsonObj.optString("targetVersion", "")
+                                val versionMismatch = jsonObj.optBoolean("versionMismatch", false)
+                                val hasOtaUpdate = jsonObj.optBoolean("hasOtaUpdate", false)
+                                val downloadUrl = jsonObj.optString("downloadUrl", "")
+
+                                if (targetVer.isNotBlank() || versionMismatch || hasOtaUpdate || serverMsg.contains("Version", ignoreCase = true) || serverMsg.contains("Update", ignoreCase = true)) {
+                                    if (targetVer.isNotBlank()) {
+                                        latestTargetVersion = targetVer
+                                    }
+                                    isOtaUpdateAvailable = true
+                                    
+                                    try {
+                                        withContext(Dispatchers.Main) {
+                                            Toast.makeText(context, "🚀 Veraltete Version bei Login erkannt! Installiere neuste Version automatisch...", Toast.LENGTH_LONG).show()
+                                        }
+                                        OtaUpdateManager.downloadAndInstallUpdate(context, downloadUrl.ifBlank { null }, force = true)
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
                             }
                         }
                     } catch (_: Exception) {
@@ -613,8 +682,8 @@ object ServerSyncManager {
             return@withContext true
         }
 
-        // Offline / Local Credentials Fallback
-        LicenseManager.loginWithCredentials(context, username, pass)
+        // Must have an active account in Admin Console + valid license + live cloud connection!
+        return@withContext false
     }
 
     suspend fun verifyCredentialsWithServer(context: Context): Boolean = withContext(Dispatchers.IO) {
@@ -629,7 +698,7 @@ object ServerSyncManager {
 
         val hwId = DeviceHardwareManager.getHardwareId(context)
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
-        val appVersion = "1.3.9"
+        val appVersion = OtaUpdateManager.getInstalledVersionName(context)
 
         val payload = JSONObject().apply {
             put("username", username.trim())
@@ -776,5 +845,67 @@ object ServerSyncManager {
             }
         } catch (_: Exception) {}
         false
+    }
+
+    suspend fun registerUser(context: Context, username: String, pass: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+        val registerUrls = getServerBaseUrls(context).map { "$it/api/auth/register" }
+        var lastError = "Verbindungsfehler"
+
+        for (serverUrl in registerUrls) {
+            var conn: HttpURLConnection? = null
+            try {
+                CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
+                val url = URL(serverUrl)
+                conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                conn.connectTimeout = 30000
+                conn.readTimeout = 30000
+                conn.doOutput = true
+
+                val json = JSONObject().apply {
+                    put("username", username.trim())
+                    put("password", pass.trim())
+                }
+
+                conn.outputStream.use { os ->
+                    os.write(json.toString().toByteArray(Charsets.UTF_8))
+                }
+
+                val stream = if (conn.responseCode in 200..299) conn.inputStream else conn.errorStream
+                val responseStr = stream?.bufferedReader()?.use { it.readText() } ?: ""
+
+                if (conn.responseCode in 200..299) {
+                    try {
+                        val jsonObj = JSONObject(responseStr)
+                        val expStr = jsonObj.optString("licenseExpiresAt", "")
+                        if (expStr.isNotBlank()) {
+                            LicenseManager.updateLicenseFromServer(
+                                context = context,
+                                isBanned = false,
+                                bannedUntilStr = null,
+                                isLicenseActive = true,
+                                licenseExpiresAtStr = expStr
+                            )
+                        }
+                    } catch (_: Exception) {}
+                    return@withContext Pair(true, "Account erfolgreich erstellt!")
+                } else {
+                    val errMsg = try {
+                        JSONObject(responseStr).optString("error", "HTTP ${conn.responseCode}")
+                    } catch (_: Exception) {
+                        if (responseStr.isNotBlank()) responseStr else "HTTP Fehler ${conn.responseCode}"
+                    }
+                    lastError = errMsg
+                }
+            } catch (e: Exception) {
+                lastError = e.localizedMessage ?: "Verbindungsfehler zu $serverUrl"
+            } finally {
+                conn?.disconnect()
+            }
+        }
+        return@withContext Pair(false, lastError)
     }
 }

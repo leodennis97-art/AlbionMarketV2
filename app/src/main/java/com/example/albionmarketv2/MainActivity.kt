@@ -2,6 +2,7 @@ package com.example.albionmarketv2
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
@@ -33,9 +34,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.widget.Toast
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -46,18 +51,20 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.PaddingValues
+import android.content.Context
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.input.KeyboardType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -83,7 +90,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var billingManager: BillingManager
 
-    @SuppressLint("BatteryLife", "UnspecifiedRegisterReceiverFlag")
+    @SuppressLint("BatteryLife")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -91,7 +98,11 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Server Config & Start 24/7 Persistent Server Sync Service
         ServerConfigManager.initServerConfig(this)
-        PersistentServerSyncService.startService(this)
+        try {
+            PersistentServerSyncService.startService(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         // Setup Notification Channel & Request Notifications Permission
         NotificationHelper.createNotificationChannel(this)
@@ -131,17 +142,15 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Floating Bubble Service is started only after login and when overlay permission is granted
-        if (Settings.canDrawOverlays(this)) {
+        // Request Overlay / Floating Bubble Permission if missing
+        if (!Settings.canDrawOverlays(this)) {
             try {
-                if (AppPreferences(this).isUserLoggedIn && LicenseManager.isLicenseValid(this)) {
-                    if (!FloatingBubbleService.isServiceRunning()) {
-                        FloatingBubbleService.startService(this)
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    "package:$packageName".toUri()
+                )
+                startActivity(intent)
+            } catch (_: Exception) {}
         }
 
         setContent {
@@ -173,14 +182,23 @@ class MainActivity : ComponentActivity() {
                     return@AlbionMarketV2Theme
                 }
 
-                // Enforce re-login / re-verification on every app launch
-                LaunchedEffect(Unit) {
-                    prefs.isUserLoggedIn = false
+                val initialAuthValid = remember {
+                    ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(context)
                 }
+                var isUserLoggedInState by remember { mutableStateOf(initialAuthValid) }
+                var isUnlockedForSession by remember { mutableStateOf(initialAuthValid) }
+                var showWelcomeDialog by remember { mutableStateOf(false) }
 
-                var isUserLoggedInState by remember { mutableStateOf(false) }
-                var isUnlockedForSession by remember { mutableStateOf(false) }
-                var showWelcomeDialog by remember { mutableStateOf(value = false) }
+                // Auto login / restore session on launch if saved credentials exist
+                LaunchedEffect(Unit) {
+                    if ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) {
+                        if (LicenseManager.isLicenseValid(context)) {
+                            prefs.isUserLoggedIn = true
+                            isUserLoggedInState = true
+                            isUnlockedForSession = true
+                        }
+                    }
+                }
 
                 // Live Popup Alert Handling for Admin Messages & Screen Alarm
                 val currentPopupAlert = ServerSyncManager.activePopupAlert
@@ -227,27 +245,31 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Real-Time Background Server Authentication & Data Sync (Immediate + every 1s)
+                // Real-Time Background Server Authentication & Data Sync (Immediate + every 2s)
+                LaunchedEffect(Unit) {
+                    while (isActive) {
+                        withContext(Dispatchers.IO) {
+                            ServerSyncManager.pingServer(context)
+                            ServerSyncManager.testAndConnectToServer(context)
+                        }
+                        delay(2000.milliseconds)
+                    }
+                }
+
+                // Automatic Floating Overlay Bubble Management (Only when user is authenticated & logged in)
                 LaunchedEffect(isUserLoggedInState) {
-                    if (isUserLoggedInState) {
-                        if (Settings.canDrawOverlays(context)) {
+                    if (isUserLoggedInState && LicenseManager.isLicenseValid(context)) {
+                        if (Settings.canDrawOverlays(context) && !FloatingBubbleService.isServiceRunning()) {
                             try {
-                                if (!FloatingBubbleService.isServiceRunning()) {
-                                    FloatingBubbleService.startService(context)
-                                }
+                                FloatingBubbleService.startService(context)
                             } catch (_: Exception) {}
                         }
-                        while (isActive) {
-                            withContext(Dispatchers.IO) {
-                                ServerSyncManager.pingServer(context)
-                                ServerSyncManager.testAndConnectToServer(context)
-                            }
-                            delay(2000.milliseconds)
-                        }
                     } else {
-                        try {
-                            FloatingBubbleService.stopService(context)
-                        } catch (_: Exception) {}
+                        if (FloatingBubbleService.isServiceRunning()) {
+                            try {
+                                FloatingBubbleService.stopService(context)
+                            } catch (_: Exception) {}
+                        }
                     }
                 }
 
@@ -260,14 +282,14 @@ class MainActivity : ComponentActivity() {
                         var usernameInput by remember { mutableStateOf(prefs.savedUsername) }
                         var savePasswordLocally by remember { mutableStateOf(prefs.savedPassword.isNotBlank()) }
                         var passwordInput by remember { mutableStateOf(if (savePasswordLocally) prefs.savedPassword else "") }
-                        var captchaNum1 by remember { mutableIntStateOf((3..12).random()) }
-                        var captchaNum2 by remember { mutableIntStateOf((2..9).random()) }
-                        var captchaInput by remember { mutableStateOf("") }
-                        var isCaptchaSolved by remember { mutableStateOf(value = false) }
                         var isServerConnected by remember { mutableStateOf<Boolean?>(null) }
-                        var isAuthenticating by remember { mutableStateOf(value = false) }
+                        var isAuthenticating by remember { mutableStateOf(false) }
                         var licenseKeyInput by remember { mutableStateOf("") }
-                        var showLoginUpdatesDialog by remember { mutableStateOf(true) }
+                        var showLoginUpdatesDialog by remember { mutableStateOf(false) }
+                        var showRegisterDialog by remember { mutableStateOf(false) }
+                        var isCheckingUpdate by remember { mutableStateOf(false) }
+                        var updateCheckResult by remember { mutableStateOf<String?>(null) }
+                        val coroutineScope = rememberCoroutineScope()
 
                         if (showLoginUpdatesDialog) {
                             AlertDialog(
@@ -353,20 +375,20 @@ class MainActivity : ComponentActivity() {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth(0.92f)
-                                    .padding(16.dp),
+                                    .padding(8.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                shape = RoundedCornerShape(24.dp),
+                                shape = RoundedCornerShape(16.dp),
                             ) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(24.dp),
+                                        .padding(14.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     Text(
-                                        text = "🔒 Sperrbildschirm",
-                                        fontSize = 18.sp,
+                                        text = "🔒 Login",
+                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         textAlign = TextAlign.Center,
@@ -378,7 +400,7 @@ class MainActivity : ComponentActivity() {
                                         null -> Color(0xFFF59E0B)
                                     }
                                     Surface(
-                                        shape = RoundedCornerShape(12.dp),
+                                        shape = RoundedCornerShape(8.dp),
                                         color = statusColor.copy(alpha = 0.15f),
                                         border = BorderStroke(1.dp, statusColor),
                                         modifier = Modifier.fillMaxWidth(),
@@ -386,14 +408,14 @@ class MainActivity : ComponentActivity() {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             horizontalArrangement = Arrangement.Center,
-                                            modifier = Modifier.padding(vertical = 8.dp, horizontal = 12.dp),
+                                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp),
                                         ) {
                                             Surface(
-                                                shape = RoundedCornerShape(10.dp),
+                                                shape = RoundedCornerShape(6.dp),
                                                 color = statusColor,
                                                 modifier = Modifier.size(8.dp),
                                             ) {}
-                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = when (isServerConnected) {
                                                     true -> "🟢 Server-Verbindung aktiv (Cloud)"
@@ -407,15 +429,123 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
+                                    // Live Version Check & Update Section on Lockscreen
+                                    val currentAppVer = remember { OtaUpdateManager.getInstalledVersionName(context) }
+                                    val targetVer = ServerSyncManager.latestTargetVersion
+                                    val isUpdateAvailableOnLockscreen = !targetVer.isNullOrBlank() && OtaUpdateManager.compareVersionStrings(targetVer, currentAppVer) > 0
+
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = if (isUpdateAvailableOnLockscreen) Color(0xFF065F46) else Color(0xFF0F172A),
+                                        border = BorderStroke(1.dp, if (isUpdateAvailableOnLockscreen) Color(0xFF10B981) else Color(0xFF334155)),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        text = "📱 App-Version: v$currentAppVer",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                    Text(
+                                                        text = if (targetVer.isNullOrBlank()) {
+                                                            "⚡ Server-Version: Wird geprüft..."
+                                                        } else if (isUpdateAvailableOnLockscreen) {
+                                                            "🚀 Neue Version verfügbar: v$targetVer"
+                                                        } else {
+                                                            "⚡ Server-Version: v$targetVer (Aktuell)"
+                                                        },
+                                                        fontSize = 10.sp,
+                                                        fontWeight = if (isUpdateAvailableOnLockscreen) FontWeight.Bold else FontWeight.Normal,
+                                                        color = if (isUpdateAvailableOnLockscreen) Color(0xFF34D399) else Color(0xFF94A3B8)
+                                                    )
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        isCheckingUpdate = true
+                                                        ServerSyncManager.dismissedOtaVersion = null
+                                                        coroutineScope.launch(Dispatchers.IO) {
+                                                            val stats = ServerSyncManager.pingServer(context)
+                                                            withContext(Dispatchers.Main) {
+                                                                isCheckingUpdate = false
+                                                                val current = OtaUpdateManager.getInstalledVersionName(context)
+                                                                val target = ServerSyncManager.latestTargetVersion
+                                                                if (!target.isNullOrBlank() && OtaUpdateManager.compareVersionStrings(target, current) > 0) {
+                                                                    updateCheckResult = "🚀 Neue Version v$target verfügbar!"
+                                                                    Toast.makeText(context, "🚀 Neue Version v$target verfügbar!", Toast.LENGTH_SHORT).show()
+                                                                } else if (stats != null) {
+                                                                    updateCheckResult = "✅ App ist auf dem neuesten Stand (v$current)."
+                                                                    Toast.makeText(context, "✅ App ist auf dem neuesten Stand (v$current)", Toast.LENGTH_SHORT).show()
+                                                                } else {
+                                                                    updateCheckResult = "❌ Keine Verbindung zum Server."
+                                                                    Toast.makeText(context, "❌ Server nicht erreichbar.", Toast.LENGTH_SHORT).show()
+                                                                }
+                                                            }
+                                                        }
+                                                    },
+                                                    enabled = !isCheckingUpdate,
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                                ) {
+                                                    if (isCheckingUpdate) {
+                                                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
+                                                    } else {
+                                                        Text("🔄 Updates suchen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                    }
+                                                }
+                                            }
+
+                                            if (isUpdateAvailableOnLockscreen) {
+                                                Button(
+                                                    onClick = {
+                                                        coroutineScope.launch {
+                                                            Toast.makeText(context, "📥 Lade Update v$targetVer herunter...", Toast.LENGTH_SHORT).show()
+                                                            val success = OtaUpdateManager.downloadAndInstallUpdate(context)
+                                                            if (!success) {
+                                                                Toast.makeText(context, "❌ Download fehlgeschlagen. Bitte Server-Verbindung prüfen.", Toast.LENGTH_LONG).show()
+                                                            }
+                                                        }
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    Text("⚡ Jetzt v$targetVer installieren & aktualisieren", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                                }
+                                            } else if (updateCheckResult != null) {
+                                                Text(
+                                                    text = updateCheckResult!!,
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = if (updateCheckResult!!.contains("✅")) Color(0xFF34D399) else Color(0xFFF87171)
+                                                )
+                                            }
+                                        }
+                                    }
+
                                     if (isAuthenticating) {
-                                        CircularProgressIndicator(color = Color(0xFF10B981), strokeWidth = 3.dp, modifier = Modifier.size(36.dp))
+                                        CircularProgressIndicator(color = Color(0xFF10B981), strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
                                     } else {
+                                        var passwordVisible by remember { mutableStateOf(false) }
+
                                         OutlinedTextField(
                                             value = usernameInput,
                                             onValueChange = { usernameInput = it },
-                                            label = { Text("Benutzername", color = Color(0xFF94A3B8), fontSize = 12.sp) },
+                                            label = { Text("Benutzername", color = Color(0xFF94A3B8), fontSize = 11.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(12.dp),
+                                            shape = RoundedCornerShape(8.dp),
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = Color(0xFF3B82F6),
                                                 unfocusedBorderColor = Color(0xFF475569),
@@ -428,10 +558,19 @@ class MainActivity : ComponentActivity() {
                                         OutlinedTextField(
                                             value = passwordInput,
                                             onValueChange = { passwordInput = it },
-                                            label = { Text("Passwort", color = Color(0xFF94A3B8), fontSize = 12.sp) },
+                                            label = { Text("Passwort", color = Color(0xFF94A3B8), fontSize = 11.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(12.dp),
-                                            visualTransformation = PasswordVisualTransformation(),
+                                            shape = RoundedCornerShape(8.dp),
+                                            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                            trailingIcon = {
+                                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                                    Icon(
+                                                        imageVector = if (passwordVisible) Icons.Default.Warning else Icons.Default.Lock,
+                                                        contentDescription = if (passwordVisible) "Passwort verbergen" else "Passwort anzeigen",
+                                                        tint = Color(0xFF94A3B8)
+                                                    )
+                                                }
+                                            },
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = Color(0xFF3B82F6),
                                                 unfocusedBorderColor = Color(0xFF475569),
@@ -465,59 +604,94 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
 
-                                        OutlinedTextField(
-                                            value = captchaInput,
-                                            onValueChange = {
-                                                captchaInput = it
-                                                isCaptchaSolved = false
-                                            },
-                                            label = { Text("🤖 Mensch-Bestätigung: Was ist $captchaNum1 + $captchaNum2 ?", color = Color(0xFF38BDF8), fontSize = 12.sp) },
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(12.dp),
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = if (isCaptchaSolved) Color(0xFF10B981) else Color(0xFF38BDF8),
-                                                unfocusedBorderColor = Color(0xFF475569),
-                                                focusedTextColor = Color.White,
-                                                unfocusedTextColor = Color.White,
-                                            ),
+                                        // Actions: Login & Registrieren Buttons nebeneinander
+                                        Row(
                                             modifier = Modifier.fillMaxWidth(),
-                                        )
-
-                                        Button(
-                                            onClick = {
-                                                val expectedAnswer = captchaNum1 + captchaNum2
-                                                if (captchaInput.trim().toIntOrNull() == expectedAnswer) {
-                                                    isCaptchaSolved = true
-                                                    Toast.makeText(context, "🟢 Mathe-Aufgabe korrekt gelöst!", Toast.LENGTH_SHORT).show()
-                                                } else {
-                                                    isCaptchaSolved = false
-                                                    Toast.makeText(context, "❌ Falsche Antwort! Neue Aufgabe wird erstellt.", Toast.LENGTH_SHORT).show()
-                                                    captchaNum1 = (3..12).random()
-                                                    captchaNum2 = (2..9).random()
-                                                    captchaInput = ""
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (isCaptchaSolved) Color(0xFF10B981) else Color(0xFF38BDF8),
-                                            ),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                                         ) {
-                                            Text(
-                                                text = if (isCaptchaSolved) "✅ Mathe-Aufgabe gelöst" else "🤖 Mathe-Aufgabe prüfen",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
-                                                color = if (isCaptchaSolved) Color.White else Color.Black,
-                                            )
+                                            Button(
+                                                onClick = {
+                                                    val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
+                                                    if (!canLogin) {
+                                                        Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
+                                                        return@Button
+                                                    }
+
+                                                    val uValid = LoginSecurityManager.validateUsername(usernameInput)
+                                                    if (!uValid.first) {
+                                                        Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+
+                                                    val pValid = LoginSecurityManager.validatePassword(passwordInput)
+                                                    if (!pValid.first) {
+                                                        Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+
+                                                    isAuthenticating = true
+                                                    lifecycleScope.launch {
+                                                        val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
+                                                        isAuthenticating = false
+                                                        if (success) {
+                                                            LoginSecurityManager.resetFailedAttempts(context)
+                                                            prefs.isUserLoggedIn = true
+                                                            prefs.savedUsername = usernameInput.trim()
+                                                            if (savePasswordLocally) {
+                                                                prefs.savedPassword = passwordInput.trim()
+                                                            } else {
+                                                                prefs.savedPassword = ""
+                                                            }
+                                                            if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                                                prefs.isAdmin = true
+                                                            }
+                                                            isUserLoggedInState = true
+                                                            isUnlockedForSession = true
+                                                            Toast.makeText(context, "🟢 Cloud-Login & Lizenz erfolgreich verifiziert!", Toast.LENGTH_SHORT).show()
+                                                        } else {
+                                                            val lockout = LoginSecurityManager.recordFailedAttempt(context)
+                                                            prefs.isUserLoggedIn = false
+                                                            isUserLoggedInState = false
+                                                            isUnlockedForSession = false
+                                                            if (lockout > 0) {
+                                                                Toast.makeText(context, "🔴 Login fehlgeschlagen! Für $lockout Sekunden gesperrt.", Toast.LENGTH_LONG).show()
+                                                            } else {
+                                                                val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
+                                                                Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
+                                                            }
+                                                            if (ServerSyncManager.isOtaUpdateAvailable || ServerSyncManager.latestTargetVersion != null) {
+                                                                Toast.makeText(context, "🚀 Installiere neuste Version automatisch...", Toast.LENGTH_SHORT).show()
+                                                                lifecycleScope.launch(Dispatchers.IO) {
+                                                                    OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                modifier = Modifier.weight(1f),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                shape = RoundedCornerShape(10.dp),
+                                            ) {
+                                                Text("🔑 Login", fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = { showRegisterDialog = true },
+                                                modifier = Modifier.weight(1f),
+                                                shape = RoundedCornerShape(10.dp),
+                                                border = BorderStroke(1.dp, Color(0xFF0EA5E9))
+                                            ) {
+                                                Text("👤 Registrieren", fontWeight = FontWeight.Bold, color = Color(0xFF0EA5E9))
+                                            }
                                         }
 
+                                        // Lizenzschlüssel Bereich
                                         OutlinedTextField(
                                             value = licenseKeyInput,
                                             onValueChange = { licenseKeyInput = it },
                                             label = { Text("🔑 Lizenzschlüssel eingeben", color = Color(0xFF8B5CF6), fontSize = 12.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(12.dp),
+                                            shape = RoundedCornerShape(10.dp),
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = Color(0xFF8B5CF6),
                                                 unfocusedBorderColor = Color(0xFF475569),
@@ -542,82 +716,128 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                     isUserLoggedInState = true
                                                     isUnlockedForSession = true
-                                                    Toast.makeText(context, "🟢 Lizenzschlüssel verifiziert! Erfolgreich eingeloggt.", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, "🟢 Lizenzschlüssel verifiziert! Erfolgreich freigeschaltet.", Toast.LENGTH_SHORT).show()
                                                     licenseKeyInput = ""
                                                 } else {
                                                     Toast.makeText(context, "❌ Ungültiger Lizenzschlüssel!", Toast.LENGTH_SHORT).show()
                                                 }
                                             },
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                                            shape = RoundedCornerShape(12.dp),
+                                            shape = RoundedCornerShape(10.dp),
                                             modifier = Modifier.fillMaxWidth(),
                                         ) {
                                             Text(
-                                                text = "🔑 Mit Lizenzschlüssel einloggen & freischalten",
+                                                text = "🔑 Lizenz freischalten",
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp,
                                                 color = Color.White,
                                             )
                                         }
 
-                                        Button(
-                                            onClick = {
-                                                if (!isCaptchaSolved) {
-                                                    val expectedAnswer = captchaNum1 + captchaNum2
-                                                    if (captchaInput.trim().toIntOrNull() == expectedAnswer) {
-                                                        isCaptchaSolved = true
-                                                    } else {
-                                                        Toast.makeText(context, "❌ Bitte zuerst die Mathe-Aufgabe richtig lösen!", Toast.LENGTH_SHORT).show()
-                                                        return@Button
+                                        if (showRegisterDialog) {
+                                            var regUsername by remember { mutableStateOf("") }
+                                            var regPassword by remember { mutableStateOf("") }
+                                            var regPasswordVisible by remember { mutableStateOf(false) }
+                                            var isRegLoading by remember { mutableStateOf(false) }
+
+                                            AlertDialog(
+                                                onDismissRequest = { showRegisterDialog = false },
+                                                title = { Text("👤 Neuen Account registrieren", fontWeight = FontWeight.Bold, color = Color.White) },
+                                                text = {
+                                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        Text("Gib deinen gewünschten Benutzernamen und ein Passwort ein. Nach der Registrierung erhältst du deine Lizenz.", fontSize = 11.sp, color = Color(0xFF94A3B8))
+                                                        OutlinedTextField(
+                                                            value = regUsername,
+                                                            onValueChange = { regUsername = it },
+                                                            label = { Text("Benutzername (min. 3 Zeichen)", fontSize = 11.sp) },
+                                                            singleLine = true,
+                                                            colors = OutlinedTextFieldDefaults.colors(
+                                                                focusedTextColor = Color.White,
+                                                                unfocusedTextColor = Color.White
+                                                            ),
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        )
+                                                        OutlinedTextField(
+                                                            value = regPassword,
+                                                            onValueChange = { regPassword = it },
+                                                            label = { Text("Passwort (min. 8 Zeichen)", fontSize = 11.sp) },
+                                                            singleLine = true,
+                                                            visualTransformation = if (regPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                                            trailingIcon = {
+                                                                IconButton(onClick = { regPasswordVisible = !regPasswordVisible }) {
+                                                                    Icon(
+                                                                        imageVector = if (regPasswordVisible) Icons.Default.Warning else Icons.Default.Lock,
+                                                                        contentDescription = if (regPasswordVisible) "Passwort verbergen" else "Passwort anzeigen",
+                                                                        tint = Color(0xFF94A3B8)
+                                                                    )
+                                                                }
+                                                            },
+                                                            colors = OutlinedTextFieldDefaults.colors(
+                                                                focusedTextColor = Color.White,
+                                                                unfocusedTextColor = Color.White
+                                                            ),
+                                                            modifier = Modifier.fillMaxWidth()
+                                                        )
+                                                        PasswordStrengthMeter(password = regPassword)
                                                     }
-                                                }
-
-                                                val isInputAdmin = usernameInput.trim().equals("dnnx", ignoreCase = true)
-                                                if (!isInputAdmin && !LicenseManager.isLicenseValid(context)) {
-                                                    Toast.makeText(context, "❌ Keine gültige Lizenz vorhanden! Bitte zuerst aktivieren.", Toast.LENGTH_LONG).show()
-                                                    return@Button
-                                                }
-
-                                                if (usernameInput.isBlank() || passwordInput.isBlank()) {
-                                                    Toast.makeText(context, "❌ Bitte Benutzername und Passwort eingeben", Toast.LENGTH_SHORT).show()
-                                                    return@Button
-                                                }
-
-                                                isAuthenticating = true
-                                                lifecycleScope.launch {
-                                                    val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
-                                                    isAuthenticating = false
-                                                    if (success) {
-                                                        prefs.isUserLoggedIn = true
-                                                        prefs.savedUsername = usernameInput.trim()
-                                                        if (savePasswordLocally) {
-                                                            prefs.savedPassword = passwordInput.trim()
-                                                        } else {
-                                                            prefs.savedPassword = ""
-                                                        }
-                                                        if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
-                                                            prefs.isAdmin = true
-                                                        }
-                                                        isUserLoggedInState = true
-                                                        isUnlockedForSession = true
-                                                        Toast.makeText(context, "🟢 Verifizierung erfolgreich! Willkommen.", Toast.LENGTH_SHORT).show()
-
-                                                        if (ServerSyncManager.isOtaUpdateAvailable) {
-                                                            Toast.makeText(context, "📲 Neues Update verfügbar! Lade AlbionDataPro.apk herunter...", Toast.LENGTH_LONG).show()
-                                                        }
-                                                    } else {
-                                                        prefs.isUserLoggedIn = false
-                                                        isUserLoggedInState = false
-                                                        isUnlockedForSession = false
-                                                        Toast.makeText(context, "🔴 Verifizierung abgelehnt!", Toast.LENGTH_LONG).show()
+                                                },
+                                                confirmButton = {
+                                                    Button(
+                                                        onClick = {
+                                                            val uValid = LoginSecurityManager.validateUsername(regUsername)
+                                                            if (!uValid.first) {
+                                                                Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
+                                                                return@Button
+                                                            }
+                                                            val pValid = LoginSecurityManager.validatePassword(regPassword, isRegistration = true)
+                                                            if (!pValid.first) {
+                                                                Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
+                                                                return@Button
+                                                            }
+                                                            isRegLoading = true
+                                                            lifecycleScope.launch {
+                                                                val (ok, msg) = ServerSyncManager.registerUser(context, regUsername.trim(), regPassword.trim())
+                                                                if (ok) {
+                                                                    usernameInput = regUsername.trim()
+                                                                    passwordInput = regPassword.trim()
+                                                                    val loginSuccess = ServerSyncManager.loginWithServer(context, regUsername.trim(), regPassword.trim())
+                                                                    isRegLoading = false
+                                                                    showRegisterDialog = false
+                                                                    if (loginSuccess) {
+                                                                        LoginSecurityManager.resetFailedAttempts(context)
+                                                                        prefs.isUserLoggedIn = true
+                                                                        prefs.savedUsername = regUsername.trim()
+                                                                        if (savePasswordLocally) {
+                                                                            prefs.savedPassword = regPassword.trim()
+                                                                        }
+                                                                        isUserLoggedInState = true
+                                                                        isUnlockedForSession = true
+                                                                        Toast.makeText(context, "🟢 Account erstellt & erfolgreich eingeloggt!", Toast.LENGTH_LONG).show()
+                                                                    } else {
+                                                                        Toast.makeText(context, "🟢 Account erfolgreich erstellt! Bitte einloggen.", Toast.LENGTH_LONG).show()
+                                                                    }
+                                                                } else {
+                                                                    isRegLoading = false
+                                                                    Toast.makeText(context, "❌ $msg", Toast.LENGTH_LONG).show()
+                                                                }
+                                                            }
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
+                                                        shape = RoundedCornerShape(8.dp)
+                                                    ) {
+                                                        Text(if (isRegLoading) "Registriert..." else "Kostenlos registrieren", fontWeight = FontWeight.Bold)
                                                     }
-                                                }
-                                            },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                            shape = RoundedCornerShape(12.dp),
-                                        ) {
-                                            Text("Verifizieren & App betreten", fontWeight = FontWeight.Bold, color = Color.White)
+                                                },
+                                                dismissButton = {
+                                                    OutlinedButton(
+                                                        onClick = { showRegisterDialog = false },
+                                                        shape = RoundedCornerShape(8.dp)
+                                                    ) {
+                                                        Text("Abbrechen", color = Color.White)
+                                                    }
+                                                },
+                                                containerColor = Color(0xFF1E293B)
+                                            )
                                         }
 
                                         Spacer(modifier = Modifier.height(4.dp))
@@ -642,66 +862,10 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                         }
-                    } else if (!ServerSyncManager.isServerConnected) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color(0xFF0F172A))
-                                .padding(24.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Card(
-                                shape = RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                border = BorderStroke(2.dp, Color(0xFFEF4444)),
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(24.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Warning,
-                                        contentDescription = "Offline gesperrt",
-                                        tint = Color(0xFFEF4444),
-                                        modifier = Modifier.size(56.dp)
-                                    )
-
-                                    Text(
-                                        text = "📡 SERVERVERBINDUNG UND INTERNET ERFORDERLICH",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = Color(0xFFEF4444),
-                                        textAlign = TextAlign.Center
-                                    )
-
-                                    Text(
-                                        text = "Die Nutzung der App erfordert eine aktive Internet- und Serververbindung.\n\nOhne aktive Serververbindung ist die Anwendung aus Sicherheitsgründen sofort gesperrt.\n\nSobald die Verbindung wiederhergestellt ist, wird die App automatisch freigeschaltet.",
-                                        fontSize = 13.sp,
-                                        color = Color(0xFF94A3B8),
-                                        textAlign = TextAlign.Center
-                                    )
-
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    CircularProgressIndicator(
-                                        color = Color(0xFFEF4444),
-                                        strokeWidth = 3.dp,
-                                        modifier = Modifier.size(32.dp)
-                                    )
-
-                                    Text(
-                                        text = "Verbindung zum Server wird hergestellt...",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF38BDF8),
-                                        fontWeight = FontWeight.SemiBold
-                                    )
-                                }
-                            }
-                        }
                     } else {
-                        AlbionResourceScreen(
+                        UnlockedLockscreenContent(
+                            context = context,
+                            prefs = prefs,
                             onLogout = {
                                 prefs.isUserLoggedIn = false
                                 isUserLoggedInState = false
@@ -715,25 +879,24 @@ class MainActivity : ComponentActivity() {
 
                         if (ServerSyncManager.isOtaUpdateAvailable) {
                             AlertDialog(
-                                onDismissRequest = { ServerSyncManager.isOtaUpdateAvailable = false },
+                                onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar! (AlbionDataPro.apk)", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("Auf Localhost wurde eine neue Version deiner App bereitgestellt.")
-                                        Text("📦 Paket: AlbionDataPro.apk", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                        Text("Eine neue Version der App ist verfügbar (${ServerSyncManager.latestTargetVersion ?: "neu"}).")
                                         Text("Möchtest du die aktuellsten Änderungen jetzt herunterladen und installieren?")
                                     }
                                 },
                                 confirmButton = {
                                     Button(
                                         onClick = {
-                                            ServerSyncManager.isOtaUpdateAvailable = false
+                                            ServerSyncManager.dismissOtaUpdate()
                                             lifecycleScope.launch {
-                                                Toast.makeText(this@MainActivity, "📥 Lade AlbionDataPro.apk herunter...", Toast.LENGTH_SHORT).show()
+                                                Toast.makeText(this@MainActivity, "📥 Lade Update herunter...", Toast.LENGTH_SHORT).show()
                                                 val success = OtaUpdateManager.downloadAndInstallUpdate(this@MainActivity)
                                                 if (!success) {
                                                     Toast.makeText(this@MainActivity, "❌ Download fehlgeschlagen. Bitte Server-Verbindung prüfen.", Toast.LENGTH_LONG).show()
@@ -743,12 +906,12 @@ class MainActivity : ComponentActivity() {
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                         shape = RoundedCornerShape(10.dp),
                                     ) {
-                                        Text("⚡ Jetzt AlbionDataPro.apk aktualisieren & installieren", fontWeight = FontWeight.Bold, color = Color.White)
+                                        Text("⚡ Jetzt aktualisieren & installieren", fontWeight = FontWeight.Bold, color = Color.White)
                                     }
                                 },
                                 dismissButton = {
                                     Button(
-                                        onClick = { ServerSyncManager.isOtaUpdateAvailable = false },
+                                        onClick = { ServerSyncManager.dismissOtaUpdate() },
                                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
                                         shape = RoundedCornerShape(10.dp),
                                     ) {
@@ -801,6 +964,254 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if (::billingManager.isInitialized) {
             billingManager.queryActivePurchases()
+        }
+        if (Settings.canDrawOverlays(this)) {
+            try {
+                if (!FloatingBubbleService.isServiceRunning()) {
+                    FloatingBubbleService.startService(this)
+                }
+            } catch (_: Exception) {}
+        }
+    }
+}
+
+@Composable
+fun UnlockedLockscreenContent(
+    context: Context,
+    prefs: AppPreferences,
+    onLogout: () -> Unit
+) {
+    var isBubbleRunning by remember { mutableStateOf(FloatingBubbleService.isServiceRunning()) }
+    var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+
+    LaunchedEffect(Unit) {
+        while (isActive) {
+            isBubbleRunning = FloatingBubbleService.isServiceRunning()
+            hasOverlayPermission = Settings.canDrawOverlays(context)
+            delay(1000.milliseconds)
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0F172A))
+            .verticalScroll(rememberScrollState()),
+        contentAlignment = Alignment.Center,
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+            shape = RoundedCornerShape(16.dp),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = "🔒 Login",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    textAlign = TextAlign.Center,
+                )
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, Color(0xFF10B981)),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp),
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF10B981),
+                            modifier = Modifier.size(8.dp),
+                        ) {}
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "🟢 Freigeschaltet & Cloud Verbunden",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF10B981),
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        val username = prefs.savedUsername.ifBlank { if (prefs.isAdmin) "dnnx" else "User" }
+                        Text(
+                            text = "👤 Angemeldet als: $username",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "🔑 Lizenz: ${LicenseManager.getActivatedCode(context)}",
+                            fontSize = 11.sp,
+                            color = Color(0xFF94A3B8)
+                        )
+                        Text(
+                            text = "⏱️ Gültig bis: ${LicenseManager.getExpirationDateString(context)}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "⚡ Floating Bubble Overlay Status",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+
+                        val bubbleStatusColor = if (isBubbleRunning) Color(0xFF10B981) else Color(0xFFEF4444)
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = bubbleStatusColor.copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, bubbleStatusColor)
+                        ) {
+                            Text(
+                                text = if (isBubbleRunning) "🟢 Floating Bubble ist AKTIV" else "🔴 Floating Bubble ist DEAKTIVIERT",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = bubbleStatusColor,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                            )
+                        }
+
+                        if (!hasOverlayPermission) {
+                            Button(
+                                onClick = {
+                                    try {
+                                        val intent = Intent(
+                                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                            "package:${context.packageName}".toUri()
+                                        )
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {}
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("⚠️ Overlay-Berechtigung erteilen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.Black)
+                            }
+                        } else {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = {
+                                        if (isBubbleRunning) {
+                                            FloatingBubbleService.stopService(context)
+                                            isBubbleRunning = false
+                                            Toast.makeText(context, "🛑 Floating Bubble gestoppt", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            FloatingBubbleService.startService(context)
+                                            isBubbleRunning = true
+                                            Toast.makeText(context, "⚡ Floating Bubble gestartet!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isBubbleRunning) Color(0xFFEF4444) else Color(0xFF10B981)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(
+                                        text = if (isBubbleRunning) "🛑 Overlay Beenden" else "⚡ Overlay Starten",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp,
+                                        color = Color.White
+                                    )
+                                }
+
+                                Button(
+                                    onClick = {
+                                        (context as? Activity)?.moveTaskToBack(true)
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text("📲 App Minimieren", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0284C7).copy(alpha = 0.15f)),
+                    border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Column(modifier = Modifier.padding(10.dp)) {
+                        Text(
+                            text = "💡 Hinweis zur Steuerung:",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Alle Albion Market Funktionen (Markt-Scanner, Handwerk, Marge, Goldmarkt, Insel, Builds & Admin) befinden sich direkt im Floating Bubble Overlay über dem Spiel.",
+                            fontSize = 10.sp,
+                            color = Color(0xFFE2E8F0)
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = onLogout,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                            contentDescription = "Logout",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("🔒 Abmelden / Sperren", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                    }
+                }
+            }
         }
     }
 }
