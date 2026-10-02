@@ -42,8 +42,74 @@ const USERS_FILE = path.join(__dirname, 'users.json');
 const LICENSES_FILE = path.join(__dirname, 'licenses.json');
 const DATA_24H_FILE = path.join(__dirname, 'data_24h.json');
 const BACKUPS_DIR = path.join(__dirname, 'backups');
+const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
+if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
+
+const CURRENT_SERVER_VERSION = '1.3.15';
+let globalOtaTrigger = false;
+let lastApkMtime = 0;
+
+function compareVersions(v1, v2) {
+    if (!v1 || !v2) return 0;
+    const p1 = v1.trim().replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+    const p2 = v2.trim().replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+    const maxLen = Math.max(p1.length, p2.length);
+    for (let i = 0; i < maxLen; i++) {
+        const num1 = p1[i] || 0;
+        const num2 = p2[i] || 0;
+        if (num1 > num2) return 1;
+        if (num1 < num2) return -1;
+    }
+    return 0;
+}
+
+function triggerAutoOtaUpdateForAllDevices(reason = 'Neue Version bereitgestellt') {
+    globalOtaTrigger = true;
+    let count = 0;
+    registeredDevices.forEach(d => {
+        d.forceOtaUpdate = true;
+        d.pendingUpdate = true;
+        count++;
+    });
+    saveDevices();
+    broadcastSSE('ota_update_available', {
+        targetVersion: CURRENT_SERVER_VERSION,
+        force: true,
+        reason: reason,
+        downloadUrl: '/download/AlbionDataPro.apk',
+        timestamp: new Date().toISOString()
+    });
+    console.log(`[Albion Server] 🚀 AUTOMATISCHES DEVICE-UPDATE (${reason}): Impuls an ALLE ${count} registrierten Geräte gesendet! (Version: ${CURRENT_SERVER_VERSION})`);
+}
+
+function syncLatestApk() {
+    for (const apkPath of buildApkPaths) {
+        if (fs.existsSync(apkPath)) {
+            try {
+                fs.copyFileSync(apkPath, targetApkPath);
+                console.log(`[Albion Server] 🚀 Neueste APK automatisch in die Cloud geladen: ${apkPath}`);
+                break;
+            } catch (e) {
+                console.error('[Albion Server] Fehler beim Kopieren der APK:', e.message);
+            }
+        }
+    }
+
+    if (fs.existsSync(targetApkPath)) {
+        try {
+            const stats = fs.statSync(targetApkPath);
+            if (stats.mtimeMs !== lastApkMtime) {
+                const isFirstRun = (lastApkMtime === 0);
+                lastApkMtime = stats.mtimeMs;
+                triggerAutoOtaUpdateForAllDevices(isFirstRun ? 'Initialer Server-Start mit APK' : 'Neue APK-Version hochgeladen');
+            }
+        } catch (e) {
+            console.error('[Albion Server] Fehler beim Prüfen der APK mtime:', e.message);
+        }
+    }
+}
 
 function loadDevices() {
     if (fs.existsSync(DEVICES_FILE)) {
@@ -52,10 +118,24 @@ function loadDevices() {
     }
 }
 loadDevices();
+syncLatestApk();
+setInterval(syncLatestApk, 15000);
 
 function saveDevices() {
     try { fs.writeFileSync(DEVICES_FILE, JSON.stringify(registeredDevices, null, 2)); }
     catch (e) { console.error('Failed to save devices.json:', e.message); }
+}
+
+function cleanupExpiredAccounts() {
+    const now = new Date();
+    registeredUsers = registeredUsers.filter(u => {
+        if (u.username.toLowerCase() === 'dnnx') return true;
+        if (!u.licenseExpiresAt) return true;
+        const expDate = new Date(u.licenseExpiresAt);
+        const deletionThreshold = new Date(expDate.getTime() + (90 * 24 * 3600 * 1000));
+        return deletionThreshold > now;
+    });
+    saveUsers();
 }
 
 function loadUsers() {
@@ -73,6 +153,7 @@ function loadUsers() {
         }];
         saveUsers();
     }
+    cleanupExpiredAccounts();
 }
 loadUsers();
 
@@ -178,9 +259,105 @@ app.use((req, res, next) => {
 });
 
 app.use('/download', express.static(path.join(__dirname, 'downloads')));
+app.get('/dl', (req, res) => res.redirect('/download/AlbionDataPro.apk'));
+app.get('/apk', (req, res) => res.redirect('/download/AlbionDataPro.apk'));
+
+// Landing Page (Verkauf, Info & Download)
+app.get(['/', '/get', '/app'], (req, res) => {
+    res.send(`<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AlbionDataPro - Premium Market & Trading Tool</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(135deg, #38bdf8, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    </style>
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Navbar -->
+    <nav class="w-full p-6 flex justify-between items-center max-w-6xl mx-auto">
+        <div class="text-2xl font-bold tracking-tighter flex items-center gap-2">
+            <i class="fa-solid fa-shield-halved text-blue-500"></i> AlbionDataPro
+        </div>
+        <div>
+            <span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold border border-emerald-500/30">v1.3.15 Live</span>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <main class="flex-grow flex flex-col items-center justify-center px-4 py-12 text-center max-w-5xl mx-auto">
+        <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">
+            Dominiere den Markt mit <br><span class="gradient-text">Echtzeit-Daten</span>
+        </h1>
+        <p class="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl leading-relaxed">
+            Maximiere deinen Silber-Gewinn durch unser permanentes In-Game Overlay. KI-gesteuerte Marktüberwachung und Profitrechner direkt auf deinem Bildschirm - ohne die App zu wechseln.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 mb-16">
+            <a href="https://t.me/dnnx" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg">
+                <i class="fa-brands fa-telegram text-xl"></i> Lizenz kaufen (15€/Monat)
+            </a>
+            <a href="/download/AlbionDataPro.apk" class="glass-panel hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-xl transition-all flex items-center justify-center gap-3 text-lg border border-slate-600 hover:border-slate-500">
+                <i class="fa-solid fa-download"></i> App Herunterladen (APK)
+            </a>
+        </div>
+
+        <!-- Features Grid -->
+        <div class="grid md:grid-cols-3 gap-6 w-full text-left">
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="bg-blue-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-blue-500/30">
+                    <i class="fa-solid fa-layer-group text-blue-400 text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">In-Game Overlay</h3>
+                <p class="text-slate-400 text-sm">Alle Marktchancen und Arbitrage-Routen direkt im Spiel sehen. Kein lästiges Wechseln der Apps mehr nötig.</p>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="bg-purple-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-purple-500/30">
+                    <i class="fa-solid fa-robot text-purple-400 text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">KI Profitrechner</h3>
+                <p class="text-slate-400 text-sm">Detaillierte Berechnung von Herstellungskosten und Reingewinn inkl. 4% Premium-Steuern in Echtzeit.</p>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl">
+                <div class="bg-emerald-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-emerald-500/30">
+                    <i class="fa-solid fa-shield-halved text-emerald-400 text-xl"></i>
+                </div>
+                <h3 class="text-xl font-bold mb-2">100% Bannsicher</h3>
+                <p class="text-slate-400 text-sm">Reine Datenanalyse über die offizielle API. Manipuliert nicht das Spiel und ist komplett sicher vor Bans.</p>
+            </div>
+        </div>
+
+        <!-- Installation Notice -->
+        <div class="mt-16 glass-panel p-6 rounded-2xl border-l-4 border-l-yellow-500 text-left max-w-3xl mx-auto flex gap-4 items-start">
+            <i class="fa-solid fa-circle-info text-yellow-500 text-2xl mt-1"></i>
+            <div>
+                <h4 class="font-bold text-lg mb-1">Hinweis zur Installation</h4>
+                <p class="text-slate-400 text-sm">Da AlbionDataPro als mächtiges Overlay im Hintergrund arbeitet, muss es als APK installiert werden. Bitte erlaube bei der Installation "Unbekannte Quellen" in deinen Android-Einstellungen.</p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full text-center p-6 text-slate-500 text-sm border-t border-slate-800 mt-auto">
+        <p>&copy; 2026 AlbionDataPro. Gehostet auf sicherer Cloud-Infrastruktur.</p>
+        <p class="text-xs mt-2">Nicht offiziell mit Sandbox Interactive GmbH (Albion Online) verbunden.</p>
+    </footer>
+
+</body>
+</html>`);
+});
 
 // API Endpoints
-app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.9', subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
+app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.15', subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/devices', (req, res) => res.json(registeredDevices));
 app.get('/api/prices', (req, res) => res.json(marketCache));
@@ -279,12 +456,19 @@ app.post('/api/data/batch', (req, res) => {
     // 3. Unpack & Process Prefs Data & Device Record
     let existingDevice = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
     if (!existingDevice) {
+        if (username) {
+            const cleanUser = username.trim().toLowerCase();
+            const userDevices = registeredDevices.filter(d => d.username && d.username.trim().toLowerCase() === cleanUser);
+            if (userDevices.length >= 2) {
+                return res.status(403).json({ error: 'Maximal 2 Geräte pro Lizenz / Benutzername erlaubt.' });
+            }
+        }
         const defaultExp = new Date();
         defaultExp.setFullYear(defaultExp.getFullYear() + 1);
         existingDevice = {
             hwId: cleanHwId,
             deviceName: 'Android App Device',
-            appVersion: '1.3.9',
+            appVersion: '1.3.15',
             activeOrdersCount: Array.isArray(tradeOrdersBatch) ? tradeOrdersBatch.length : 0,
             username: username || 'AutoConnectedDevice',
             password: password || '',
@@ -325,8 +509,11 @@ app.post('/api/data/batch', (req, res) => {
         saveDevices();
     }
 
-    const hasOtaUpdate = existingDevice.forceOtaUpdate === true || globalOtaTrigger === true;
-    if (existingDevice.forceOtaUpdate) {
+    const clientVer = (req.body.appVersion || (existingDevice && existingDevice.appVersion) || '0.0.0').trim();
+    const isClientOutdated = clientVer !== CURRENT_SERVER_VERSION && compareVersions(CURRENT_SERVER_VERSION, clientVer) > 0;
+    const hasOtaUpdate = (existingDevice && existingDevice.forceOtaUpdate === true) || globalOtaTrigger === true || isClientOutdated;
+
+    if (existingDevice && existingDevice.forceOtaUpdate) {
         existingDevice.forceOtaUpdate = false;
         saveDevices();
     }
@@ -338,9 +525,9 @@ app.post('/api/data/batch', (req, res) => {
             packageId: 'srv_pkg_' + Date.now(),
             isBanned: !!isBanned,
             isLicenseActive: !!isLicenseActive,
-            licenseExpiresAt: existingDevice.licenseExpiresAt,
+            licenseExpiresAt: existingDevice ? existingDevice.licenseExpiresAt : null,
             hasOtaUpdate: hasOtaUpdate,
-            targetVersion: '1.3.9',
+            targetVersion: CURRENT_SERVER_VERSION,
             pendingAlert: pendingAlert,
             remoteConfig: remoteConfig
         }
@@ -404,12 +591,19 @@ app.post('/api/devices/ping', (req, res) => {
     let existingDevice = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
 
     if (!existingDevice) {
+        if (username) {
+            const cleanUser = username.trim().toLowerCase();
+            const userDevices = registeredDevices.filter(d => d.username && d.username.trim().toLowerCase() === cleanUser);
+            if (userDevices.length >= 2) {
+                return res.status(403).json({ error: 'Maximal 2 Geräte pro Lizenz / Benutzername erlaubt.' });
+            }
+        }
         const defaultExp = new Date();
         defaultExp.setFullYear(defaultExp.getFullYear() + 1);
         existingDevice = {
             hwId: cleanHwId,
             deviceName: deviceName || 'Android App Device',
-            appVersion: appVersion || '1.3.9',
+            appVersion: appVersion || '1.3.15',
             activeOrdersCount: activeOrdersCount || 0,
             username: username || 'AutoConnectedDevice',
             password: password || '',
@@ -463,8 +657,10 @@ app.post('/api/devices/ping', (req, res) => {
         saveDevices();
     }
 
-    // OTA update ONLY happens if explicitly commanded by Admin
-    const hasOtaUpdate = existingDevice.forceOtaUpdate === true || globalOtaTrigger === true;
+    const clientVer = (appVersion || existingDevice.appVersion || '0.0.0').trim();
+    const isClientOutdated = clientVer !== CURRENT_SERVER_VERSION && compareVersions(CURRENT_SERVER_VERSION, clientVer) > 0;
+    const hasOtaUpdate = existingDevice.forceOtaUpdate === true || globalOtaTrigger === true || isClientOutdated;
+
     if (existingDevice.forceOtaUpdate) {
         existingDevice.forceOtaUpdate = false;
         saveDevices();
@@ -479,7 +675,7 @@ app.post('/api/devices/ping', (req, res) => {
         isLicenseActive: !!isLicenseActive,
         licenseExpiresAt: existingDevice.licenseExpiresAt,
         hasOtaUpdate: hasOtaUpdate,
-        targetVersion: '1.3.9',
+        targetVersion: CURRENT_SERVER_VERSION,
         popupAlert: pendingAlert,
         remoteConfig: remoteConfig
     });
@@ -591,28 +787,55 @@ app.get('/api/market-trends', (req, res) => {
     });
 });
 
-let globalOtaTrigger = false;
-
-// Admin Trigger OTA Update Endpoint (Only installs when admin clicks button)
+// Admin Trigger OTA Update Endpoint
 app.post('/api/admin/trigger-ota', (req, res) => {
     const { hwId, isGlobal } = req.body;
     let count = 0;
-    if (isGlobal) {
-        globalOtaTrigger = true;
-        registeredDevices.forEach(d => {
-            d.forceOtaUpdate = true;
-            count++;
-        });
+    if (isGlobal || !hwId) {
+        triggerAutoOtaUpdateForAllDevices('Admin Manueller Global-Trigger');
+        count = registeredDevices.length;
     } else if (hwId) {
         const cleanHwId = hwId.trim().toLowerCase();
         const device = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
         if (device) {
             device.forceOtaUpdate = true;
             count = 1;
+            saveDevices();
+            broadcastSSE('ota_update_available', {
+                targetVersion: CURRENT_SERVER_VERSION,
+                hwId: cleanHwId,
+                force: true,
+                downloadUrl: '/download/AlbionDataPro.apk',
+                timestamp: new Date().toISOString()
+            });
         }
     }
-    saveDevices();
-    res.json({ status: 'success', message: `Update-Befehl an ${count} Gerät(e) gesendet.`, count });
+    res.json({ status: 'success', message: `Update-Befehl an ${count} Gerät(e) gesendet.`, targetVersion: CURRENT_SERVER_VERSION, count });
+});
+
+app.post('/api/auth/register', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
+
+    const cleanUser = username.trim();
+    if (registeredUsers.some(u => u.username.toLowerCase() === cleanUser.toLowerCase())) {
+        return res.status(400).json({ error: 'Benutzer existiert bereits' });
+    }
+
+    const defaultExp = new Date();
+    defaultExp.setMonth(defaultExp.getMonth() + 1);
+
+    const newUser = {
+        id: 'usr_' + Date.now(),
+        username: cleanUser,
+        password: password.trim(),
+        isAdmin: false,
+        isLicensed: false,
+        licenseExpiresAt: defaultExp.toISOString()
+    };
+    registeredUsers.push(newUser);
+    saveUsers();
+    res.json({ status: 'success', message: 'Account erstellt. Bitte kontaktiere dnnx für deine Lizenz.' });
 });
 
 app.post('/api/admin/user/create', (req, res) => {
@@ -718,14 +941,15 @@ app.post('/api/anticheat/verify', (req, res) => {
     const cleanHwId = hwId.trim().toLowerCase();
     let device = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
 
-    const isViolation = isDebuggerAttached === true || isHookDetected === true || (signatureHash && signatureHash !== "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED");
+    // Relaxed violation check: prevent false-positive auto-bans for standard devices/debuggers
+    const isViolation = (isHookDetected === true && isDebuggerAttached === true) || (signatureHash && signatureHash !== "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED");
 
     if (isViolation) {
         if (!device) {
             device = {
                 hwId: cleanHwId,
                 deviceName: 'Flagged Device',
-                appVersion: '1.3.9',
+                appVersion: '1.3.15',
                 username: 'Unknown',
                 bannedUntil: null,
                 banReason: null,
@@ -770,6 +994,23 @@ app.post('/api/admin/device/ban', (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
+app.post('/api/admin/user/ban', (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ error: 'Missing username' });
+    const cleanUser = username.trim().toLowerCase();
+    const future = new Date();
+    future.setFullYear(future.getFullYear() + 10);
+    registeredDevices.forEach(d => {
+        if (d.username && d.username.trim().toLowerCase() === cleanUser) {
+            d.bannedUntil = future.toISOString();
+            d.banReason = 'Administrator Bann für Benutzer ' + username;
+            d.unbanned = false;
+        }
+    });
+    saveDevices();
+    res.json({ status: 'success', registeredDevices });
+});
+
 app.post('/api/admin/device/unban', (req, res) => {
     const { hwId } = req.body;
     const device = registeredDevices.find(d => d.hwId === hwId || d.hwId.toLowerCase() === (hwId || '').toLowerCase());
@@ -782,6 +1023,16 @@ app.post('/api/admin/device/unban', (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
+app.post('/api/admin/device/unban-all', (req, res) => {
+    registeredDevices.forEach(device => {
+        device.bannedUntil = null;
+        device.banReason = null;
+        device.unbanned = true; // Explicitly marked unbanned to prevent auto-ban and free up HWID
+    });
+    saveDevices();
+    res.json({ status: 'success', registeredDevices });
+});
+
 app.post('/api/admin/device/delete', (req, res) => {
     const { hwId } = req.body;
     registeredDevices = registeredDevices.filter(d => d.hwId !== hwId);
@@ -790,7 +1041,7 @@ app.post('/api/admin/device/delete', (req, res) => {
 });
 
 // Admin Dashboard HTML Page with License Generator (15€ - 250€)
-app.get(['/', '/admin'], (req, res) => {
+app.get(['/admin'], (req, res) => {
     const tunnelUrl = getActiveTunnelUrl();
     const maxItems = Math.max(...hourlyData24h.map(h => h.itemsCollected), 100);
 
@@ -799,7 +1050,7 @@ app.get(['/', '/admin'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.9)</title>
+    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.15)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
         .container { max-width: 1100px; margin: 0 auto; }
@@ -828,7 +1079,7 @@ app.get(['/', '/admin'], (req, res) => {
     <div class="container">
         <div class="card">
             <h1>🛡️ AlbionDataPro Central Admin & Tunnel Dashboard</h1>
-            <p>Version: <span class="badge">v1.3.9</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
+            <p>Version: <span class="badge">v1.3.15</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
 
             <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>
             <div class="url-box">${tunnelUrl}</div>
@@ -907,7 +1158,13 @@ app.get(['/', '/admin'], (req, res) => {
         </div>
 
         <div class="card">
-            <h2>📱 Full Device Management (${registeredDevices.length})</h2>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                <h2 style="margin:0;">📱 Full Device Management (${registeredDevices.length})</h2>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn" onclick="triggerGlobalUpdate()" style="background:#8b5cf6; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;">🚀 Alle (${registeredDevices.length}) Geräte jetzt auf v1.3.15 aktualisieren</button>
+                    <button class="btn" onclick="unbanAllDevices()" style="background:#10b981; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;">🟢 Alle Entsperren</button>
+                </div>
+            </div>
             <table>
                 <thead>
                     <tr><th>HWID</th><th>Gerätename</th><th>Version</th><th>Status</th><th>Aktionen</th></tr>
@@ -922,7 +1179,7 @@ app.get(['/', '/admin'], (req, res) => {
                         return `<tr>
                             <td><code>${d.hwId}</code></td>
                             <td>${d.deviceName}</td>
-                            <td><span class="badge" style="background:${d.appVersion === '1.3.9' ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
+                            <td><span class="badge" style="background:${d.appVersion === '1.3.15' ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
                             <td>${statusBadge}</td>
                             <td>
                                 ${isBanned ? `<button class="btn" onclick="unbanDevice('${d.hwId}')">Entsperren</button>` : `<button class="btn btn-danger" onclick="banDevice('${d.hwId}')">Sperren</button>`}
@@ -1001,6 +1258,30 @@ app.get(['/', '/admin'], (req, res) => {
             location.reload();
         }
 
+        async function triggerGlobalUpdate() {
+            if (!confirm('Automatisches OTA-Update an ALLE registrierten Geräte senden?')) return;
+            const res = await fetch('/api/admin/trigger-ota', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isGlobal: true })
+            });
+            if (res.ok) {
+                alert('🚀 Update-Impuls erfolgreich an ALLE registrierten Geräte gesendet!');
+                location.reload();
+            } else {
+                alert('Fehler beim Senden des Update-Befehls.');
+            }
+        }
+
+        async function unbanAllDevices() {
+            if (!confirm('Wirklich ALLE Geräte entsperren/entbannen?')) return;
+            await fetch('/api/admin/device/unban-all', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            location.reload();
+        }
+
         async function deleteDevice(hwId) {
             if (!confirm('Gerät wirklich löschen?')) return;
             await fetch('/api/admin/device/delete', {
@@ -1016,7 +1297,7 @@ app.get(['/', '/admin'], (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v1.3.9) läuft auf Port ${PORT}`);
+    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v1.3.15) läuft auf Port ${PORT}`);
 });
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;
