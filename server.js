@@ -13,7 +13,80 @@ const crypto = require('crypto');
 const app = express();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 4000;
-const SERVER_HMAC_SECRET = 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
+const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'AlbionDataPro_Military_Admin_SuperSecret_2026#Key';
+
+// In-Memory Rate Limiting & Abuse Prevention
+const downloadRateLimiter = new Map(); // IP -> timestamps[]
+const loginRateLimiter = new Map();    // IP -> timestamps[]
+const generalRateLimiter = new Map();  // IP -> timestamps[]
+
+function isRateLimited(map, ip, maxRequests, windowMs) {
+    const now = Date.now();
+    let timestamps = map.get(ip) || [];
+    timestamps = timestamps.filter(t => now - t < windowMs);
+    if (timestamps.length >= maxRequests) {
+        map.set(ip, timestamps);
+        return true;
+    }
+    timestamps.push(now);
+    map.set(ip, timestamps);
+    return false;
+}
+
+// Clean up rate limiters every 15 minutes
+setInterval(() => {
+    const now = Date.now();
+    for (const [ip, list] of downloadRateLimiter.entries()) {
+        const filtered = list.filter(t => now - t < 3600000);
+        if (filtered.length === 0) downloadRateLimiter.delete(ip);
+        else downloadRateLimiter.set(ip, filtered);
+    }
+    for (const [ip, list] of loginRateLimiter.entries()) {
+        const filtered = list.filter(t => now - t < 900000);
+        if (filtered.length === 0) loginRateLimiter.delete(ip);
+        else loginRateLimiter.set(ip, filtered);
+    }
+}, 900000);
+
+// High-End Security Middleware: Require Admin Key
+function requireAdminAuth(req, res, next) {
+    const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
+    const queryKey = req.query.adminKey || req.query.key;
+    const token = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.substring(7).trim() : authHeader;
+
+    if (token === ADMIN_API_KEY || queryKey === ADMIN_API_KEY) {
+        return next();
+    }
+    return res.status(403).json({
+        error: 'Forbidden: High-End Security Authentication Required',
+        status: 'unauthorized'
+    });
+}
+
+// Helper to generate cryptographically signed download tokens
+function generateSignedDownloadToken(expiresAtMs) {
+    const payload = `dl_token_${expiresAtMs}`;
+    const hash = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update(payload).digest('hex');
+    return `${expiresAtMs}.${hash}`;
+}
+
+// Helper to verify signed download tokens
+function verifySignedDownloadToken(token) {
+    if (!token || typeof token !== 'string') return false;
+    const parts = token.split('.');
+    if (parts.length !== 2) return false;
+    const [expiresStr, clientHash] = parts;
+    const expiresAt = parseInt(expiresStr, 10);
+    if (isNaN(expiresAt) || Date.now() > expiresAt) return false; // Expired!
+
+    const expectedHash = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update(`dl_token_${expiresAt}`).digest('hex');
+    try {
+        return crypto.timingSafeEqual(Buffer.from(clientHash, 'hex'), Buffer.from(expectedHash, 'hex'));
+    } catch (_) {
+        return false;
+    }
+}
 
 let marketCache = { items: [], lastUpdated: null };
 let registeredDevices = [];
@@ -47,7 +120,7 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = '1.3.15';
+const CURRENT_SERVER_VERSION = '1.3.16';
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -81,33 +154,46 @@ function triggerAutoOtaUpdateForAllDevices(reason = 'Neue Version bereitgestellt
         downloadUrl: '/download/AlbionDataPro.apk',
         timestamp: new Date().toISOString()
     });
-    console.log(`[Albion Server] 🚀 AUTOMATISCHES DEVICE-UPDATE (${reason}): Impuls an ALLE ${count} registrierten Geräte gesendet! (Version: ${CURRENT_SERVER_VERSION})`);
 }
 
-function syncLatestApk() {
-    for (const apkPath of buildApkPaths) {
-        if (fs.existsSync(apkPath)) {
-            try {
-                fs.copyFileSync(apkPath, targetApkPath);
-                console.log(`[Albion Server] 🚀 Neueste APK automatisch in die Cloud geladen: ${apkPath}`);
-                break;
-            } catch (e) {
-                console.error('[Albion Server] Fehler beim Kopieren der APK:', e.message);
-            }
+// Administration Upload-Route für OTA-Updates (Neue APK auf den Render Server laden)
+const multer = require('multer');
+const upload = multer({
+    dest: DOWNLOADS_DIR,
+    fileFilter: (req, file, cb) => {
+        if (file.mimetype !== 'application/vnd.android.package-archive' && !file.originalname.endsWith('.apk')) {
+            return cb(new Error('Nur .apk Dateien erlaubt'), false);
         }
+        cb(null, true);
     }
+});
 
-    if (fs.existsSync(targetApkPath)) {
-        try {
-            const stats = fs.statSync(targetApkPath);
-            if (stats.mtimeMs !== lastApkMtime) {
-                const isFirstRun = (lastApkMtime === 0);
-                lastApkMtime = stats.mtimeMs;
-                triggerAutoOtaUpdateForAllDevices(isFirstRun ? 'Initialer Server-Start mit APK' : 'Neue APK-Version hochgeladen');
+app.post('/api/admin/upload-apk', requireAdminAuth, upload.single('apkFile'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
+
+    const targetPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+    if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath);
+    fs.renameSync(req.file.path, targetPath);
+
+    triggerAutoOtaUpdateForAllDevices('Neue APK von Admin hochgeladen');
+    res.json({ status: 'success', message: 'APK erfolgreich hochgeladen und OTA-Update an alle gesendet!' });
+});
+
+function syncLatestApk() {
+    try {
+        const apkPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+        if (fs.existsSync(apkPath)) {
+            const stat = fs.statSync(apkPath);
+            if (lastApkMtime === 0) {
+                lastApkMtime = stat.mtimeMs;
+            } else if (stat.mtimeMs > lastApkMtime) {
+                lastApkMtime = stat.mtimeMs;
+                console.log('[OTA Sync] 🚀 Neue APK-Datei erkannt! Triggere automatisches OTA-Update für alle Geräte...');
+                triggerAutoOtaUpdateForAllDevices('Neue APK-Datei automatisch auf Server synchronisiert');
             }
-        } catch (e) {
-            console.error('[Albion Server] Fehler beim Prüfen der APK mtime:', e.message);
         }
+    } catch (e) {
+        console.error('[OTA Sync] Fehler bei APK-Prüfung:', e.message);
     }
 }
 
@@ -233,11 +319,21 @@ fetchAlbionMarketData();
 
 app.use(express.json());
 
+// High-End Security Headers (Anti-Sniffing, Anti-Clickjacking, HTTPS Enforcement)
+app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    next();
+});
+
 // CORS & Persistent Keep-Alive Headers for Render Cloud <-> Device Connections
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, X-Albion-Signature');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, X-Albion-Signature, X-Admin-Key');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Keep-Alive', 'timeout=600, max=1000');
     if (req.method === 'OPTIONS') {
@@ -258,9 +354,88 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/download', express.static(path.join(__dirname, 'downloads')));
-app.get('/dl', (req, res) => res.redirect('/download/AlbionDataPro.apk'));
-app.get('/apk', (req, res) => res.redirect('/download/AlbionDataPro.apk'));
+// Endpoint to obtain a signed, short-lived download link (Valid for 15 minutes)
+app.get(['/api/download/token', '/download/token'], (req, res) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    // Rate limit token generation: max 15 tokens per 10 minutes per IP
+    if (isRateLimited(generalRateLimiter, `dl_token_${ip}`, 15, 600000)) {
+        return res.status(429).json({ error: 'Zu viele Anfragen. Bitte warte einen Moment.' });
+    }
+    const expiresAt = Date.now() + (15 * 60 * 1000); // 15 Min
+    const signedToken = generateSignedDownloadToken(expiresAt);
+    res.json({
+        status: 'success',
+        token: signedToken,
+        expiresAt: expiresAt,
+        downloadUrl: `/download/AlbionDataPro.apk?token=${signedToken}`
+    });
+});
+
+// High-End Protected Streaming APK Download with Rate-Limiting & Memory Overflow Protection
+app.get(['/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/latest.apk'], (req, res) => {
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    const token = req.query.token;
+    const adminKey = req.query.key || req.query.adminKey || req.headers['x-admin-key'];
+
+    // 1. Verification: Either valid cryptographic signature or Admin-Key bypass
+    const isValidToken = token && verifySignedDownloadToken(token);
+    const isAdmin = adminKey === ADMIN_API_KEY;
+
+    // Check rate limit: max 6 downloads per hour per IP (protect Render bandwidth)
+    if (isRateLimited(downloadRateLimiter, ip, 6, 3600000)) {
+        console.warn(`[Albion Security] ⚠️ Download Rate-Limit erreicht für IP: ${ip}`);
+        return res.status(429).send(`
+            <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
+                <h2>⚠️ Download-Limit erreicht</h2>
+                <p>Aus Sicherheitsgründen sind nur maximal 6 Downloads pro Stunde erlaubt. Bitte warte einige Minuten.</p>
+            </html>
+        `);
+    }
+
+    // High-End Fallback: If no token was provided via direct link, generate one-time access if under limit
+    if (!isValidToken && !isAdmin && !token) {
+        // Direct web browser download allowed under strict rate limiter
+    } else if (!isValidToken && !isAdmin) {
+        return res.status(403).send(`
+            <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
+                <h2>⛔ Ungültiger oder abgelaufener Download-Link</h2>
+                <p>Der Download-Link ist abgelaufen (Gültigkeit: 15 Minuten) oder die Signatur ist ungültig.</p>
+                <a href="/" style="color:#38bdf8;">Zurück zur Startseite</a>
+            </html>
+        `);
+    }
+
+    const apkFile = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+    if (!fs.existsSync(apkFile)) {
+        return res.status(404).send('APK-Datei nicht auf dem Server gefunden.');
+    }
+
+    const stat = fs.statSync(apkFile);
+    res.writeHead(200, {
+        'Content-Type': 'application/vnd.android.package-archive',
+        'Content-Length': stat.size,
+        'Content-Disposition': 'attachment; filename="AlbionDataPro.apk"',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
+
+    // High-End Stream to avoid memory exhaustion on Render
+    const readStream = fs.createReadStream(apkFile);
+    readStream.pipe(res);
+});
+
+app.get('/dl', (req, res) => {
+    const expiresAt = Date.now() + (15 * 60 * 1000);
+    const token = generateSignedDownloadToken(expiresAt);
+    res.redirect(`/download/AlbionDataPro.apk?token=${token}`);
+});
+
+app.get('/apk', (req, res) => {
+    const expiresAt = Date.now() + (15 * 60 * 1000);
+    const token = generateSignedDownloadToken(expiresAt);
+    res.redirect(`/download/AlbionDataPro.apk?token=${token}`);
+});
 
 // Landing Page (Verkauf, Info & Download)
 app.get(['/', '/get', '/app'], (req, res) => {
@@ -357,28 +532,49 @@ app.get(['/', '/get', '/app'], (req, res) => {
 });
 
 // API Endpoints
-app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: '1.3.15', subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
+app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: CURRENT_SERVER_VERSION, subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
-app.get('/api/devices', (req, res) => res.json(registeredDevices));
 app.get('/api/prices', (req, res) => res.json(marketCache));
-app.get('/api/users', (req, res) => {
+
+// High-End Protected Endpoints (Admin Key Required)
+app.get('/api/devices', requireAdminAuth, (req, res) => res.json(registeredDevices));
+app.get('/api/users', requireAdminAuth, (req, res) => {
     const safeUsers = registeredUsers.map(u => ({
         id: u.id,
         username: u.username,
         password: u.password || '••••••••',
         isAdmin: u.isAdmin,
         isLicensed: u.isLicensed,
-        licenseExpiresAt: u.licenseExpiresAt
+        licenseExpiresAt: u.licenseExpiresAt,
+        registeredAt: u.registeredAt || u.createdAt || null
     }));
     res.json(safeUsers);
 });
-app.get('/api/licenses', (req, res) => res.json(generatedLicenses));
+app.get('/api/licenses', requireAdminAuth, (req, res) => res.json(generatedLicenses));
 
-// Auth Login Endpoint
+// Auth Login Endpoint (with Brute-Force Rate Limiting Protection & Strict Identical Version Lock)
 app.post('/api/auth/login', (req, res) => {
-    const { username, password } = req.body;
+    const ip = req.ip || req.connection.remoteAddress || 'unknown';
+    if (isRateLimited(loginRateLimiter, ip, 12, 600000)) { // Max 12 Versuche pro 10 Minuten
+        return res.status(429).json({ authenticated: false, message: 'Zu viele fehlerhafte Anmeldeversuche. Bitte 10 Minuten warten.' });
+    }
+
+    const { username, password, appVersion } = req.body;
     if (!username || !password) {
         return res.status(400).json({ authenticated: false, message: 'Missing credentials' });
+    }
+
+    // Strict identical version check: Only clients with the exact CURRENT_SERVER_VERSION can log in
+    const clientVer = (appVersion || req.headers['x-app-version'] || '').trim();
+    if (clientVer !== CURRENT_SERVER_VERSION) {
+        return res.status(426).json({
+            authenticated: false,
+            message: `Anmeldung abgelehnt: Veraltete App-Version (v${clientVer || '0.0.0'}). Bitte führen Sie ein Update auf Version v${CURRENT_SERVER_VERSION} durch!`,
+            versionMismatch: true,
+            hasOtaUpdate: true,
+            targetVersion: CURRENT_SERVER_VERSION,
+            downloadUrl: '/download/AlbionDataPro.apk'
+        });
     }
 
     const cleanUser = username.trim().toLowerCase();
@@ -511,7 +707,7 @@ app.post('/api/data/batch', (req, res) => {
 
     const clientVer = (req.body.appVersion || (existingDevice && existingDevice.appVersion) || '0.0.0').trim();
     const isClientOutdated = clientVer !== CURRENT_SERVER_VERSION && compareVersions(CURRENT_SERVER_VERSION, clientVer) > 0;
-    const hasOtaUpdate = (existingDevice && existingDevice.forceOtaUpdate === true) || globalOtaTrigger === true || isClientOutdated;
+    const hasOtaUpdate = isClientOutdated && ((existingDevice && existingDevice.forceOtaUpdate === true) || globalOtaTrigger === true || isClientOutdated);
 
     if (existingDevice && existingDevice.forceOtaUpdate) {
         existingDevice.forceOtaUpdate = false;
@@ -659,7 +855,7 @@ app.post('/api/devices/ping', (req, res) => {
 
     const clientVer = (appVersion || existingDevice.appVersion || '0.0.0').trim();
     const isClientOutdated = clientVer !== CURRENT_SERVER_VERSION && compareVersions(CURRENT_SERVER_VERSION, clientVer) > 0;
-    const hasOtaUpdate = existingDevice.forceOtaUpdate === true || globalOtaTrigger === true || isClientOutdated;
+    const hasOtaUpdate = isClientOutdated && (existingDevice.forceOtaUpdate === true || globalOtaTrigger === true || isClientOutdated);
 
     if (existingDevice.forceOtaUpdate) {
         existingDevice.forceOtaUpdate = false;
@@ -701,7 +897,7 @@ function broadcastSSE(eventType, data) {
 
 // Remote Live-Config Endpoints
 app.get('/api/remote-config', (req, res) => res.json(remoteConfig));
-app.post('/api/admin/remote-config', (req, res) => {
+app.post('/api/admin/remote-config', requireAdminAuth, (req, res) => {
     const { minMarginPercent, maintenanceMode, blacklistedCities, aiAnalyzerEnabled } = req.body;
     if (minMarginPercent !== undefined) remoteConfig.minMarginPercent = parseFloat(minMarginPercent);
     if (maintenanceMode !== undefined) remoteConfig.maintenanceMode = !!maintenanceMode;
@@ -788,7 +984,7 @@ app.get('/api/market-trends', (req, res) => {
 });
 
 // Admin Trigger OTA Update Endpoint
-app.post('/api/admin/trigger-ota', (req, res) => {
+app.post('/api/admin/trigger-ota', requireAdminAuth, (req, res) => {
     const { hwId, isGlobal } = req.body;
     let count = 0;
     if (isGlobal || !hwId) {
@@ -825,20 +1021,27 @@ app.post('/api/auth/register', (req, res) => {
     const defaultExp = new Date();
     defaultExp.setMonth(defaultExp.getMonth() + 1);
 
+    const nowIso = new Date().toISOString();
     const newUser = {
         id: 'usr_' + Date.now(),
         username: cleanUser,
         password: password.trim(),
         isAdmin: false,
         isLicensed: false,
-        licenseExpiresAt: defaultExp.toISOString()
+        licenseExpiresAt: defaultExp.toISOString(),
+        registeredAt: nowIso
     };
     registeredUsers.push(newUser);
     saveUsers();
-    res.json({ status: 'success', message: 'Account erstellt. Bitte kontaktiere dnnx für deine Lizenz.' });
+    console.log(`[AUTH-REGISTER] Neuer Account registriert: ${cleanUser} (${nowIso})`);
+    res.json({
+        status: 'success',
+        message: 'Account erstellt.',
+        licenseExpiresAt: defaultExp.toISOString()
+    });
 });
 
-app.post('/api/admin/user/create', (req, res) => {
+app.post('/api/admin/user/create', requireAdminAuth, (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
 
@@ -849,20 +1052,22 @@ app.post('/api/admin/user/create', (req, res) => {
     const defaultExp = new Date();
     defaultExp.setFullYear(defaultExp.getFullYear() + 1);
 
+    const nowIso = new Date().toISOString();
     const newUser = {
         id: 'usr_' + Date.now(),
         username: username.trim(),
         password: password.trim(),
         isAdmin: false,
         isLicensed: true,
-        licenseExpiresAt: defaultExp.toISOString()
+        licenseExpiresAt: defaultExp.toISOString(),
+        registeredAt: nowIso
     };
     registeredUsers.push(newUser);
     saveUsers();
     res.json({ status: 'success', registeredUsers });
 });
 
-app.post('/api/admin/user/delete', (req, res) => {
+app.post('/api/admin/user/delete', requireAdminAuth, (req, res) => {
     const { username } = req.body;
     registeredUsers = registeredUsers.filter(u => u.username !== username);
     saveUsers();
@@ -870,7 +1075,7 @@ app.post('/api/admin/user/delete', (req, res) => {
 });
 
 // Admin Broadcast / Direct Screen Alert Endpoint
-app.post('/api/admin/send-alert', (req, res) => {
+app.post('/api/admin/send-alert', requireAdminAuth, (req, res) => {
     const { targetUsername, hwId, message, playAlarmSound } = req.body;
     if (!message) return res.status(400).json({ error: 'Nachricht erforderlich' });
 
@@ -897,7 +1102,7 @@ app.post('/api/admin/send-alert', (req, res) => {
 });
 
 // License Generation Endpoint
-app.post('/api/admin/license/generate', (req, res) => {
+app.post('/api/admin/license/generate', requireAdminAuth, (req, res) => {
     const { tier, customerNote } = req.body;
     let prefix = 'ALBION-1M-';
     let price = '15 €';
@@ -926,7 +1131,7 @@ app.post('/api/admin/license/generate', (req, res) => {
     res.json({ status: 'success', license: newLic, generatedLicenses });
 });
 
-app.post('/api/admin/license/delete', (req, res) => {
+app.post('/api/admin/license/delete', requireAdminAuth, (req, res) => {
     const { key } = req.body;
     generatedLicenses = generatedLicenses.filter(l => l.key !== key);
     saveLicenses();
@@ -980,7 +1185,7 @@ app.post('/api/anticheat/verify', (req, res) => {
     res.json({ status: 'clean', isBanned: false });
 });
 
-app.post('/api/admin/device/ban', (req, res) => {
+app.post('/api/admin/device/ban', requireAdminAuth, (req, res) => {
     const { hwId, banReason } = req.body;
     const device = registeredDevices.find(d => d.hwId === hwId || d.hwId.toLowerCase() === (hwId || '').toLowerCase());
     if (device) {
@@ -994,7 +1199,7 @@ app.post('/api/admin/device/ban', (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
-app.post('/api/admin/user/ban', (req, res) => {
+app.post('/api/admin/user/ban', requireAdminAuth, (req, res) => {
     const { username } = req.body;
     if (!username) return res.status(400).json({ error: 'Missing username' });
     const cleanUser = username.trim().toLowerCase();
@@ -1011,7 +1216,7 @@ app.post('/api/admin/user/ban', (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
-app.post('/api/admin/device/unban', (req, res) => {
+app.post('/api/admin/device/unban', requireAdminAuth, (req, res) => {
     const { hwId } = req.body;
     const device = registeredDevices.find(d => d.hwId === hwId || d.hwId.toLowerCase() === (hwId || '').toLowerCase());
     if (device) {
@@ -1023,7 +1228,7 @@ app.post('/api/admin/device/unban', (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
-app.post('/api/admin/device/unban-all', (req, res) => {
+app.post('/api/admin/device/unban-all', requireAdminAuth, (req, res) => {
     registeredDevices.forEach(device => {
         device.bannedUntil = null;
         device.banReason = null;
@@ -1033,7 +1238,7 @@ app.post('/api/admin/device/unban-all', (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
-app.post('/api/admin/device/delete', (req, res) => {
+app.post('/api/admin/device/delete', requireAdminAuth, (req, res) => {
     const { hwId } = req.body;
     registeredDevices = registeredDevices.filter(d => d.hwId !== hwId);
     saveDevices();
@@ -1042,6 +1247,26 @@ app.post('/api/admin/device/delete', (req, res) => {
 
 // Admin Dashboard HTML Page with License Generator (15€ - 250€)
 app.get(['/admin'], (req, res) => {
+    const adminKey = req.query.key || req.query.adminKey || '';
+    if (adminKey !== ADMIN_API_KEY) {
+        return res.status(401).send(`
+            <!DOCTYPE html>
+            <html lang="de" style="background:#0f172a;color:#f8fafc;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;">
+            <head><title>Admin Authentifizierung erforderlich</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+            <body style="text-align:center;padding:20px;">
+                <div style="background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155;max-width:400px;margin:auto;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+                    <h2 style="color:#38bdf8;margin-top:0;">🔒 Admin Authentifizierung</h2>
+                    <p style="color:#94a3b8;font-size:14px;">Zugriff nur mit autorisiertem High-End Admin-Schlüssel gestattet.</p>
+                    <form method="GET" action="/admin" style="margin-top:20px;">
+                        <input type="password" name="key" placeholder="Admin-Schlüssel eingeben..." style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#0f172a;border:1px solid #475569;color:white;margin-bottom:14px;" required autofocus>
+                        <button type="submit" style="width:100%;padding:12px;border-radius:8px;background:#3b82f6;color:white;border:none;font-weight:bold;cursor:pointer;">Entsperren</button>
+                    </form>
+                </div>
+            </body>
+            </html>
+        `);
+    }
+
     const tunnelUrl = getActiveTunnelUrl();
     const maxItems = Math.max(...hourlyData24h.map(h => h.itemsCollected), 100);
 
