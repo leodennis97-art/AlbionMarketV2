@@ -120,7 +120,7 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = '1.3.17';
+const CURRENT_SERVER_VERSION = '1.3.18';
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -1275,7 +1275,7 @@ app.get(['/admin'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.17)</title>
+    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.18)</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
         .container { max-width: 1100px; margin: 0 auto; }
@@ -1304,7 +1304,7 @@ app.get(['/admin'], (req, res) => {
     <div class="container">
         <div class="card">
             <h1>🛡️ AlbionDataPro Central Admin & Tunnel Dashboard</h1>
-            <p>Version: <span class="badge">v1.3.17</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
+            <p>Version: <span class="badge">v1.3.18</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
 
             <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>
             <div class="url-box">${tunnelUrl}</div>

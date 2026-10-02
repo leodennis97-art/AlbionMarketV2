@@ -9,7 +9,7 @@ object DesktopBridgeManager {
         val hwId = DeviceHardwareManager.getHardwareId(context)
         return JSONObject().apply {
             put("app", "AlbionDataPro")
-            put("version", "1.3.17")
+            put("version", "1.3.18")
             put("hwId", hwId)
             put("bridgeUrl", "https://albionmarketv2-1.onrender.com/bridge/$hwId")
         }.toString()
