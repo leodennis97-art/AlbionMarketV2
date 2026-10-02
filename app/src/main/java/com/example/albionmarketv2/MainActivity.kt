@@ -182,22 +182,15 @@ class MainActivity : ComponentActivity() {
                     return@AlbionMarketV2Theme
                 }
 
-                val initialAuthValid = remember {
-                    ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(context)
-                }
-                var isUserLoggedInState by remember { mutableStateOf(initialAuthValid) }
-                var isUnlockedForSession by remember { mutableStateOf(initialAuthValid) }
+                var isUserLoggedInState by remember { mutableStateOf(false) }
+                var isUnlockedForSession by remember { mutableStateOf(false) }
                 var showWelcomeDialog by remember { mutableStateOf(false) }
 
-                // Auto login / restore session on launch if saved credentials exist
+                // Always start at Login screen on fresh app launch
                 LaunchedEffect(Unit) {
-                    if ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) {
-                        if (LicenseManager.isLicenseValid(context)) {
-                            prefs.isUserLoggedIn = true
-                            isUserLoggedInState = true
-                            isUnlockedForSession = true
-                        }
-                    }
+                    prefs.isUserLoggedIn = false
+                    isUserLoggedInState = false
+                    isUnlockedForSession = false
                 }
 
                 // Live Popup Alert Handling for Admin Messages & Screen Alarm

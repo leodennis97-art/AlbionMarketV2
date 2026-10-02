@@ -11,8 +11,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
+import android.provider.Settings
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -44,17 +46,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import android.content.res.Configuration
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -72,10 +74,13 @@ import kotlinx.coroutines.*
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.round
 import kotlin.time.Duration.Companion.seconds
 
 class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
+    @Suppress("DEPRECATION")
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
 
     override val savedStateRegistry: SavedStateRegistry
@@ -87,8 +92,12 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         private var isRunning = false
 
         fun startService(context: Context) {
-            val intent = Intent(context, FloatingBubbleService::class.java)
-            context.startForegroundService(intent)
+            try {
+                val intent = Intent(context, FloatingBubbleService::class.java)
+                context.startForegroundService(intent)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
 
         fun stopService(context: Context) {
@@ -112,59 +121,96 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
     private var cachedPriceMap: Map<String, List<MarketPrice>>? = null
 
     override fun onCreate() {
-        savedStateRegistryController.performRestore(null)
-        super.onCreate()
-        isRunning = true
-        windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
+        try {
+            savedStateRegistryController.performRestore(null)
+            super.onCreate()
+            isRunning = true
+            windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
-        startForegroundNotification()
-        setupOverlayView()
-        registerScreenStateReceiver()
-        updateBubbleVisibility()
-        startActiveOrderObserver()
+            startForegroundNotification()
+            setupOverlayView()
+            registerScreenStateReceiver()
+            updateBubbleVisibility()
+            startActiveOrderObserver()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
+        return START_STICKY
+    }
+
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        try {
+            val restartIntent = Intent(applicationContext, FloatingBubbleService::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            applicationContext.startForegroundService(restartIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun startForegroundNotification() {
-        val channel = NotificationChannel(
-            CHANNEL_ID,
-            "Albion Overlay Bubble Service",
-            NotificationManager.IMPORTANCE_LOW,
-        ).apply {
-            lockscreenVisibility = NotificationCompat.VISIBILITY_SECRET
-        }
-        val manager = getSystemService(NotificationManager::class.java)
-        manager?.createNotificationChannel(channel)
+        try {
+            val channel = NotificationChannel(
+                CHANNEL_ID,
+                "Albion Overlay Bubble Service",
+                NotificationManager.IMPORTANCE_MIN,
+            ).apply {
+                lockscreenVisibility = NotificationCompat.VISIBILITY_SECRET
+                setSound(null, null)
+                enableVibration(false)
+            }
+            val manager = getSystemService(NotificationManager::class.java)
+            manager?.createNotificationChannel(channel)
 
-        val notificationIntent = Intent(this, MainActivity::class.java)
-        val pendingIntent = PendingIntent.getActivity(
-            this, 0, notificationIntent,
-            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
-        )
+            val notificationIntent = Intent(this, MainActivity::class.java)
+            val pendingIntent = PendingIntent.getActivity(
+                this, 0, notificationIntent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            )
 
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Albion Overlay aktiv")
-            .setContentText("Zeigt Marktchancen & Handelsaufträge an")
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setVisibility(NotificationCompat.VISIBILITY_SECRET)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .build()
+            val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Albion Overlay")
+                .setContentText("Overlay aktiv")
+                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+                .setSound(null)
+                .setVibrate(null)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                try {
+                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                } catch (_: Exception) {
+                    startForeground(NOTIFICATION_ID, notification)
+                }
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
     private fun setFocusableMode(enableFocus: Boolean) {
         if ((!::layoutParams.isInitialized) || (composeView == null)) return
         try {
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
             if (enableFocus) {
                 layoutParams.flags = layoutParams.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
+                composeView?.isFocusable = true
+                composeView?.isFocusableInTouchMode = true
+                composeView?.requestFocus()
+                imm?.showSoftInput(composeView, InputMethodManager.SHOW_IMPLICIT)
             } else {
                 layoutParams.flags = layoutParams.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
                 composeView?.windowToken?.let { token ->
                     imm?.hideSoftInputFromWindow(token, 0)
                 }
@@ -178,52 +224,66 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
     }
 
     private fun setupOverlayView() {
-        val layoutType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-
-        layoutParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            layoutType,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
-                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
-            PixelFormat.TRANSLUCENT,
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 100
-            y = 300
+        if (!Settings.canDrawOverlays(this)) {
+            return
         }
 
-        composeView = ComposeView(this).apply {
-            setViewTreeLifecycleOwner(this@FloatingBubbleService)
-            setViewTreeSavedStateRegistryOwner(this@FloatingBubbleService)
+        try {
+            val layoutType = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
 
-            setContent {
-                AlbionMarketV2Theme {
-                    BubbleOverlayContent(
-                        context = this@FloatingBubbleService,
-                        activeOrder = activeOrder,
-                        topOpportunities = topOpportunities,
-                        isLoadingOpps = isLoadingOpps,
-                        onRefresh = { loadData(forceRefreshPrices = true) },
-                        onAcceptOpportunity = { opp -> acceptOpportunity(opp) },
-                        onDrag = { dx, dy ->
-                            this@FloatingBubbleService.layoutParams.x += dx.toInt()
-                            this@FloatingBubbleService.layoutParams.y += dy.toInt()
-                            windowManager.updateViewLayout(this@apply, this@FloatingBubbleService.layoutParams)
-                        },
-                        onFocusModeChanged = { needsFocus ->
-                            setFocusableMode(needsFocus)
-                        },
-                    ) {
-                        setFocusableMode(enableFocus = false)
-                        loadData(forceRefreshPrices = false)
+            layoutParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                layoutType,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN or
+                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON,
+                PixelFormat.TRANSLUCENT,
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 100
+                y = 300
+            }
+
+            composeView = ComposeView(this).apply {
+                setViewTreeLifecycleOwner(this@FloatingBubbleService)
+                setViewTreeSavedStateRegistryOwner(this@FloatingBubbleService)
+
+                setContent {
+                    AlbionMarketV2Theme {
+                        BubbleOverlayContent(
+                            context = this@FloatingBubbleService,
+                            activeOrder = activeOrder,
+                            topOpportunities = topOpportunities,
+                            isLoadingOpps = isLoadingOpps,
+                            onRefresh = { loadData(forceRefreshPrices = true) },
+                            onAcceptOpportunity = { opp -> acceptOpportunity(opp) },
+                            onDrag = { dx, dy ->
+                                try {
+                                    this@FloatingBubbleService.layoutParams.x += dx.toInt()
+                                    this@FloatingBubbleService.layoutParams.y += dy.toInt()
+                                    if (composeView?.isAttachedToWindow == true) {
+                                        windowManager.updateViewLayout(this@apply, this@FloatingBubbleService.layoutParams)
+                                    }
+                                } catch (_: Exception) {}
+                            },
+                            onFocusModeChanged = { needsFocus ->
+                                setFocusableMode(needsFocus)
+                            },
+                        ) {
+                            setFocusableMode(enableFocus = false)
+                            loadData(forceRefreshPrices = false)
+                        }
                     }
                 }
             }
-        }
 
-        windowManager.addView(composeView, layoutParams)
+            if (Settings.canDrawOverlays(this)) {
+                windowManager.addView(composeView, layoutParams)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private var screenReceiver: BroadcastReceiver? = null
@@ -232,17 +292,11 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         try {
             val keyguardManager = getSystemService(KEYGUARD_SERVICE) as? KeyguardManager
             val isKeyguardLocked = (keyguardManager?.isKeyguardLocked == true) || (keyguardManager?.isDeviceLocked == true)
-            val prefs = AppPreferences(this)
-            val isAuthValid = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(this) && ServerSyncManager.isServerConnected
-
-            val shouldShow = !isKeyguardLocked && isAuthValid
+            val shouldShow = !isKeyguardLocked
 
             serviceScope.launch(Dispatchers.Main) {
                 if (composeView?.isAttachedToWindow == true) {
                     composeView?.visibility = if (shouldShow) View.VISIBLE else View.GONE
-                }
-                if (!shouldShow && !isAuthValid) {
-                    stopSelf()
                 }
             }
         } catch (e: Exception) {
@@ -272,15 +326,23 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         serviceScope.launch(Dispatchers.IO) {
             var loopCount = 0
             while (isRunning && isActive) {
-                updateBubbleVisibility()
+                val prefs = AppPreferences(this@FloatingBubbleService)
+                val isLoggedIn = ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(this@FloatingBubbleService)
+                if (!isLoggedIn) {
+                    withContext(Dispatchers.Main) {
+                        isRunning = false
+                        stopSelf()
+                    }
+                    break
+                }
                 loadActiveOrder()
-                val intervalMins = AppPreferences(this@FloatingBubbleService).bubbleIntervalMinutes.coerceAtLeast(1)
-                val ticksNeeded = intervalMins * 20 // 20 ticks of 3s = 60s (1 min)
+                val intervalMins = prefs.bubbleIntervalMinutes.coerceAtLeast(1)
+                val ticksNeeded = (intervalMins * 60) / 3 // loop runs every 3 seconds
                 if ((loopCount % ticksNeeded) == 0) {
                     loadTopOpportunities(forceRefresh = true)
                 }
                 loopCount++
-                delay(1.seconds)
+                delay(3.seconds)
             }
         }
     }
@@ -337,6 +399,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                         sellPriceMinDate = "",
                         buyPriceMax = s.buyPriceMax,
                         buyPriceMaxDate = "",
+                        sellPriceMinAmount = s.sellPriceMinAmount,
                     )
                 }.groupBy { it.itemId }
             } else {
@@ -375,14 +438,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             standpunktCity = standpunkt,
             maxCityDistance = prefs.bubbleMaxZones,
             hideBrecilien = prefs.bubbleHideBrecilien,
-            maxStockCount = prefs.bubbleMaxStock,
             hideBlackMarket = prefs.bubbleHideBlackMarket,
         ).filter { it.roiPercent >= prefs.bubbleMinMarginPercent }
 
-        return opportunities.asSequence().sortedWith(
-            compareByDescending<TradeOpportunity> { it.roiPercent }
-                .thenByDescending { it.totalNetProfit },
-        ).take(3).toList()
+        return opportunities.asSequence().sortedByDescending { it.updatedTimestamp }.take(20).toList()
     }
 
     private fun acceptOpportunity(opp: TradeOpportunity) {
@@ -390,8 +449,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             val prefs = AppPreferences(this)
             val currentOrders = prefs.getTradeOrders()
             val activeOrders = currentOrders.filter { it.status == OrderStatus.ACTIVE }
-            if (activeOrders.size >= 3) {
-                Toast.makeText(this, "Maximal 3 aktive Aufträge gleichzeitig erlaubt!", Toast.LENGTH_SHORT).show()
+            if (activeOrders.size >= 10) {
+                serviceScope.launch(Dispatchers.Main) {
+                    Toast.makeText(this@FloatingBubbleService, "Maximal 10 aktive Aufträge gleichzeitig erlaubt!", Toast.LENGTH_SHORT).show()
+                }
                 return
             }
 
@@ -417,11 +478,13 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             val updatedOrders = currentOrders + newOrder
             prefs.saveTradeOrders(updatedOrders)
 
-            Toast.makeText(
-                this,
-                if (lang == "DE") "Auftrag angenommen: ${opp.resource.nameDe} (T${opp.resource.tier})" else "Order accepted: ${opp.resource.nameEn} (T${opp.resource.tier})",
-                Toast.LENGTH_SHORT,
-            ).show()
+            serviceScope.launch(Dispatchers.Main) {
+                Toast.makeText(
+                    this@FloatingBubbleService,
+                    if (lang == "DE") "Auftrag angenommen: ${opp.resource.nameDe} (T${opp.resource.tier})" else "Order accepted: ${opp.resource.nameEn} (T${opp.resource.tier})",
+                    Toast.LENGTH_SHORT,
+                ).show()
+            }
 
             activeOrder = newOrder
             loadData(forceRefreshPrices = false)
@@ -444,6 +507,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 e.printStackTrace()
             }
         }
+        composeView = null
     }
 }
 
@@ -455,7 +519,11 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     CRAFTING("Handwerks-Guide", "Crafting Guide", "⚒️"),
     ISLAND("Insel-Guide", "Island Guide", "🏝️"),
     EVENTS("Event & Boss Loot", "Event & Boss Loot", "⚔️"),
-    GOLD_MARKET("Goldmarkt", "Gold Market", "🪙")
+    GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
+    BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
+    WORLD_MAP("Weltkarte", "World Map", "🗺️"),
+    SETTINGS("Einstellungen", "Settings", "⚙️"),
+    ADMIN("Admin", "Admin", "👑")
 }
 
 @Composable
@@ -477,9 +545,33 @@ fun BubbleOverlayContent(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var isMaximized by remember { mutableStateOf(value = false) }
-    val cardWidth = if (isLandscape) (if (isMaximized) 460.dp else 380.dp) else (if (isMaximized) 390.dp else 330.dp)
-    val maxBubbleHeight = if (isLandscape) (if (isMaximized) 260.dp else 190.dp) else (if (isMaximized) 520.dp else 320.dp)
-    val maxBubbleHeightTab = if (isLandscape) (if (isMaximized) 240.dp else 170.dp) else (if (isMaximized) 490.dp else 300.dp)
+    var isCompactMode by remember { mutableStateOf(prefs.bubbleCompactMode) }
+    var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
+    var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
+
+    val effOpacity = bubbleOpacity.coerceIn(0.3f, 1.0f)
+    val effScale = bubbleScale.coerceIn(0.6f, 1.5f)
+
+    val baseWidth = if (isLandscape) {
+        if (isMaximized) (if (isCompactMode) 320.dp else 400.dp) else (if (isCompactMode) 250.dp else 320.dp)
+    } else {
+        if (isMaximized) (if (isCompactMode) 290.dp else 350.dp) else (if (isCompactMode) 230.dp else 280.dp)
+    }
+    val cardWidth = (baseWidth.value * effScale).dp
+
+    val baseMaxHeight = if (isLandscape) {
+        if (isMaximized) (if (isCompactMode) 190.dp else 240.dp) else (if (isCompactMode) 130.dp else 160.dp)
+    } else {
+        if (isMaximized) (if (isCompactMode) 380.dp else 460.dp) else (if (isCompactMode) 220.dp else 280.dp)
+    }
+    val maxBubbleHeight = (baseMaxHeight.value * effScale).dp
+
+    val baseMaxHeightTab = if (isLandscape) {
+        if (isMaximized) (if (isCompactMode) 170.dp else 220.dp) else (if (isCompactMode) 115.dp else 140.dp)
+    } else {
+        if (isMaximized) (if (isCompactMode) 350.dp else 430.dp) else (if (isCompactMode) 195.dp else 250.dp)
+    }
+    val maxBubbleHeightTab = (baseMaxHeightTab.value * effScale).dp
 
     var isExpanded by remember { mutableStateOf(value = false) }
     var isBookingMode by remember { mutableStateOf(value = false) }
@@ -497,14 +589,17 @@ fun BubbleOverlayContent(
         modifier = Modifier.wrapContentSize(),
     ) {
         if (!isExpanded) {
+            val minBubbleSize = ((if (isCompactMode) 46.dp else 60.dp).value * effScale).dp
+            val minIconSize = ((if (isCompactMode) 32.dp else 44.dp).value * effScale).dp
             Surface(
                 shape = CircleShape,
                 color = Color(0xFF0E2532),
                 tonalElevation = 10.dp,
                 shadowElevation = 10.dp,
                 modifier = Modifier
-                    .size(60.dp)
+                    .size(minBubbleSize)
                     .clip(CircleShape)
+                    .graphicsLayer(alpha = effOpacity)
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
                             change.consume()
@@ -518,18 +613,20 @@ fun BubbleOverlayContent(
                         painter = painterResource(id = R.drawable.aot_logo),
                         contentDescription = "AlbionDataPro Overlay",
                         tint = Color.Unspecified,
-                        modifier = Modifier.size(44.dp),
+                        modifier = Modifier.size(minIconSize),
                     )
                 }
             }
         } else {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(if (isCompactMode) 12.dp else 16.dp),
                 colors = CardDefaults.cardColors(containerColor = Color(0xFF0E2532)),
                 elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
-                modifier = Modifier.width(cardWidth),
+                modifier = Modifier
+                    .width(cardWidth)
+                    .graphicsLayer(alpha = effOpacity),
             ) {
-                Column(modifier = Modifier.padding(12.dp)) {
+                Column(modifier = Modifier.padding(if (isCompactMode) 4.dp else 6.dp)) {
                     // Title Bar (Drag gesture listener attached ONLY to Title Bar to avoid scroll lag!)
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -548,30 +645,62 @@ fun BubbleOverlayContent(
                                 painter = painterResource(id = R.drawable.aot_logo),
                                 contentDescription = null,
                                 tint = Color.Unspecified,
-                                modifier = Modifier.size(24.dp),
+                                modifier = Modifier.size(if (isCompactMode) 18.dp else 24.dp),
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = if (isBookingMode) {
-                                    LanguageManager.getString("accept_order", lang)
-                                } else {
-                                    if (lang == "DE") selectedTab.titleDe else selectedTab.titleEn
-                                },
-                                color = Color.White,
+                            Spacer(modifier = Modifier.width(if (isCompactMode) 4.dp else 6.dp))
+                            RainbowBlinkingText(
+                                rainbowName = "AlbionDataPro",
+                                fontSize = if (isCompactMode) 11.sp else 13.sp,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 13.sp,
                             )
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Zoom Out (-) Button
+                            IconButton(
+                                onClick = {
+                                    val newScale = (bubbleScale - 0.1f).coerceIn(0.6f, 1.5f)
+                                    val rounded = round(newScale * 10f) / 10f
+                                    bubbleScale = rounded
+                                    prefs.bubbleScale = rounded
+                                },
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
+                            ) {
+                                Text(
+                                    text = "−",
+                                    color = Color(0xFF38BDF8),
+                                    fontSize = if (isCompactMode) 13.sp else 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+
+                            // Zoom In (+) Button
+                            IconButton(
+                                onClick = {
+                                    val newScale = (bubbleScale + 0.1f).coerceIn(0.6f, 1.5f)
+                                    val rounded = round(newScale * 10f) / 10f
+                                    bubbleScale = rounded
+                                    prefs.bubbleScale = rounded
+                                },
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
+                            ) {
+                                Text(
+                                    text = "+",
+                                    color = Color(0xFF38BDF8),
+                                    fontSize = if (isCompactMode) 13.sp else 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
+
+
                             IconButton(
                                 onClick = { isMaximized = !isMaximized },
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
                             ) {
                                 Text(
                                     text = if (isMaximized) "🗗" else "🗖",
                                     color = Color(0xFFFFD700),
-                                    fontSize = 12.sp,
+                                    fontSize = if (isCompactMode) 10.sp else 12.sp,
                                     fontWeight = FontWeight.Bold,
                                 )
                             }
@@ -588,41 +717,92 @@ fun BubbleOverlayContent(
                                     refreshRotationAngle += 360f
                                     onRefresh()
                                 },
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Refresh,
                                     contentDescription = "Aktualisieren",
                                     tint = Color.LightGray,
                                     modifier = Modifier
-                                        .size(18.dp)
+                                        .size(if (isCompactMode) 14.dp else 18.dp)
                                         .graphicsLayer(rotationZ = animatedRotation),
                                 )
                             }
+                            IconButton(
+                                onClick = {
+                                    val openIntent = Intent(context, MainActivity::class.java).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+                                    }
+                                    context.startActivity(openIntent)
+                                },
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
+                            ) {
+                                Text(
+                                    text = "📲",
+                                    fontSize = if (isCompactMode) 10.sp else 12.sp,
+                                )
+                            }
+
+                            // Auffälliger kreisförmiger Beenden / Exit Button mit "X" in Title Bar
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFEF4444),
+                                modifier = Modifier
+                                    .padding(horizontal = 2.dp)
+                                    .size(if (isCompactMode) 22.dp else 26.dp)
+                                    .clickable {
+                                        Toast.makeText(context, "🛑 Floating Bubble beendet", Toast.LENGTH_SHORT).show()
+                                        FloatingBubbleService.stopService(context)
+                                    },
+                            ) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Beenden",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(if (isCompactMode) 13.dp else 16.dp)
+                                    )
+                                }
+                            }
+
+                            // Minimieren zu Bubble Button
                             IconButton(
                                 onClick = {
                                     isExpanded = false
                                     isBookingMode = false
                                     onFocusModeChanged(false)
                                 },
-                                modifier = Modifier.size(28.dp),
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
                             ) {
-                                Icon(Icons.Default.Close, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(18.dp))
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Minimieren",
+                                    tint = Color.LightGray,
+                                    modifier = Modifier.size(if (isCompactMode) 14.dp else 18.dp),
+                                )
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
 
                     if (!isBookingMode) {
+                        val availableTabs = remember(prefs.isAdmin) {
+                            BubbleTab.entries.filter { tab ->
+                                if (tab == BubbleTab.ADMIN) prefs.isAdmin else true
+                            }
+                        }
                         LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            horizontalArrangement = Arrangement.spacedBy(if (isCompactMode) 3.dp else 6.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            items(BubbleTab.entries) { tab ->
+                            items(availableTabs) { tab ->
                                 val isSelected = selectedTab == tab
                                 Surface(
-                                    shape = RoundedCornerShape(8.dp),
+                                    shape = RoundedCornerShape(6.dp),
                                     color = if (isSelected) Color(0xFF1E3A4C) else Color(0xFF0A1922),
                                     modifier = Modifier.clickable { selectedTab = tab },
                                 ) {
@@ -630,13 +810,16 @@ fun BubbleOverlayContent(
                                         text = "${tab.emoji} ${if (lang == "DE") tab.titleDe else tab.titleEn}",
                                         color = if (isSelected) Color.White else Color.Gray,
                                         fontWeight = FontWeight.Bold,
-                                        fontSize = 10.sp,
-                                        modifier = Modifier.padding(vertical = 6.dp, horizontal = 6.dp),
+                                        fontSize = if (isCompactMode) 8.sp else 9.sp,
+                                        modifier = Modifier.padding(
+                                            vertical = if (isCompactMode) 2.dp else 4.dp,
+                                            horizontal = if (isCompactMode) 3.dp else 4.dp
+                                        ),
                                     )
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                     }
 
                     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -657,7 +840,7 @@ fun BubbleOverlayContent(
                                 color = Color(0xFF1E3A4C),
                                 modifier = Modifier.fillMaxWidth(),
                             ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
+                                Column(modifier = Modifier.padding(6.dp)) {
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
@@ -682,11 +865,11 @@ fun BubbleOverlayContent(
                                             text = "${LanguageManager.getString("quantity", lang)}: $unitsStr",
                                             color = Color(0xFF81D4FA),
                                             fontWeight = FontWeight.SemiBold,
-                                            fontSize = 11.sp,
+                                            fontSize = 10.sp,
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -696,12 +879,12 @@ fun BubbleOverlayContent(
                                             Text(
                                                 text = "${LanguageManager.getString("buy_in", lang)}: $buyCityTrans ($buyPriceStr S.)",
                                                 color = Color(0xFF81C784),
-                                                fontSize = 11.sp,
+                                                fontSize = 10.sp,
                                             )
                                             Text(
                                                 text = "${LanguageManager.getString("sell_in", lang)}: $sellCityTrans ($sellPriceStr S.)",
                                                 color = Color(0xFF81C784),
-                                                fontSize = 11.sp,
+                                                fontSize = 10.sp,
                                             )
                                         }
 
@@ -720,10 +903,10 @@ fun BubbleOverlayContent(
                                         }
                                     }
 
-                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
                                         Button(
@@ -737,7 +920,7 @@ fun BubbleOverlayContent(
                                         ) {
                                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text(if (lang == "DE") "Buchen" else "Book", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 11.sp)
+                                            Text(if (lang == "DE") "Buchen" else "Book", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp)
                                         }
 
                                         OutlinedButton(
@@ -759,7 +942,7 @@ fun BubbleOverlayContent(
                                         ) {
                                             Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text(if (lang == "DE") "Stornieren" else "Cancel", fontWeight = FontWeight.Bold, color = Color(0xFFFF8A80), fontSize = 11.sp)
+                                            Text(if (lang == "DE") "Stornieren" else "Cancel", fontWeight = FontWeight.Bold, color = Color(0xFFFF8A80), fontSize = 10.sp)
                                         }
                                     }
                                 }
@@ -789,7 +972,7 @@ fun BubbleOverlayContent(
                                 color = Color(0xFF1E3A4C),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Column(modifier = Modifier.padding(10.dp)) {
+                                Column(modifier = Modifier.padding(6.dp)) {
                                     Text(
                                         text = "${activeOrder.resourceNameDe} (T${activeOrder.tier})",
                                         color = Color.White,
@@ -797,7 +980,7 @@ fun BubbleOverlayContent(
                                         fontSize = 12.sp
                                     )
 
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
 
                                     OutlinedTextField(
                                         value = unitsInput,
@@ -808,10 +991,12 @@ fun BubbleOverlayContent(
                                         label = { Text(if (lang == "DE") "Menge" else "Units", fontSize = 10.sp, color = Color.LightGray) },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                                     )
 
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
 
                                     OutlinedTextField(
                                         value = buyPriceInput,
@@ -822,10 +1007,12 @@ fun BubbleOverlayContent(
                                         label = { Text(if (lang == "DE") "Kaufpreis" else "Buy Price", fontSize = 10.sp, color = Color.LightGray) },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                                     )
 
-                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Spacer(modifier = Modifier.height(2.dp))
 
                                     OutlinedTextField(
                                         value = sellPriceInput,
@@ -836,10 +1023,46 @@ fun BubbleOverlayContent(
                                         label = { Text(if (lang == "DE") "Verkaufspreis" else "Sell Price", fontSize = 10.sp, color = Color.LightGray) },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                                     )
 
-                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+                                    val computedProfit = computedEarned - computedSpent
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF0F172A),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Text(
+                                                text = if (lang == "DE") "📊 Netto-Einkommen (nach Steuern): ${fmt.format(computedEarned)} S." else "📊 Net Revenue (after tax): ${fmt.format(computedEarned)} S.",
+                                                color = Color(0xFF38BDF8),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.sp
+                                            )
+                                            Text(
+                                                text = if (lang == "DE") "Ausgegeben (Kaufpreis): ${fmt.format(computedSpent)} S." else "Spent: ${fmt.format(computedSpent)} S.",
+                                                color = Color.LightGray,
+                                                fontSize = 10.sp
+                                            )
+                                            Text(
+                                                text = if (lang == "DE") "Reingewinn: ${if (computedProfit >= 0) "+" else ""}${fmt.format(computedProfit)} S." else "Profit/Loss: ${if (computedProfit >= 0) "+" else ""}${fmt.format(computedProfit)} S.",
+                                                color = if (computedProfit >= 0) Color(0xFF66BB6A) else Color(0xFFFF8A80),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(2.dp))
 
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -852,7 +1075,7 @@ fun BubbleOverlayContent(
                                             },
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Text(if (lang == "DE") "Abbrechen" else "Cancel", fontSize = 10.sp, color = Color.White)
+                                            Text(if (lang == "DE") "❌ Stornieren" else "Cancel", fontSize = 10.sp, color = Color(0xFFFF8A80), fontWeight = FontWeight.Bold)
                                         }
 
                                         Button(
@@ -878,7 +1101,7 @@ fun BubbleOverlayContent(
 
                                                     prefs.saveTradeOrders(updatedOrders)
                                                     prefs.clearDraftOrderInput(activeOrder.id)
-                                                    Toast.makeText(context, if (lang == "DE") "Erfolgreich gebucht!" else "Successfully booked!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, if (lang == "DE") "✅ Erfolgreich gebucht!" else "Successfully booked!", Toast.LENGTH_SHORT).show()
 
                                                     isBookingMode = false
                                                     onFocusModeChanged(false)
@@ -890,13 +1113,16 @@ fun BubbleOverlayContent(
                                             shape = RoundedCornerShape(8.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                                         ) {
-                                            Text(if (lang == "DE") "Speichern" else "Save", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text(if (lang == "DE") "✅ Buchen" else "Book", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                         }
                                     }
                                 }
                             }
                         }
                     } else if (selectedTab == BubbleTab.TOP_MARGIN) {
+                        val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
+                        val uiState by viewModel.uiState.collectAsState()
+
                         Column(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -907,13 +1133,120 @@ fun BubbleOverlayContent(
                             var currentBubbleCity by remember { mutableStateOf(prefsForCity.bubbleStandpunktCity) }
                             val bubbleCities = listOf("ALLE", "Martlock", "Lymhurst", "Bridgewatch", "Fort Sterling", "Thetford", "Caerleon", "Brecilien")
 
+                            // Live Synchronized Budget & Capacity Display Card with edit functionality
+                            var showBudgetEditDialog by remember { mutableStateOf(false) }
+
+                            Card(
+                                shape = RoundedCornerShape(8.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp)
+                                    .clickable { showBudgetEditDialog = true }
+                            ) {
+                                Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text("⚡ Verfügbares Inventar & Kapital", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                        Text("✏️ " + (if (lang == "DE") "Ändern" else "Edit"), fontSize = 8.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.SemiBold)
+                                    }
+                                    Row(
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column {
+                                            Text("💰 Silber Budget", fontSize = 8.sp, color = Color.LightGray)
+                                            Text(NumberFormat.getNumberInstance(Locale.US).format(uiState.silverBudget).replace(",", "."), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text("⚖️ Tragkraft", fontSize = 8.sp, color = Color.LightGray)
+                                            Text("${uiState.carryCapacityKg.toLong()} kg", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (showBudgetEditDialog) {
+                                var editSilverText by remember { mutableStateOf(uiState.silverBudget.toString()) }
+                                var editCapacityText by remember { mutableStateOf(uiState.carryCapacityKg.toInt().toString()) }
+
+                                AlertDialog(
+                                    onDismissRequest = {
+                                        showBudgetEditDialog = false
+                                        onFocusModeChanged(false)
+                                    },
+                                    title = {
+                                        Text(
+                                            if (lang == "DE") "💰 Budget & Tragkraft anpassen" else "💰 Edit Budget & Capacity",
+                                            fontSize = 13.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    },
+                                    text = {
+                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            OutlinedTextField(
+                                                value = editSilverText,
+                                                onValueChange = { editSilverText = it.filter { ch -> ch.isDigit() } },
+                                                label = { Text(if (lang == "DE") "Silber Budget" else "Silver Budget", fontSize = 10.sp) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                singleLine = true,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                            )
+                                            OutlinedTextField(
+                                                value = editCapacityText,
+                                                onValueChange = { editCapacityText = it.filter { ch -> ch.isDigit() } },
+                                                label = { Text(if (lang == "DE") "Tragkapazität (kg)" else "Carry Capacity (kg)", fontSize = 10.sp) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                singleLine = true,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                            )
+                                        }
+                                    },
+                                    confirmButton = {
+                                        Button(
+                                            onClick = {
+                                                val newSilver = editSilverText.toLongOrNull() ?: uiState.silverBudget
+                                                val newCap = editCapacityText.toDoubleOrNull() ?: uiState.carryCapacityKg
+                                                viewModel.onSilverBudgetChanged(newSilver)
+                                                viewModel.onCarryCapacityChanged(newCap)
+                                                showBudgetEditDialog = false
+                                                onFocusModeChanged(false)
+                                                onRefresh()
+                                            },
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(if (lang == "DE") "Speichern" else "Save", fontSize = 11.sp)
+                                        }
+                                    },
+                                    dismissButton = {
+                                        OutlinedButton(
+                                            onClick = {
+                                                showBudgetEditDialog = false
+                                                onFocusModeChanged(false)
+                                            },
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(if (lang == "DE") "Abbrechen" else "Cancel", fontSize = 11.sp)
+                                        }
+                                    }
+                                )
+                            }
+
                             Text(
                                 text = "🏙️ Standpunkt: ${if (currentBubbleCity == "ALLE") "Alle" else LanguageManager.getCityTranslation(currentBubbleCity, lang)}",
                                 color = Color(0xFF81D4FA),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
@@ -934,12 +1267,12 @@ fun BubbleOverlayContent(
                                             color = Color.White,
                                             fontSize = 9.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                         )
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "📦 " + (if (lang == "DE") "Kategorie-Filter:" else "Category Filter:"),
                                 color = Color(0xFFFFB74D),
@@ -950,12 +1283,12 @@ fun BubbleOverlayContent(
                             var currentBubbleCategory by remember { mutableStateOf(prefsForCity.bubbleCategory) }
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
                                 items(ResourceCategory.entries) { cat ->
                                     val isSelected = currentBubbleCategory == cat.name
                                     Surface(
-                                        shape = RoundedCornerShape(6.dp),
+                                        shape = RoundedCornerShape(4.dp),
                                         color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
                                         modifier = Modifier.clickable {
                                             currentBubbleCategory = cat.name
@@ -968,12 +1301,12 @@ fun BubbleOverlayContent(
                                             color = Color.White,
                                             fontSize = 9.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                         )
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "⭐ " + (if (lang == "DE") "Tier-Filter:" else "Tier Filter:"),
                                 color = Color(0xFFFDD835),
@@ -985,12 +1318,12 @@ fun BubbleOverlayContent(
                             val bubbleTiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
                                 items(bubbleTiers) { tier ->
                                     val isSelected = currentBubbleTier == tier
                                     Surface(
-                                        shape = RoundedCornerShape(6.dp),
+                                        shape = RoundedCornerShape(4.dp),
                                         color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
                                         modifier = Modifier.clickable {
                                             currentBubbleTier = tier
@@ -1003,7 +1336,7 @@ fun BubbleOverlayContent(
                                             color = if (isSelected) Color.Black else Color.White,
                                             fontSize = 9.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                         )
                                     }
                                 }
@@ -1011,7 +1344,7 @@ fun BubbleOverlayContent(
                             // Max Zonen Distance Filter Chips
                             Text(
                                 text = "🗺️ " + (if (lang == "DE") "Max. Zonen-Distanz:" else "Max Zone Distance:"),
-                                color = Color(0xFF81D4FA),
+                                color = Color(0xFFCE93D8),
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold
                             )
@@ -1020,13 +1353,13 @@ fun BubbleOverlayContent(
                             val zoneOptions = listOf(1, 2, 3, 5, 99)
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
                                 items(zoneOptions) { z ->
                                     val isSelected = currentBubbleMaxZones == z
                                     Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (isSelected) Color(0xFFAB47BC) else Color(0xFF1E3A4C),
                                         modifier = Modifier.clickable {
                                             currentBubbleMaxZones = z
                                             prefsForCity.bubbleMaxZones = z
@@ -1035,24 +1368,24 @@ fun BubbleOverlayContent(
                                     ) {
                                         Text(
                                             text = if (z == 99) "Alle Zonen" else "$z ${if (z == 1) "Zone" else "Zonen"}",
-                                            color = if (isSelected) Color.Black else Color.White,
+                                            color = if (isSelected) Color.White else Color(0xFFB0BEC5),
                                             fontSize = 9.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                         )
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
 
                             // Switches for Red / Dangerous Zones & Brecilien
                             var currentBubbleAvoidDangerous by remember { mutableStateOf(prefsForCity.bubbleAvoidDangerousZones) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                             ) {
-                                Text("🔴 Rote / PvP Zonen ausblenden", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("🔴 Rote / PvP Zonen ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                 Switch(
                                     checked = currentBubbleAvoidDangerous,
                                     onCheckedChange = {
@@ -1068,9 +1401,9 @@ fun BubbleOverlayContent(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                             ) {
-                                Text("✨ Brecilien ausblenden", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("✨ Brecilien ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                 Switch(
                                     checked = currentBubbleHideBrecilien,
                                     onCheckedChange = {
@@ -1086,9 +1419,9 @@ fun BubbleOverlayContent(
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                             ) {
-                                Text("🏴‍☠️ Schmuggler (Schwarzmarkt) ausblenden", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Text("🏴‍☠️ Schmuggler (Schwarzmarkt) ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                 Switch(
                                     checked = currentBubbleHideBlackMarket,
                                     onCheckedChange = {
@@ -1161,42 +1494,86 @@ fun BubbleOverlayContent(
                                 )
                             }
 
+                            var currentBubbleSort by remember { mutableStateOf("MARGE") }
+
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
                                 Text(
                                     text = "🔥 " + LanguageManager.getString("top_opportunities", lang),
                                     color = Color(0xFFFFB74D),
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
+                                    fontSize = 11.sp
                                 )
                             }
 
-                            if (isLoadingOpps && topOpportunities.isEmpty()) {
+                            // Sortier-Optionen im Bubble Overlay (Marge | Neueste | Wenigster Bestand)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (currentBubbleSort == "MARGE") Color(0xFF10B981) else Color(0xFF1E3A4C),
+                                    modifier = Modifier.weight(1f).clickable { currentBubbleSort = "MARGE" }
+                                ) {
+                                    Text("🔥 Marge", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 3.dp))
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (currentBubbleSort == "NEWEST") Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                                    modifier = Modifier.weight(1f).clickable { currentBubbleSort = "NEWEST" }
+                                ) {
+                                    Text("⏰ Neueste", color = if (currentBubbleSort == "NEWEST") Color.Black else Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 3.dp))
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = if (currentBubbleSort == "FEWEST_STOCK") Color(0xFFF59E0B) else Color(0xFF1E3A4C),
+                                    modifier = Modifier.weight(1f).clickable { currentBubbleSort = "FEWEST_STOCK" }
+                                ) {
+                                    Text("📦 Wenigste Bestand", color = if (currentBubbleSort == "FEWEST_STOCK") Color.Black else Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 3.dp))
+                                }
+                            }
+
+                            val sortedBubbleOpportunities = remember(topOpportunities, currentBubbleSort) {
+                                when (currentBubbleSort) {
+                                    "NEWEST" -> topOpportunities.sortedByDescending { it.updatedTimestamp }
+                                    "FEWEST_STOCK" -> topOpportunities.sortedBy { it.stockAvailable }
+                                    else -> topOpportunities.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.updatedTimestamp })
+                                }
+                            }
+
+                            if (isLoadingOpps && sortedBubbleOpportunities.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(color = Color(0xFF81D4FA), modifier = Modifier.size(24.dp))
                                 }
-                            } else if (topOpportunities.isEmpty()) {
+                            } else if (sortedBubbleOpportunities.isEmpty()) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
                                     color = Color(0xFF1E3A4C),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(12.dp)) {
-                                        Text(if (lang == "DE") "Keine Handelschancen gefunden." else "No trade opportunities found.", color = Color.White, fontSize = 11.sp)
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(8.dp)) {
+                                        Text(if (lang == "DE") "Keine Handelschancen gefunden." else "No trade opportunities found.", color = Color.White, fontSize = 10.sp)
                                     }
                                 }
                             } else {
-                                topOpportunities.forEachIndexed { index, opp ->
+                                sortedBubbleOpportunities.forEachIndexed { index, opp ->
                                     key("${opp.resource.fullId}_${opp.buyCity}_${opp.sellCity}") {
                                         val buyTrans = LanguageManager.getCityTranslation(opp.buyCity, lang)
                                         val sellTrans = LanguageManager.getCityTranslation(opp.sellCity, lang)
+
+                                        val buyColor = ZoneThemeColors.getCityZoneColor(opp.buyCity)
+                                        val sellColor = ZoneThemeColors.getCityZoneColor(opp.sellCity)
+                                        val borderColor = ZoneThemeColors.getOpportunityBorderColor(opp.buyCity, opp.sellCity)
+                                        val containerBg = ZoneThemeColors.getOpportunityContainerBg(opp.buyCity, opp.sellCity)
+
                                         Surface(
                                             shape = RoundedCornerShape(12.dp),
-                                            color = Color(0xFF1E3A4C),
-                                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f)),
+                                            color = containerBg,
+                                            border = BorderStroke(1.5.dp, borderColor),
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .wrapContentHeight()
@@ -1206,156 +1583,238 @@ fun BubbleOverlayContent(
                                                     selectedTab = BubbleTab.ACTIVE_ORDER
                                                 }
                                         ) {
-                                            Column(modifier = Modifier.padding(8.dp)) {
-                                                // TOP ROW: Image + Rank + Tier Badge + Item Name + ROI % + Add Order Button
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
+                                            Column(modifier = Modifier.padding(6.dp)) {
+                                                if (isCompactMode) {
+                                                    // ULTRA-KOMPAKTE ZEILE IM COMPACT MODE: Alle wichtigen Infos auf 1-2 Zeilen ohne Scroll-Overhead
                                                     Row(
                                                         verticalAlignment = Alignment.CenterVertically,
-                                                        modifier = Modifier.weight(1f)
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        modifier = Modifier.fillMaxWidth()
                                                     ) {
-                                                        AsyncImage(
-                                                            model = opp.resource.imageUrl,
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(24.dp)
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Surface(
-                                                            shape = RoundedCornerShape(4.dp),
-                                                            color = getTierColor(opp.resource.tier)
-                                                        ) {
+                                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                                            AsyncImage(
+                                                                model = opp.resource.imageUrl,
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(20.dp)
+                                                            )
+                                                            Spacer(modifier = Modifier.width(3.dp))
+                                                            Surface(shape = RoundedCornerShape(3.dp), color = getTierColor(opp.resource.tier)) {
+                                                                Text("${opp.resource.tierText}${opp.resource.enchantmentText}", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 2.dp))
+                                                            }
+                                                            Spacer(modifier = Modifier.width(3.dp))
                                                             Text(
-                                                                text = "${opp.resource.tierText}${opp.resource.enchantmentText}",
+                                                                text = opp.resource.nameDe,
                                                                 color = Color.White,
-                                                                fontWeight = FontWeight.Bold,
                                                                 fontSize = 9.sp,
-                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                                fontWeight = FontWeight.Bold,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis
                                                             )
                                                         }
-                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                                            Text("+${String.format(Locale.GERMANY, "%.0f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                                        }
+                                                        Spacer(modifier = Modifier.width(3.dp))
+                                                        Surface(
+                                                            shape = RoundedCornerShape(8.dp),
+                                                            color = Color(0xFF10B981),
+                                                            modifier = Modifier.clickable {
+                                                                onAcceptOpportunity(opp)
+                                                                selectedTab = BubbleTab.ACTIVE_ORDER
+                                                            }
+                                                        ) {
+                                                            Icon(Icons.Default.Add, contentDescription = "Auftrag", tint = Color.Black, modifier = Modifier.size(16.dp).padding(2.dp))
+                                                        }
+                                                    }
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                                                    ) {
                                                         Text(
-                                                            text = "${index + 1}. ${opp.resource.nameDe}",
-                                                            color = Color.White,
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 11.sp,
+                                                            text = "$buyTrans (${fmt.format(opp.buyPrice)}) ➜ $sellTrans (${fmt.format(opp.sellPrice)})",
+                                                            color = Color(0xFF81C784),
+                                                            fontSize = 8.sp,
                                                             maxLines = 1,
                                                             overflow = TextOverflow.Ellipsis,
                                                             modifier = Modifier.weight(1f)
                                                         )
-                                                    }
-
-                                                    Spacer(modifier = Modifier.width(4.dp))
-
-                                                    // ROI Badge
-                                                    Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF10B981)) {
                                                         Text(
-                                                            text = "+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%",
-                                                            color = Color.White,
+                                                            text = "+${fmt.format(opp.totalNetRevenue)} S.",
+                                                            color = Color(0xFFFFB74D),
                                                             fontWeight = FontWeight.Bold,
-                                                            fontSize = 10.sp,
-                                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                            fontSize = 9.sp
                                                         )
                                                     }
-
-                                                    Spacer(modifier = Modifier.width(4.dp))
-
-                                                    // Accept Order (+) Button
-                                                    Surface(
-                                                        shape = RoundedCornerShape(12.dp),
-                                                        color = Color(0xFF10B981),
-                                                        modifier = Modifier.clickable {
-                                                            onAcceptOpportunity(opp)
-                                                            selectedTab = BubbleTab.ACTIVE_ORDER
-                                                        }
+                                                } else {
+                                                    // TOP ROW: Image + Rank + Tier Badge + Item Name + ROI % + Add Order Button
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        modifier = Modifier.fillMaxWidth()
                                                     ) {
                                                         Row(
                                                             verticalAlignment = Alignment.CenterVertically,
-                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                                            modifier = Modifier.weight(1f)
                                                         ) {
-                                                            Icon(
-                                                                imageVector = Icons.Default.Add,
-                                                                contentDescription = "Auftrag annehmen",
-                                                                tint = Color.Black,
-                                                                modifier = Modifier.size(14.dp)
+                                                            AsyncImage(
+                                                                model = opp.resource.imageUrl,
+                                                                contentDescription = null,
+                                                                modifier = Modifier.size(24.dp)
                                                             )
-                                                        }
-                                                    }
-                                                }
-
-                                                Spacer(modifier = Modifier.height(6.dp))
-
-                                                // MIDDLE ROW: Buy City & Price -> Sell City & Price
-                                                Row(
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Column(modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = "🛒 Kaufen in: $buyTrans",
-                                                            color = Color.LightGray,
-                                                            fontSize = 9.sp
-                                                        )
-                                                        Text(
-                                                            text = "${fmt.format(opp.buyPrice)} Silber",
-                                                            color = Color(0xFF81C784),
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 10.sp
-                                                        )
-                                                    }
-
-                                                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
-                                                        Text(
-                                                            text = "🏷️ Verkaufen in: $sellTrans",
-                                                            color = Color.LightGray,
-                                                            fontSize = 9.sp
-                                                        )
-                                                        Text(
-                                                            text = "${fmt.format(opp.sellPrice)} Silber",
-                                                            color = Color(0xFFFFB74D),
-                                                            fontWeight = FontWeight.Bold,
-                                                            fontSize = 10.sp
-                                                        )
-                                                    }
-                                                }
-
-                                                Spacer(modifier = Modifier.height(4.dp))
-
-                                                // BOTTOM ROW: Total Profit + Zone Distance + Found Time
-                                                Row(
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Text(
-                                                        text = "📊 Umsatz: ${fmt.format(opp.totalNetRevenue)} Silber (${fmt.format(opp.tradeUnits)} Stk.)",
-                                                        color = Color(0xFF10B981),
-                                                        fontWeight = FontWeight.Bold,
-                                                        fontSize = 10.sp
-                                                    )
-
-                                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF0F172A)) {
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Surface(
+                                                                shape = RoundedCornerShape(4.dp),
+                                                                color = getTierColor(opp.resource.tier)
+                                                            ) {
+                                                                Text(
+                                                                    text = "${opp.resource.tierText}${opp.resource.enchantmentText}",
+                                                                    color = Color.White,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 9.sp,
+                                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                                )
+                                                            }
+                                                            Spacer(modifier = Modifier.width(4.dp))
                                                             Text(
-                                                                text = "🗺️ ${opp.zonesWalkedCount} Zonen",
-                                                                color = Color(0xFF81D4FA),
+                                                                text = "${index + 1}. ${opp.resource.nameDe}",
+                                                                color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
-                                                                fontSize = 8.sp,
-                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                                fontSize = 10.sp,
+                                                                maxLines = 1,
+                                                                overflow = TextOverflow.Ellipsis,
+                                                                modifier = Modifier.weight(1f)
                                                             )
                                                         }
 
-                                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF0F172A)) {
+                                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                                        // ROI Badge
+                                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF10B981)) {
                                                             Text(
-                                                                text = "⏰ ${opp.foundTimeStr}",
-                                                                color = Color(0xFF38BDF8),
+                                                                text = "+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%",
+                                                                color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
-                                                                fontSize = 8.sp,
-                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                                fontSize = 10.sp,
+                                                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                                             )
+                                                        }
+
+                                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                                        // Accept Order (+) Button
+                                                        Surface(
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            color = Color(0xFF10B981),
+                                                            modifier = Modifier.clickable {
+                                                                onAcceptOpportunity(opp)
+                                                                selectedTab = BubbleTab.ACTIVE_ORDER
+                                                            }
+                                                        ) {
+                                                            Row(
+                                                                verticalAlignment = Alignment.CenterVertically,
+                                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                                            ) {
+                                                                Icon(
+                                                                    imageVector = Icons.Default.Add,
+                                                                    contentDescription = "Auftrag annehmen",
+                                                                    tint = Color.Black,
+                                                                    modifier = Modifier.size(14.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+
+                                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                                    // MIDDLE ROW: Buy City & Price -> Sell City & Price
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Column(modifier = Modifier.weight(1f)) {
+                                                            Text(
+                                                                text = "🛒 Kaufen in: $buyTrans",
+                                                                color = buyColor,
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 9.sp
+                                                            )
+                                                            Text(
+                                                                text = "${fmt.format(opp.buyPrice)} Silber",
+                                                                color = Color(0xFF81C784),
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 10.sp
+                                                            )
+                                                        }
+
+                                                        Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f)) {
+                                                            Text(
+                                                                text = "🏷️ Verkaufen in: $sellTrans",
+                                                                color = sellColor,
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 9.sp
+                                                            )
+                                                            Text(
+                                                                text = "${fmt.format(opp.sellPrice)} Silber",
+                                                                color = Color(0xFFFFB74D),
+                                                                fontWeight = FontWeight.Bold,
+                                                                fontSize = 10.sp
+                                                            )
+                                                        }
+                                                    }
+
+                                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                                    // BOTTOM ROW: Total Profit + Bestand Badge + Zone Distance + Found Time
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Text(
+                                                            text = "📊 ${fmt.format(opp.totalNetRevenue)} S. (${fmt.format(opp.tradeUnits)} Stk.)",
+                                                            color = Color(0xFF10B981),
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 10.sp
+                                                        )
+
+                                                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
+                                                                Text(
+                                                                    text = "📦 ${fmt.format(opp.stockAvailable)} Stk.",
+                                                                    color = Color(0xFFF59E0B),
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 8.sp,
+                                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                                )
+                                                            }
+
+                                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF0F172A)) {
+                                                                Text(
+                                                                    text = "🗺️ ${opp.zonesWalkedCount} Zonen",
+                                                                    color = Color(0xFF81D4FA),
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 8.sp,
+                                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                                )
+                                                            }
+
+                                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF0F172A)) {
+                                                                val secondsAgo = ((System.currentTimeMillis() - opp.updatedTimestamp) / 1000).coerceAtLeast(0)
+                                                                val timeDisplay = when {
+                                                                    secondsAgo < 60 -> "Vor ${secondsAgo}s"
+                                                                    secondsAgo < 3600 -> "Vor ${secondsAgo / 60}m"
+                                                                    else -> "Vor ${secondsAgo / 3600}h"
+                                                                }
+                                                                Text(
+                                                                    text = "⏱️ $timeDisplay",
+                                                                    color = Color(0xFFFBBF24),
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    fontSize = 8.sp,
+                                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                                )
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -1388,6 +1847,14 @@ fun BubbleOverlayContent(
                                 BubbleTab.ISLAND -> BubbleIslandTab(context = context, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.EVENTS -> BubbleEventsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.GOLD_MARKET -> BubbleGoldTab(viewModel = viewModel, uiState = uiState, onFocusModeChanged = onFocusModeChanged, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.BUILDS -> BubbleBuildsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.WORLD_MAP -> BubbleMapTab(viewModel = viewModel, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.ADMIN -> {
+                                    if (prefs.isAdmin) {
+                                        BubbleAdminTab(context = context, maxHeight = maxBubbleHeightTab)
+                                    }
+                                }
                                 else -> {}
                             }
                         }
@@ -1427,7 +1894,7 @@ fun BubbleCatalogTab(
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Suchname oder ID (z.B. Holz, T4_WOOD)", fontSize = 11.sp) },
+            placeholder = { Text("Suchname oder ID (z.B. Holz, T4_WOOD)", fontSize = 10.sp) },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
@@ -1481,13 +1948,27 @@ fun BubbleCatalogTab(
 
         // Catalog Product Cards
         if (filtered.isEmpty()) {
-            Text("Keine Ressourcen im Katalog gefunden.", color = Color.Gray, fontSize = 11.sp, modifier = Modifier.padding(vertical = 8.dp))
+            Text("Keine Ressourcen im Katalog gefunden.", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
         } else {
+            val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+
             filtered.forEach { res ->
                 key(res.id) {
                     var selectedEnc by remember(res.id) { mutableIntStateOf(res.enchantment) }
                     val effectiveResource = remember(res, selectedEnc) { res.copy(enchantment = selectedEnc) }
-                    val prices = uiState.marketPrices[effectiveResource.fullId] ?: uiState.marketPrices[effectiveResource.id] ?: emptyList()
+                    val rawPrices = priceMap[effectiveResource.fullId] ?: priceMap[effectiveResource.id] ?: emptyList()
+                    val mult = when (effectiveResource.enchantment) {
+                        1 -> 2.2
+                        2 -> 4.5
+                        3 -> 9.0
+                        4 -> 18.0
+                        else -> 1.0
+                    }
+                    val prices = if (priceMap[effectiveResource.fullId] == null && effectiveResource.enchantment > 0) {
+                        rawPrices.map { it.copy(sellPriceMin = (it.sellPriceMin * mult).toInt(), buyPriceMax = (it.buyPriceMax * mult).toInt()) }
+                    } else {
+                        rawPrices
+                    }
                     val validPrices = prices.filter { it.sellPriceMin > 0 }
                     val bestBuy = validPrices.minByOrNull { it.sellPriceMin }
                     val bestSell = validPrices.maxByOrNull { it.sellPriceMin }
@@ -1497,7 +1978,7 @@ fun BubbleCatalogTab(
                         color = Color(0xFF1E3A4C),
                         modifier = Modifier.fillMaxWidth().clickable { onResourceClick(effectiveResource) }
                     ) {
-                        Column(modifier = Modifier.padding(8.dp)) {
+                        Column(modifier = Modifier.padding(4.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 AsyncImage(
                                     model = effectiveResource.imageUrl,
@@ -1524,7 +2005,7 @@ fun BubbleCatalogTab(
                                             text = effectiveResource.nameDe,
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 11.sp,
+                                            fontSize = 10.sp,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -1552,7 +2033,7 @@ fun BubbleCatalogTab(
                             }
 
                             if (bestBuy != null) {
-                                Spacer(modifier = Modifier.height(4.dp))
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text("🛒 Kaufort: ${bestBuy.city} (${fmt.format(bestBuy.sellPriceMin)} Silber)", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 9.sp)
                                 if ((bestSell != null) && (bestSell.city != bestBuy.city)) {
                                     Text("🏷️ Verkaufort: ${bestSell.city} (${fmt.format(bestSell.sellPriceMin)} Silber)", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
@@ -1614,7 +2095,7 @@ fun BubbleCraftingTab(
                             text = res.nameDe,
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp,
+                            fontSize = 10.sp,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -1716,18 +2197,18 @@ fun BubbleIslandTab(
             border = BorderStroke(1.dp, Color(0xFF10B981)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(8.dp)) {
+            Column(modifier = Modifier.padding(4.dp)) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("🌾 Insel-Ernte & Tierzucht Timer", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text("🌾 Insel-Ernte & Tierzucht Timer", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                     Surface(shape = RoundedCornerShape(12.dp), color = Color(0xFF10B981)) {
                         Text("${activeTimers.size} Aktiv", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
 
                 if (activeTimers.isEmpty()) {
                     Text("Keine aktiven Ernte-Timer.", color = Color.LightGray, fontSize = 9.sp)
@@ -1754,19 +2235,19 @@ fun BubbleIslandTab(
                     color = Color(0xFF1E3A4C),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
+                    Column(modifier = Modifier.padding(4.dp)) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(bldg.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(bldg.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                                 Text("⚡ ${bldg.abilityDescDe}", color = Color.LightGray, fontSize = 9.sp)
                                 Text("📍 Bonus: ${bldg.cityBonusCity}", color = Color(0xFF81D4FA), fontSize = 9.sp)
                             }
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
@@ -1818,7 +2299,7 @@ fun BubbleEventsTab(
                     color = Color(0xFF1E3A4C),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
+                    Column(modifier = Modifier.padding(4.dp)) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
@@ -1827,7 +2308,7 @@ fun BubbleEventsTab(
                                 text = event.title,
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                fontSize = 10.sp
                             )
                             Text(
                                 text = "${event.remainingMinutes} Min",
@@ -1866,7 +2347,7 @@ fun BubbleGoldTab(
     val roi = if (uiState.totalGoldCostSilver > 0) (netProfit.toDouble() / uiState.totalGoldCostSilver) * 100.0 else 0.0
 
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
     ) {
         Surface(
@@ -1874,14 +2355,14 @@ fun BubbleGoldTab(
             color = Color(0xFF1E3A4C),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(10.dp)) {
+            Column(modifier = Modifier.padding(6.dp)) {
                 Text(
                     text = "🪙 Live Goldpreis (${uiState.server.displayName})",
                     color = Color(0xFFFFD700),
                     fontWeight = FontWeight.Bold,
                     fontSize = 12.sp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
@@ -1896,7 +2377,7 @@ fun BubbleGoldTab(
                     }
                 }
                 if (totalOwnedGold > 0) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Portfolio: ${fmt.format(totalOwnedGold)} Gold | Gewinn/Verlust: ${if (netProfit >= 0) "+" else ""}${fmt.format(netProfit)} S. (${String.format(Locale.GERMANY, "%.1f", roi)}%)",
                         color = if (netProfit >= 0) Color(0xFF81C784) else Color(0xFFFF5252),
@@ -1918,28 +2399,28 @@ fun BubbleGoldTab(
             border = BorderStroke(1.dp, Color(0xFFFFD700)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(10.dp)) {
+            Column(modifier = Modifier.padding(6.dp)) {
                 Text(
                     text = "🤖 KI Gold-Handelsbot (Beste Marge)",
                     color = Color(0xFFFFD700),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
+                    fontSize = 10.sp
                 )
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
                         Text("🛍️ Kauf-Order Wert:", color = Color.LightGray, fontSize = 9.sp)
-                        Text("${fmt.format(botAnalysis.recommendedBuyOrderPrice)} S.", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("${fmt.format(botAnalysis.recommendedBuyOrderPrice)} S.", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text("🏷️ Verkauf-Order Wert:", color = Color.LightGray, fontSize = 9.sp)
-                        Text("${fmt.format(botAnalysis.recommendedSellOrderPrice)} S.", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("${fmt.format(botAnalysis.recommendedSellOrderPrice)} S.", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 10.sp)
                     }
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "💡 Erwarteter Reingewinn: +${fmt.format(botAnalysis.expectedNetProfitPerGold)} S./Gold (+${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedRoiPercent)}% Marge)",
                     color = Color(0xFF10B981),
@@ -1955,10 +2436,10 @@ fun BubbleGoldTab(
             color = Color(0xFF1E3A4C),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(10.dp)) {
-                Text("✍️ Goldkauf eintragen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(6.dp)) {
+                Text("✍️ Goldkauf eintragen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = goldAmountInput,
                         onValueChange = { 
@@ -1993,7 +2474,7 @@ fun BubbleGoldTab(
                             }
                     )
                 }
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = {
                         val amount = goldAmountInput.toIntOrNull() ?: 0
@@ -2029,8 +2510,8 @@ fun BubbleGoldTab(
         val prefs = remember { AppPreferences(viewModel.getApplication()) }
         val goldPurchases = prefs.getGoldPurchases()
         if (goldPurchases.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("📜 Letzte 3 Goldkäufe", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text("📜 Letzte 3 Goldkäufe", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
             goldPurchases.takeLast(3).reversed().forEach { purchase ->
                 val netProfit = purchase.netProfitSilver(uiState.currentGoldPrice)
                 val roi = purchase.roiPercent(uiState.currentGoldPrice)
@@ -2040,17 +2521,17 @@ fun BubbleGoldTab(
                     border = BorderStroke(1.dp, Color(0xFF1E3A4C)),
                     modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
+                    Column(modifier = Modifier.padding(4.dp)) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("${fmt.format(purchase.amountGold)} Gold", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("${fmt.format(purchase.amountGold)} Gold", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                             Text(
                                 text = "${if (netProfit >= 0) "+" else ""}${fmt.format(netProfit)} S. (%.1f%%)".format(roi),
                                 color = if (netProfit >= 0) Color(0xFF66BB6A) else Color(0xFFEF4444),
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                fontSize = 10.sp
                             )
                         }
                         Text("Kaufpreis: ${fmt.format(purchase.buyPricePerGold)} S./Gold", color = Color.LightGray, fontSize = 9.sp)
@@ -2087,12 +2568,12 @@ fun BubbleCompletedOrdersTab(
             border = BorderStroke(1.dp, Color(0xFF10B981)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(8.dp)) {
+            Column(modifier = Modifier.padding(4.dp)) {
                 Text(
                     text = if (lang == "DE") "📜 Auftrags-Historie (${completedOrders.size})" else "📜 Order History (${completedOrders.size})",
                     color = Color(0xFF10B981),
                     fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp
+                    fontSize = 10.sp
                 )
                 Text(
                     text = (if (lang == "DE") "Netto-Profit: " else "Net Profit: ") + "${fmt.format(totalProfit)} Silber",
@@ -2108,7 +2589,7 @@ fun BubbleCompletedOrdersTab(
                 Text(
                     text = if (lang == "DE") "Keine abgeschlossenen Aufträge vorhanden." else "No completed orders found.",
                     color = Color.LightGray,
-                    fontSize = 11.sp,
+                    fontSize = 10.sp,
                     textAlign = TextAlign.Center
                 )
             }
@@ -2121,7 +2602,7 @@ fun BubbleCompletedOrdersTab(
                     border = BorderStroke(1.dp, Color(0xFF1E3A4C)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(8.dp)) {
+                    Column(modifier = Modifier.padding(4.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -2131,14 +2612,14 @@ fun BubbleCompletedOrdersTab(
                                 text = "${order.resourceNameDe} (T${order.tier})",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
+                                fontSize = 10.sp,
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
                                 text = "${if (profit >= 0) "+" else ""}${fmt.format(profit)} S.",
                                 color = if (profit >= 0) Color(0xFF66BB6A) else Color(0xFFEF4444),
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
+                                fontSize = 10.sp
                             )
                             IconButton(
                                 onClick = {
@@ -2169,3 +2650,356 @@ fun BubbleCompletedOrdersTab(
         }
     }
 }
+
+@Composable
+fun BubbleBuildsTab(
+    uiState: ResourceUiState,
+    maxHeight: Dp
+) {
+    var selectedCat by remember { mutableStateOf(BuildCategory.DAMAGE_DPS) }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    val filteredBuilds = remember(selectedCat, uiState.equipmentBuilds) {
+        uiState.equipmentBuilds.filter { it.category == selectedCat }
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+    ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            items(BuildCategory.entries.toTypedArray()) { cat ->
+                val isSelected = selectedCat == cat
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable { selectedCat = cat }
+                ) {
+                    Text(
+                        text = "${cat.icon} ${cat.displayName}",
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+            }
+        }
+
+        if (filteredBuilds.isEmpty()) {
+            Text("Keine Builds in dieser Kategorie gefunden.", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
+        } else {
+            filteredBuilds.forEach { build ->
+                key(build.id) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E3A4C),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(4.dp)) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(build.title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, modifier = Modifier.weight(1f))
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                    Text("~${fmt.format(build.estimatedCostSilver)} S.", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                }
+                            }
+
+                            if (build.strongestWeaponHighlight.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(build.strongestWeaponHighlight, color = Color(0xFFFFB74D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("⚔️ Waffe: ${build.weapon}", color = Color.White, fontSize = 9.sp)
+                            Text("🪖 Kopf: ${build.head} | 🥋 Brust: ${build.armor}", color = Color.LightGray, fontSize = 8.sp)
+                            Text("🥾 Schuhe: ${build.shoes} | 🐴 Reittier: ${build.mount}", color = Color.LightGray, fontSize = 8.sp)
+                            
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("⭐ Schaden ${build.damageRating}/100 | Def ${build.defenseRating}/100 | Tempo ${build.mobilityRating}/100", color = Color(0xFFFDE047), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Text(build.aiEvaluationDe, color = Color.White, fontSize = 9.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleMapTab(
+    viewModel: AlbionResourceViewModel,
+    maxHeight: Dp
+) {
+    var selectedRegionName by remember { mutableStateOf("Bridgewatch") }
+    val regions = AlbionWorldData.worldRegions
+    val activeRegion = regions.find { it.name == selectedRegionName } ?: regions.first()
+    val context = LocalContext.current
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+    ) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(regions) { reg ->
+                val isSelected = selectedRegionName == reg.name
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFF3B82F6) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable { selectedRegionName = reg.name }
+                ) {
+                    Text(
+                        text = reg.name,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+            }
+        }
+
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF1E3A4C),
+            border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(4.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(activeRegion.name, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = when (activeRegion.safety) {
+                            ZoneSafety.SAFE_BLUE -> Color(0xFF1E88E5)
+                            ZoneSafety.SAFE_YELLOW -> Color(0xFFFDD835)
+                            ZoneSafety.DANGEROUS_RED -> Color(0xFFE53935)
+                            ZoneSafety.DANGEROUS_BLACK -> Color(0xFF424242)
+                        }
+                    ) {
+                        Text(activeRegion.safety.displayName, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(activeRegion.description, color = Color.LightGray, fontSize = 9.sp)
+
+                Spacer(modifier = Modifier.height(2.dp))
+                val refiningBonusText = when {
+                    activeRegion.name.contains("Bridgewatch") -> "🔥 +15% Veredelungs-Bonus auf Leder & Haut"
+                    activeRegion.name.contains("Fort Sterling") -> "🔥 +15% Veredelungs-Bonus auf Erz & Metall"
+                    activeRegion.name.contains("Lymhurst") -> "🔥 +15% Veredelungs-Bonus auf Holz & Planken"
+                    activeRegion.name.contains("Martlock") -> "🔥 +15% Veredelungs-Bonus auf Stein & Blöcke"
+                    activeRegion.name.contains("Thetford") -> "🔥 +15% Veredelungs-Bonus auf Faser & Stoff"
+                    activeRegion.name.contains("Caerleon") -> "💀 Schwarzmarkt-Konto (Black Market)"
+                    else -> "⭐ Standard Veredelung"
+                }
+                Text(refiningBonusText, color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+
+                Spacer(modifier = Modifier.height(2.dp))
+                Text("⛏️ Ressourcen: ${activeRegion.resourcesFound.joinToString(", ")}", color = Color.White, fontSize = 9.sp)
+                Text("🛣️ Verbindet: ${activeRegion.connectsTo.joinToString(" ➔ ")}", color = Color.LightGray, fontSize = 8.sp)
+
+                Spacer(modifier = Modifier.height(4.dp))
+                Button(
+                    onClick = {
+                        val shortName = activeRegion.name.split(" ")[0]
+                        viewModel.onCityFilterSelected(shortName)
+                        Toast.makeText(context, "Standpunkt $shortName gesetzt!", Toast.LENGTH_SHORT).show()
+                    },
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.fillMaxWidth().height(30.dp)
+                ) {
+                    Text("Als Standpunkt im Rechner setzen", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleSettingsTab(
+    context: Context,
+    maxHeight: Dp,
+) {
+    val prefs = remember { AppPreferences(context) }
+    val lang = prefs.appLanguage
+    var hasPremium by remember { mutableStateOf(prefs.hasPremium) }
+    var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
+    var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight)
+            .verticalScroll(rememberScrollState())
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("⚙️ Floating Bubble Einstellungen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+
+        // Opacity Selection
+        Text(LanguageManager.getString("bubble_opacity", lang), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFF81D4FA))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            listOf(0.65f to "65%", 0.80f to "80%", 0.90f to "90%", 1.0f to "100%").forEach { (valOp, labelOp) ->
+                val isSelected = abs(bubbleOpacity - valOp) < 0.04f
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable {
+                        bubbleOpacity = valOp
+                        prefs.bubbleOpacity = valOp
+                    }
+                ) {
+                    Text(
+                        text = labelOp,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        // Scale Selection
+        Text(LanguageManager.getString("bubble_scale", lang), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFFFFB74D))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            listOf(0.80f to "80%", 0.90f to "90%", 1.0f to "100%", 1.15f to "115%").forEach { (valSc, labelSc) ->
+                val isSelected = abs(bubbleScale - valSc) < 0.04f
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFFFFB74D) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable {
+                        bubbleScale = valSc
+                        prefs.bubbleScale = valSc
+                    }
+                ) {
+                    Text(
+                        text = labelSc,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Switch(checked = hasPremium, onCheckedChange = { hasPremium = it; prefs.hasPremium = it })
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Aktives Albion Premium (4% Steuer)", fontSize = 10.sp, color = Color.White)
+        }
+
+        var hideAppOnBubble by remember { mutableStateOf(prefs.hideAppOnBubbleActivate) }
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Switch(checked = hideAppOnBubble, onCheckedChange = { hideAppOnBubble = it; prefs.hideAppOnBubbleActivate = it })
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("App bei Bubble-Aktivierung verbergen", fontSize = 10.sp, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Button(
+            onClick = {
+                prefs.isUserLoggedIn = false
+                Toast.makeText(context, "🔒 Abgemeldet! Floating Bubble beendet.", Toast.LENGTH_SHORT).show()
+                FloatingBubbleService.stopService(context)
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(38.dp)
+        ) {
+            Text("🔒 ABMELDEN / SPERREN", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Button(
+            onClick = {
+                Toast.makeText(context, "🛑 Floating Bubble beendet", Toast.LENGTH_SHORT).show()
+                FloatingBubbleService.stopService(context)
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(42.dp)
+        ) {
+            Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("🛑 OVERLAY KOMPLETT BEENDEN", fontWeight = FontWeight.Black, fontSize = 11.sp, color = Color.White)
+        }
+    }
+}
+
+@Composable
+fun BubbleAdminTab(context: Context, maxHeight: Dp) {
+    val prefs = remember { AppPreferences(context) }
+    if (!prefs.isAdmin) return
+
+    val viewModel = remember { AlbionResourceViewModel(context.applicationContext as Application) }
+    var users by remember { mutableStateOf<List<AdminUser>>(emptyList()) }
+    var licenses by remember { mutableStateOf<List<AdminLicense>>(emptyList()) }
+    var devices by remember { mutableStateOf<List<AdminDevice>>(emptyList()) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(prefs.isAdmin) {
+        if (!prefs.isAdmin) return@LaunchedEffect
+        coroutineScope.launch {
+            when (val res = AdminControlManager.fetchUsersWithStatus(context)) {
+                is AdminApiResult.Success -> users = res.data
+                else -> {}
+            }
+            when (val res = AdminControlManager.fetchLicensesWithStatus(context)) {
+                is AdminApiResult.Success -> licenses = res.data
+                else -> {}
+            }
+            when (val res = AdminControlManager.fetchDevicesWithStatus(context)) {
+                is AdminApiResult.Success -> devices = res.data
+                else -> {}
+            }
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight)
+            .verticalScroll(rememberScrollState())
+            .padding(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text("👑 Admin-Zentrale (Overlay)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+        AdminSimpleView(
+            viewModel = viewModel,
+            users = users,
+            licenses = licenses,
+            devices = devices,
+        ) {
+            coroutineScope.launch {
+                when (val res = AdminControlManager.fetchUsersWithStatus(context)) {
+                    is AdminApiResult.Success -> users = res.data
+                    else -> {}
+                }
+                when (val res = AdminControlManager.fetchLicensesWithStatus(context)) {
+                    is AdminApiResult.Success -> licenses = res.data
+                    else -> {}
+                }
+                when (val res = AdminControlManager.fetchDevicesWithStatus(context)) {
+                    is AdminApiResult.Success -> devices = res.data
+                    else -> {}
+                }
+            }
+        }
+    }
+}
+
+
+
