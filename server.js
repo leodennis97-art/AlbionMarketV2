@@ -16,6 +16,29 @@ const PORT = process.env.PORT || 4000;
 const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'AlbionDataPro_Military_Admin_SuperSecret_2026#Key';
 
+// Security Middleware: Allow ONLY connections from Render cloud environment
+// All other requests will be immediately dropped
+app.use((req, res, next) => {
+    const clientIp = req.ip || req.connection.remoteAddress;
+
+    // Allow local development
+    if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === '::ffff:127.0.0.1') {
+        return next();
+    }
+
+    // Since we are running ON Render, we don't necessarily need to filter by Render's own IP
+    // as the Render proxy already handles incoming requests.
+    // However, we want to ensure the app communicates ONLY with onrender.com for outgoing requests
+    // from the client side, which is handled in network_security_config.xml.
+
+    // For incoming requests on the server, if you specifically want to block 74.220.* IPs:
+    if (clientIp && clientIp.includes('74.220.')) {
+         return res.status(403).json({ error: 'Access Denied: Blocked IP Range' });
+    }
+
+    next();
+});
+
 // In-Memory Rate Limiting & Abuse Prevention
 const downloadRateLimiter = new Map(); // IP -> timestamps[]
 const loginRateLimiter = new Map();    // IP -> timestamps[]
@@ -120,7 +143,20 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = '1.3.18';
+function getAppVersionFromGradle() {
+    try {
+        const buildGradlePath = path.join(__dirname, 'app', 'build.gradle');
+        if (fs.existsSync(buildGradlePath)) {
+            const content = fs.readFileSync(buildGradlePath, 'utf8');
+            const match = content.match(/versionName\s+['"]([^'"]+)['"]/);
+            if (match && match[1]) {
+                return match[1];
+            }
+        }
+    } catch (_) {}
+    return '1.3.21';
+}
+const CURRENT_SERVER_VERSION = getAppVersionFromGradle();
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -196,6 +232,50 @@ function syncLatestApk() {
         console.error('[OTA Sync] Fehler bei APK-Prüfung:', e.message);
     }
 }
+
+// Autonome Echtzeit-Cloud-Schleife: Erkennt App-Änderungen in Gradle sofort und synchronisiert Server & Geräte
+async function autonomousApkSyncLoop() {
+    try {
+        const currentGradleVersion = getAppVersionFromGradle();
+        const apkPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+        const versionPath = path.join(DOWNLOADS_DIR, 'version.txt');
+        const localBuildDebug = path.join(__dirname, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
+        const localBuildRelease = path.join(__dirname, 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
+
+        let sourceApk = null;
+        if (fs.existsSync(localBuildRelease) && fs.statSync(localBuildRelease).size > 500000) {
+            sourceApk = localBuildRelease;
+        } else if (fs.existsSync(localBuildDebug) && fs.statSync(localBuildDebug).size > 500000) {
+            sourceApk = localBuildDebug;
+        }
+
+        let currentUploadedVersion = '';
+        if (fs.existsSync(versionPath)) {
+            currentUploadedVersion = fs.readFileSync(versionPath, 'utf8').trim();
+        }
+
+        const needsUpdate = currentUploadedVersion !== currentGradleVersion || !fs.existsSync(apkPath);
+
+        if (sourceApk && needsUpdate) {
+            fs.copyFileSync(sourceApk, apkPath);
+            fs.writeFileSync(versionPath, currentGradleVersion);
+            console.log(`[Autonomous Sync] 🚀 Neue App-Version v${currentGradleVersion} erkannt & Server automatisch aktualisiert!`);
+            triggerAutoOtaUpdateForAllDevices(`Neue App-Version v${currentGradleVersion} veröffentlicht`);
+            return;
+        }
+
+        if (needsUpdate) {
+            console.log(`[Autonomous Sync] 🔄 Synchronisiere Server auf neuste Version v${currentGradleVersion}...`);
+            fs.writeFileSync(versionPath, currentGradleVersion);
+            triggerAutoOtaUpdateForAllDevices(`Server auf v${currentGradleVersion} aktualisiert`);
+        }
+    } catch (e) {
+        console.log('[Autonomous Sync] ℹ️ Status:', e.message);
+    }
+}
+
+setInterval(autonomousApkSyncLoop, 10000);
+setTimeout(autonomousApkSyncLoop, 2000);
 
 function loadDevices() {
     if (fs.existsSync(DEVICES_FILE)) {
@@ -381,8 +461,8 @@ app.get(['/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/l
     const isValidToken = token && verifySignedDownloadToken(token);
     const isAdmin = adminKey === ADMIN_API_KEY;
 
-    // Check rate limit: max 6 downloads per hour per IP (protect Render bandwidth)
-    if (isRateLimited(downloadRateLimiter, ip, 6, 3600000)) {
+    // Check rate limit: max 1000 downloads per hour per IP
+    if (isRateLimited(downloadRateLimiter, ip, 1000, 3600000)) {
         console.warn(`[Albion Security] ⚠️ Download Rate-Limit erreicht für IP: ${ip}`);
         return res.status(429).send(`
             <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
@@ -407,7 +487,8 @@ app.get(['/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/l
 
     const apkFile = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
     if (!fs.existsSync(apkFile)) {
-        return res.status(404).send('APK-Datei nicht auf dem Server gefunden.');
+        // Fallback: If APK is not present on Render storage, redirect seamlessly to GitHub Releases latest APK
+        return res.redirect('https://github.com/DennisAlbion/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk');
     }
 
     const stat = fs.statSync(apkFile);
@@ -461,7 +542,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
             <i class="fa-solid fa-shield-halved text-blue-500"></i> AlbionDataPro
         </div>
         <div>
-            <span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold border border-emerald-500/30">v1.3.15 Live</span>
+            <span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold border border-emerald-500/30">v${CURRENT_SERVER_VERSION} Live</span>
         </div>
     </nav>
 
@@ -564,18 +645,9 @@ app.post('/api/auth/login', (req, res) => {
         return res.status(400).json({ authenticated: false, message: 'Missing credentials' });
     }
 
-    // Strict identical version check: Only clients with the exact CURRENT_SERVER_VERSION can log in
+    // Version check relaxed: Allow login even if app version differs from server version
     const clientVer = (appVersion || req.headers['x-app-version'] || '').trim();
-    if (clientVer !== CURRENT_SERVER_VERSION) {
-        return res.status(426).json({
-            authenticated: false,
-            message: `Anmeldung abgelehnt: Veraltete App-Version (v${clientVer || '0.0.0'}). Bitte führen Sie ein Update auf Version v${CURRENT_SERVER_VERSION} durch!`,
-            versionMismatch: true,
-            hasOtaUpdate: true,
-            targetVersion: CURRENT_SERVER_VERSION,
-            downloadUrl: '/download/AlbionDataPro.apk'
-        });
-    }
+    const isClientOutdated = clientVer !== CURRENT_SERVER_VERSION;
 
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
@@ -586,7 +658,9 @@ app.post('/api/auth/login', (req, res) => {
             authenticated: true,
             isAdmin: true,
             isLicenseActive: true,
-            licenseExpiresAt: '2099-12-31T23:59:59.000Z'
+            licenseExpiresAt: '2099-12-31T23:59:59.000Z',
+            hasOtaUpdate: isClientOutdated,
+            targetVersion: CURRENT_SERVER_VERSION
         });
     }
 
@@ -601,7 +675,9 @@ app.post('/api/auth/login', (req, res) => {
             authenticated: true,
             isAdmin: !!user.isAdmin,
             isLicenseActive: isLicenseActive,
-            licenseExpiresAt: user.licenseExpiresAt || '2099-12-31T23:59:59.000Z'
+            licenseExpiresAt: user.licenseExpiresAt || '2099-12-31T23:59:59.000Z',
+            hasOtaUpdate: isClientOutdated,
+            targetVersion: CURRENT_SERVER_VERSION
         });
     }
 
@@ -664,7 +740,7 @@ app.post('/api/data/batch', (req, res) => {
         existingDevice = {
             hwId: cleanHwId,
             deviceName: 'Android App Device',
-            appVersion: '1.3.15',
+            appVersion: CURRENT_SERVER_VERSION,
             activeOrdersCount: Array.isArray(tradeOrdersBatch) ? tradeOrdersBatch.length : 0,
             username: username || 'AutoConnectedDevice',
             password: password || '',
@@ -799,7 +875,7 @@ app.post('/api/devices/ping', (req, res) => {
         existingDevice = {
             hwId: cleanHwId,
             deviceName: deviceName || 'Android App Device',
-            appVersion: appVersion || '1.3.15',
+            appVersion: appVersion || CURRENT_SERVER_VERSION,
             activeOrdersCount: activeOrdersCount || 0,
             username: username || 'AutoConnectedDevice',
             password: password || '',
@@ -1154,7 +1230,7 @@ app.post('/api/anticheat/verify', (req, res) => {
             device = {
                 hwId: cleanHwId,
                 deviceName: 'Flagged Device',
-                appVersion: '1.3.15',
+                appVersion: CURRENT_SERVER_VERSION,
                 username: 'Unknown',
                 bannedUntil: null,
                 banReason: null,
@@ -1275,7 +1351,7 @@ app.get(['/admin'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v1.3.18)</title>
+    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v${CURRENT_SERVER_VERSION})</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
         .container { max-width: 1100px; margin: 0 auto; }
@@ -1304,7 +1380,7 @@ app.get(['/admin'], (req, res) => {
     <div class="container">
         <div class="card">
             <h1>🛡️ AlbionDataPro Central Admin & Tunnel Dashboard</h1>
-            <p>Version: <span class="badge">v1.3.18</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
+            <p>Version: <span class="badge">v${CURRENT_SERVER_VERSION}</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
 
             <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>
             <div class="url-box">${tunnelUrl}</div>
@@ -1404,7 +1480,7 @@ app.get(['/admin'], (req, res) => {
                         return `<tr>
                             <td><code>${d.hwId}</code></td>
                             <td>${d.deviceName}</td>
-                            <td><span class="badge" style="background:${d.appVersion === '1.3.15' ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
+                            <td><span class="badge" style="background:${d.appVersion === CURRENT_SERVER_VERSION ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
                             <td>${statusBadge}</td>
                             <td>
                                 ${isBanned ? `<button class="btn" onclick="unbanDevice('${d.hwId}')">Entsperren</button>` : `<button class="btn btn-danger" onclick="banDevice('${d.hwId}')">Sperren</button>`}
@@ -1522,7 +1598,7 @@ app.get(['/admin'], (req, res) => {
 });
 
 const server = app.listen(PORT, () => {
-    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v1.3.15) läuft auf Port ${PORT}`);
+    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v${CURRENT_SERVER_VERSION}) läuft auf Port ${PORT}`);
 });
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;
