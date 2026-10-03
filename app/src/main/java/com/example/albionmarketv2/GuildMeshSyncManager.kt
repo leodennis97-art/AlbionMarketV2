@@ -84,7 +84,7 @@ object GuildMeshSyncManager {
                     val response = conn.inputStream.bufferedReader().use { it.readText() }
                     val arr = JSONArray(response)
                     for (i in 0 until arr.length()) {
-                        val obj = arr.getJSONObject(i)
+                        val obj = arr.optJSONObject(i) ?: continue
                         list.add(
                             SharedGuildOrder(
                                 id = obj.optString("id", ""),

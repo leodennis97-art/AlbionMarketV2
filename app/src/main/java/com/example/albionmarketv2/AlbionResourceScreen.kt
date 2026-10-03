@@ -112,6 +112,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -134,6 +135,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import java.text.NumberFormat
 import java.util.Locale
+import kotlin.math.abs
 
 class NumberCommaTransformation : VisualTransformation {
     override fun filter(text: AnnotatedString): TransformedText {
@@ -150,23 +152,25 @@ class NumberCommaTransformation : VisualTransformation {
         val offsetMapping = object : OffsetMapping {
             override fun originalToTransformed(offset: Int): Int {
                 if (originalText.isBlank()) return 0
+                val clampedOffset = offset.coerceIn(0, originalText.length)
                 var transformedOffset = 0
                 var originalCount = 0
                 for (i in formatted.indices) {
-                    if (originalCount == offset) break
+                    if (originalCount == clampedOffset) break
                     if (formatted[i].isDigit()) originalCount++
                     transformedOffset++
                 }
-                return transformedOffset
+                return transformedOffset.coerceIn(0, formatted.length)
             }
 
             override fun transformedToOriginal(offset: Int): Int {
                 if (formatted.isBlank()) return 0
+                val clampedOffset = offset.coerceIn(0, formatted.length)
                 var originalOffset = 0
-                for (i in 0 until offset) {
+                for (i in 0 until clampedOffset) {
                     if ((i < formatted.length) && formatted[i].isDigit()) originalOffset++
                 }
-                return originalOffset
+                return originalOffset.coerceIn(0, originalText.length)
             }
         }
         return TransformedText(AnnotatedString(formatted), offsetMapping)
@@ -181,7 +185,7 @@ fun RainbowAlbionDataProTitle() {
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
             animation = tween(durationMillis = 3000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
+            repeatMode = RepeatMode.Restart,
         ),
         label = "HueTitle"
     )
@@ -220,11 +224,57 @@ fun AlbionResourceScreen(
     Scaffold(
         topBar = {
             Column {
+                // Top Premium Status Bar / Badge
+                val remainingDays = LicenseManager.getRemainingPremiumDays(context)
+                val isUnlimited = prefs.isAdmin || prefs.savedUsername.equals("dnnx", ignoreCase = true) || prefs.savedUsername.equals("opa", ignoreCase = true)
+
+                Surface(
+                    color = Color(0xFF0F172A),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Star,
+                                contentDescription = "Premium",
+                                tint = Color(0xFFFFD700),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (isUnlimited) "👑 Premium: Unbegrenzt aktiv (Admin/VIP)" else "💎 Premium: $remainingDays verbleibende Tage",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF38BDF8)
+                            )
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isUnlimited || (remainingDays > 0)) Color(0xFF065F46) else Color(0xFF7F1D1D)
+                        ) {
+                            Text(
+                                text = if (isUnlimited || (remainingDays > 0)) "AKTIV" else "ABGELAUFEN",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = if (isUnlimited || (remainingDays > 0)) Color(0xFF34D399) else Color(0xFFFCA5A5),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+                }
+
                 TopAppBar(
                     title = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             AsyncImage(
-                                model = "file:///android_asset/aot_logo.xml",
+                                model = R.drawable.aot_logo,
                                 contentDescription = "AOT Logo",
                                 fallback = null,
                                 error = null,
@@ -247,15 +297,26 @@ fun AlbionResourceScreen(
                                 FloatingBubbleService.stopService(context)
                                 Toast.makeText(context, "Overlay Bubble gestoppt", Toast.LENGTH_SHORT).show()
                             } else {
+                                val prefs = AppPreferences(context)
+                                val isLoggedIn = ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(context)
+                                if (!isLoggedIn) {
+                                    Toast.makeText(context, "Bitte zuerst anmelden!", Toast.LENGTH_SHORT).show()
+                                    return@IconButton
+                                }
                                 if (Settings.canDrawOverlays(context)) {
                                     FloatingBubbleService.startService(context)
                                     Toast.makeText(context, "Overlay Bubble gestartet", Toast.LENGTH_SHORT).show()
+                                    if (prefs.hideAppOnBubbleActivate) {
+                                        (context as? Activity)?.moveTaskToBack(true)
+                                    }
                                 } else {
                                     try {
                                         val intent = Intent(
                                             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                                             "package:${context.packageName}".toUri()
-                                        )
+                                        ).apply {
+                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                        }
                                         context.startActivity(intent)
                                     } catch (_: Exception) {
                                         Toast.makeText(context, "Berechtigung erforderlich", Toast.LENGTH_SHORT).show()
@@ -270,10 +331,8 @@ fun AlbionResourceScreen(
                             )
                         }
 
-                        if (prefs.isAdmin) {
-                            IconButton(onClick = { viewModel.onOpenSettings() }) {
-                                Icon(Icons.Default.Settings, contentDescription = "Einstellungen")
-                            }
+                        IconButton(onClick = { viewModel.onOpenSettings() }) {
+                            Icon(Icons.Default.Settings, contentDescription = "Einstellungen")
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -286,24 +345,26 @@ fun AlbionResourceScreen(
                     color = MaterialTheme.colorScheme.surfaceContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    val tabs = listOf(
-                        Triple(0, Icons.AutoMirrored.Filled.List, "tab_orders"),
-                        Triple(1, Icons.Default.ShoppingCart, "tab_calculator"),
-                        Triple(2, Icons.Default.Search, "tab_catalog"),
-                        Triple(3, Icons.Default.Settings, "tab_crafting"),
-                        Triple(4, Icons.Default.Info, "tab_island"),
-                        Triple(5, Icons.Default.Star, "tab_builds"),
-                        Triple(6, Icons.Default.Warning, "tab_events"),
-                        Triple(7, Icons.Default.Star, "tab_gold"),
-                        Triple(8, Icons.Default.Place, "tab_map")
-                    )
+                    val tabs = remember {
+                        listOf(
+                            Triple(0, Icons.AutoMirrored.Filled.List, "tab_orders"),
+                            Triple(1, Icons.Default.ShoppingCart, "tab_calculator"),
+                            Triple(2, Icons.Default.Search, "tab_catalog"),
+                            Triple(3, Icons.Default.Settings, "tab_crafting"),
+                            Triple(4, Icons.Default.Info, "tab_island"),
+                            Triple(5, Icons.Default.Star, "tab_builds"),
+                            Triple(6, Icons.Default.Warning, "tab_events"),
+                            Triple(7, Icons.Default.Star, "tab_gold"),
+                            Triple(8, Icons.Default.Place, "tab_map")
+                        )
+                    }
 
                     LazyRow(
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        items(tabs) { (index, icon, langKey) ->
+                        items(tabs, key = { it.first }) { (index, icon, langKey) ->
                             val isSelected = uiState.activeTab == index
                             Surface(
                                 shape = RoundedCornerShape(20.dp),
@@ -388,18 +449,17 @@ fun AlbionResourceScreen(
             AppSettingsDialog(
                 viewModel = viewModel,
                 uiState = uiState,
-                onDismiss = { viewModel.onDismissSettings() },
-                onLogout = {
-                    viewModel.onDismissSettings()
-                    if (onLogout != null) {
-                        onLogout()
-                    } else {
-                        prefs.isUserLoggedIn = false
-                        try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
-                        (context as? Activity)?.recreate()
-                    }
+                onDismiss = { viewModel.onDismissSettings() }
+            ) {
+                viewModel.onDismissSettings()
+                if (onLogout != null) {
+                    onLogout()
+                } else {
+                    prefs.isUserLoggedIn = false
+                    try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
+                    (context as? Activity)?.recreate()
                 }
-            )
+            }
         }
 
         // Details Bottom Sheet
@@ -421,13 +481,27 @@ fun AlbionResourceScreen(
                 )
             }
         }
+        // Order Limit Error Dialog (Visible from all tabs)
+        val errMsg = uiState.orderErrorMsg
+        if (errMsg != null) {
+            AlertDialog(
+                onDismissRequest = { viewModel.clearOrderError() },
+                title = { Text("⚠️ Auftrags-Limit erreicht", fontWeight = FontWeight.Bold) },
+                text = { Text(errMsg, fontSize = 13.sp) },
+                confirmButton = {
+                    Button(onClick = { viewModel.clearOrderError() }) {
+                        Text("Verstanden")
+                    }
+                }
+            )
+        }
     }
 }
 
 
 
 // ----------------------------------------------------
-// TAB 0: AUFTRÄGE & HISTORIE (MAX 3 PARALLELE AUFTRÄGE)
+// TAB 0: AUFTRÄGE & HISTORIE (MAX 10 PARALLELE AUFTRÄGE)
 // ----------------------------------------------------
 @Composable
 fun OrdersAndStatsTabContent(
@@ -438,36 +512,23 @@ fun OrdersAndStatsTabContent(
     var orderToComplete by remember { mutableStateOf<TradeOrder?>(null) }
     var orderToEdit by remember { mutableStateOf<TradeOrder?>(null) }
 
-    if (uiState.orderErrorMsg != null) {
-        AlertDialog(
-            onDismissRequest = { viewModel.clearOrderError() },
-            title = { Text("⚠️ Auftrags-Limit erreicht", fontWeight = FontWeight.Bold) },
-            text = { Text(uiState.orderErrorMsg, fontSize = 13.sp) },
-            confirmButton = {
-                Button(onClick = { viewModel.clearOrderError() }) {
-                    Text("Verstanden")
-                }
-            }
-        )
-    }
-
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         // Live Server Download Analytics Card
         if (uiState.hourlyDownloads24h.isNotEmpty() || uiState.totalServerDownloads > 0) {
             item {
                 Card(
-                    shape = RoundedCornerShape(16.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                     ),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
+                    Column(modifier = Modifier.padding(8.dp)) {
                         ServerDownloadsChart(
                             totalDownloads = uiState.totalServerDownloads,
                             hourlyStats = uiState.hourlyDownloads24h
@@ -479,43 +540,43 @@ fun OrdersAndStatsTabContent(
         // Overall Statistics Summary Card
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(8.dp)) {
                     Text(
                         text = "📊 Gesamtbilanz & Handels-Statistik",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column {
-                            Text("Abgeschlossene Trades", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("${uiState.completedOrders.size} Trades", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Abgeschlossene Trades", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("${uiState.completedOrders.size} Trades", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
 
                         Column(horizontalAlignment = Alignment.End) {
-                            Text("Gesamter Reingewinn", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("Gesamter Reingewinn", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             val profit = uiState.totalCompletedProfit
                             Text(
                                 text = "${if (profit >= 0) "+" else ""}${numberFormat.format(profit)} Silber",
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 16.sp,
+                                fontSize = 14.sp,
                                 color = if (profit >= 0) Color(0xFF10B981) else MaterialTheme.colorScheme.error
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -523,12 +584,12 @@ fun OrdersAndStatsTabContent(
                     ) {
                         Text(
                             text = "Ausgegeben: ${numberFormat.format(uiState.totalCompletedSpent)} Silber",
-                            fontSize = 12.sp,
+                            fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
                             text = "Netto-Umsatz: ${numberFormat.format(uiState.totalCompletedEarned)} Silber",
-                            fontSize = 12.sp,
+                            fontSize = 10.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -626,19 +687,19 @@ fun OrdersAndStatsTabContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "📋 Aktive Aufträge (${uiState.activeOrders.size} / Max 3)",
+                    text = "📋 Aktive Aufträge (${uiState.activeOrders.size} / Max 10)",
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (uiState.activeOrders.size >= 3) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primaryContainer
+                    color = if (uiState.activeOrders.size >= 10) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = "${uiState.activeOrders.size}/3 Aktiv",
+                        text = "${uiState.activeOrders.size}/10 Aktiv",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (uiState.activeOrders.size >= 3) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = if (uiState.activeOrders.size >= 10) Color.White else MaterialTheme.colorScheme.onPrimaryContainer,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -664,7 +725,8 @@ fun OrdersAndStatsTabContent(
                 }
             }
         } else {
-            items(uiState.activeOrders, key = { it.id }) { order ->
+            val sortedActiveOrders = uiState.activeOrders.sortedBy { it.buyCity }
+            items(sortedActiveOrders, key = { it.id }) { order ->
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
@@ -682,6 +744,16 @@ fun OrdersAndStatsTabContent(
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(order.resourceNameDe, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
+
+                            if (order.isPriceStillValid(uiState.marketPrices)) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFF10B981),
+                                    modifier = Modifier.size(10.dp)
+                                ) {}
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+
                             Text("+${numberFormat.format(order.targetNetProfit)} Silber", fontWeight = FontWeight.Bold, color = Color(0xFF66BB6A))
                         }
 
@@ -712,7 +784,7 @@ fun OrdersAndStatsTabContent(
                             ) {
                                 Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Abschließen & Buchen", fontSize = 12.sp)
+                                Text("Buchen", fontSize = 12.sp)
                             }
 
                             OutlinedButton(
@@ -722,7 +794,7 @@ fun OrdersAndStatsTabContent(
                             ) {
                                 Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Verwerfen", fontSize = 12.sp)
+                                Text("Stornieren", fontSize = 12.sp)
                             }
                         }
                     }
@@ -733,9 +805,9 @@ fun OrdersAndStatsTabContent(
 
     // Dialog to complete order
     orderToComplete?.let { order ->
-        var unitBuyInput by remember { mutableStateOf(order.buyPrice.toString()) }
-        var unitSellInput by remember { mutableStateOf(order.sellPrice.toString()) }
-        var unitsInput by remember { mutableStateOf(order.plannedUnits.toString()) }
+        var unitBuyInput by remember(order.id) { mutableStateOf(order.buyPrice.toString()) }
+        var unitSellInput by remember(order.id) { mutableStateOf(order.sellPrice.toString()) }
+        var unitsInput by remember(order.id) { mutableStateOf(order.plannedUnits.toString()) }
 
         val uBuy = unitBuyInput.toIntOrNull() ?: order.buyPrice
         val uSell = unitSellInput.toIntOrNull() ?: order.sellPrice
@@ -751,7 +823,7 @@ fun OrdersAndStatsTabContent(
 
         AlertDialog(
             onDismissRequest = { orderToComplete = null },
-            title = { Text("Trade Buchen & Abschließen", fontWeight = FontWeight.Bold) },
+            title = { Text("Auftrag buchen", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Tatsächliche Stückpreise & Stückzahl eintragen:")
@@ -782,19 +854,29 @@ fun OrdersAndStatsTabContent(
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
-
-                    Text(
-                        text = "Ausgegeben: ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedSpent)} Silber | Eingenommen: ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedEarned)} Silber",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Gewinn/Verlust: ${if (computedProfit >= 0) "+" else ""}${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedProfit)} Silber",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = if (computedProfit >= 0) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
-                    )
+                    
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "📊 Umsatz (Netto): ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedEarned)} Silber",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Ausgegeben: ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedSpent)} Silber",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Gewinn/Verlust: ${if (computedProfit >= 0) "+" else ""}${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedProfit)} Silber",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (computedProfit >= 0) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             },
             confirmButton = {
@@ -834,9 +916,9 @@ fun EditCompletedOrderDialog(
     onDismiss: () -> Unit,
     onSave: (Int, Int, Int) -> Unit
 ) {
-    var unitsInput by remember { mutableStateOf((order.actualUnits ?: order.plannedUnits).toString()) }
-    var buyPriceInput by remember { mutableStateOf((order.actualBuyPrice ?: order.buyPrice).toString()) }
-    var sellPriceInput by remember { mutableStateOf((order.actualSellPrice ?: order.sellPrice).toString()) }
+    var unitsInput by remember(order.id) { mutableStateOf((order.actualUnits ?: order.plannedUnits).toString()) }
+    var buyPriceInput by remember(order.id) { mutableStateOf((order.actualBuyPrice ?: order.buyPrice).toString()) }
+    var sellPriceInput by remember(order.id) { mutableStateOf((order.actualSellPrice ?: order.sellPrice).toString()) }
 
     val units = unitsInput.toIntOrNull() ?: order.plannedUnits
     val uBuy = buyPriceInput.toIntOrNull() ?: order.buyPrice
@@ -885,18 +967,28 @@ fun EditCompletedOrderDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text(
-                    text = "Ausgegeben: ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedSpent)} Silber | Eingenommen: ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedEarned)} Silber",
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Text(
-                    text = "Gewinn/Verlust: ${if (computedProfit >= 0) "+" else ""}${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedProfit)} Silber",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (computedProfit >= 0) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
-                )
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "📊 Umsatz (Netto): ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedEarned)} Silber",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "Ausgegeben: ${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedSpent)} Silber",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "Gewinn/Verlust: ${if (computedProfit >= 0) "+" else ""}${NumberFormat.getNumberInstance(Locale.GERMANY).format(computedProfit)} Silber",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = if (computedProfit >= 0) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
+                    )
+                }
             }
         },
         confirmButton = {
@@ -923,12 +1015,13 @@ fun CalculatorTabContent(
     viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState
 ) {
-    var silverInput by remember { mutableStateOf(uiState.silverBudget.toString()) }
+    val context = LocalContext.current
+    var silverInput by remember(uiState.silverBudget) { mutableStateOf(uiState.silverBudget.toString()) }
     var goldBudgetInput by remember { mutableStateOf("") }
-    var capacityInput by remember { mutableStateOf(uiState.carryCapacityKg.toInt().toString()) }
-    var marginInput by remember { mutableStateOf(uiState.targetMarginPercent.toString()) }
-    var maxZonesInput by remember { mutableStateOf(uiState.maxZonesFilter.toString()) }
-    var showLoadoutDialog by remember { mutableStateOf(false) }
+    var capacityInput by remember(uiState.carryCapacityKg) { mutableStateOf(uiState.carryCapacityKg.toInt().toString()) }
+    var marginInput by remember(uiState.targetMarginPercent) { mutableStateOf(uiState.targetMarginPercent.toString()) }
+    var maxZonesInput by remember(uiState.maxZonesFilter) { mutableStateOf(uiState.maxZonesFilter.toString()) }
+    var showLoadoutDialog by remember { mutableStateOf(value = false) }
 
     val highContrastFieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = MaterialTheme.colorScheme.primary,
@@ -942,26 +1035,26 @@ fun CalculatorTabContent(
     )
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        contentPadding = PaddingValues(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         // Live Real-time Status Header & Controls
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.padding(8.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         uiState.lastFetchTime?.let { time ->
-                            Text("⏱️ Letzte Marktdaten-Aktualisierung: $time", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            Text("⏱️ Letzte Marktdaten-Aktualisierung: $time", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                         }
                     }
 
@@ -1093,6 +1186,13 @@ fun CalculatorTabContent(
                         ) {
                             Text("🦣 Mammut 20t", fontSize = 9.sp)
                         }
+                        OutlinedButton(
+                            onClick = { showLoadoutDialog = true },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("⚙️ Ausrüstung", fontSize = 9.sp)
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -1129,25 +1229,6 @@ fun CalculatorTabContent(
                             label = { Text("🗺️ Max. Zonen") },
                             colors = highContrastFieldColors,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        var maxStockInput by remember { mutableStateOf(if (uiState.maxStockFilter >= 999999) "" else uiState.maxStockFilter.toString()) }
-                        OutlinedTextField(
-                            value = maxStockInput,
-                            onValueChange = { str ->
-                                val cleanStr = str.filter { it.isDigit() }
-                                maxStockInput = cleanStr
-                                val stock = cleanStr.toIntOrNull() ?: 999999
-                                viewModel.onMaxStockFilterChanged(stock)
-                            },
-                            label = { Text("📦 Max. Bestand") },
-                            colors = highContrastFieldColors,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            visualTransformation = NumberCommaTransformation(),
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
@@ -1260,7 +1341,7 @@ fun CalculatorTabContent(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Lukrativste Handelschancen Top 50 (${uiState.tradeOpportunities.size} / Max 50)",
+                        text = "Lukrativste Handelschancen Top 10 (${uiState.tradeOpportunities.size} / Max 10)",
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f)
@@ -1359,9 +1440,9 @@ fun CalculatorTabContent(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Sorting Options (Meiste Marge vs Neueste Angebote)
+                // Sorting Options (Meiste Marge vs Neueste Angebote vs Wenigste auf Lager)
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Button(
@@ -1372,7 +1453,7 @@ fun CalculatorTabContent(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("🔥 Meiste Marge", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (uiState.sortOption == OpportunitySort.HIGHEST_MARGIN) Color.Black else MaterialTheme.colorScheme.onSurface)
+                        Text("🔥 Marge", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (uiState.sortOption == OpportunitySort.HIGHEST_MARGIN) Color.Black else MaterialTheme.colorScheme.onSurface)
                     }
 
                     Button(
@@ -1383,7 +1464,18 @@ fun CalculatorTabContent(
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("⏰ Neueste Angebote", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = if (uiState.sortOption == OpportunitySort.NEWEST) Color.Black else MaterialTheme.colorScheme.onSurface)
+                        Text("⏰ Neueste", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = if (uiState.sortOption == OpportunitySort.NEWEST) Color.Black else MaterialTheme.colorScheme.onSurface)
+                    }
+
+                    Button(
+                        onClick = { viewModel.onOpportunitySortChanged(OpportunitySort.FEWEST_STOCK) },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (uiState.sortOption == OpportunitySort.FEWEST_STOCK) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHigh
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("📦 Wenigster Bestand", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (uiState.sortOption == OpportunitySort.FEWEST_STOCK) Color.Black else MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -1421,10 +1513,19 @@ fun CalculatorTabContent(
                 }
             }
         } else {
-            items(uiState.tradeOpportunities, key = { "${it.resource.fullId}_${it.buyCity}_${it.sellCity}" }) { opportunity ->
+            items(uiState.tradeOpportunities, key = { "${it.resource.fullId}_${it.buyCity}_${it.sellCity}_${it.quality}_${it.buyPrice}_${it.sellPrice}" }) { opportunity ->
                 TradeOpportunityCard(
                     opportunity = opportunity,
-                    onAcceptOrder = { viewModel.acceptTradeOpportunity(it) }
+                    onAcceptOrder = { opp ->
+                        viewModel.acceptTradeOpportunity(opp)
+                        if (uiState.orderErrorMsg == null) {
+                            Toast.makeText(context, "✅ Auftrag '${opp.resource.nameDe}' zu aktiven Aufträgen hinzugefügt!", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    onDirectBookOrder = { opp, units, buyPrice, sellPrice ->
+                        viewModel.bookAndCompleteOpportunity(opp, units, buyPrice, sellPrice)
+                        Toast.makeText(context, "✅ Trade '${opp.resource.nameDe}' direkt in Historie gebucht!", Toast.LENGTH_SHORT).show()
+                    }
                 )
             }
         }
@@ -1548,7 +1649,7 @@ fun LoadoutSelectionDialog(
                             .clickable { mount = option }
                             .padding(vertical = 2.dp)
                     ) {
-                        RadioButton(selected = (mount.contains(option.take(12), ignoreCase = true)), onClick = { mount = option })
+                        RadioButton(selected = (mount.startsWith(option) || option.startsWith(mount.substringBefore(" ("))), onClick = { mount = option })
                         Text(option, fontSize = 12.sp)
                     }
                 }
@@ -1576,7 +1677,7 @@ fun LoadoutSelectionDialog(
                             .clickable { bagTier = option }
                             .padding(vertical = 2.dp)
                     ) {
-                        RadioButton(selected = (bagTier.contains(option.take(8), ignoreCase = true)), onClick = { bagTier = option })
+                        RadioButton(selected = (bagTier.startsWith(option) || option.startsWith(bagTier.substringBefore(" ("))), onClick = { bagTier = option })
                         Text(option, fontSize = 12.sp)
                     }
                 }
@@ -1615,7 +1716,7 @@ fun LoadoutSelectionDialog(
                             .clickable { bootsTier = option }
                             .padding(vertical = 2.dp)
                     ) {
-                        RadioButton(selected = (bootsTier.contains(option.take(12), ignoreCase = true)), onClick = { bootsTier = option })
+                        RadioButton(selected = (bootsTier.startsWith(option) || option.startsWith(bootsTier.substringBefore(" ("))), onClick = { bootsTier = option })
                         Text(option, fontSize = 12.sp)
                     }
                 }
@@ -1664,61 +1765,161 @@ fun LoadoutSelectionDialog(
 @Composable
 fun TradeOpportunityCard(
     opportunity: TradeOpportunity,
-    onAcceptOrder: (TradeOpportunity) -> Unit
+    onAcceptOrder: (TradeOpportunity) -> Unit,
+    onDirectBookOrder: ((TradeOpportunity, Int, Int, Int) -> Unit)? = null
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     var showDialog by remember { mutableStateOf(false) }
-
-    val dangerousZones = listOf("Caerleon", "Arthur's Rest", "Merlyn's Rest", "Morgana's Rest", "Cairn Drain")
-    val isBuyDangerous = dangerousZones.any { opportunity.buyCity.equals(it, ignoreCase = true) }
-    val isSellDangerous = dangerousZones.any { opportunity.sellCity.equals(it, ignoreCase = true) }
-    val isRouteDangerous = isBuyDangerous || isSellDangerous
+    var showDirectBookDialog by remember { mutableStateOf(false) }
 
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("📋 Handelsauftrag annehmen", fontWeight = FontWeight.Bold) },
+            title = { Text("📋 Marktchance buchen", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Möchtest du folgenden Auftrag für ${opportunity.resource.nameDe} annehmen?", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("Möchtest du den Auftrag für ${opportunity.resource.nameDe} buchen?", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     HorizontalDivider()
                     Text("📍 Kaufen in: ${opportunity.buyCity} (${numberFormat.format(opportunity.buyPrice)} Silber)", fontSize = 12.sp)
                     Text("📍 Verkaufen in: ${opportunity.sellCity} (${numberFormat.format(opportunity.sellPrice)} Silber)", fontSize = 12.sp)
                     Text("📊 Umsatz: ${numberFormat.format(opportunity.totalNetRevenue)} Silber", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF66BB6A))
-                    Text("📦 Menge: ${numberFormat.format(opportunity.tradeUnits)} Stk. | Traglast: %.1f kg".format(opportunity.totalWeightKg), fontSize = 11.sp)
+                    Text("📦 Menge: ${numberFormat.format(opportunity.tradeUnits)} Stk. | Traglast: ${String.format(Locale.GERMANY, "%.1f", opportunity.totalWeightKg)} kg", fontSize = 11.sp)
+                }
+            },
+            confirmButton = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            showDialog = false
+                            onAcceptOrder(opportunity)
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("📋 Als aktiven Auftrag annehmen", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                    if (onDirectBookOrder != null) {
+                        Button(
+                            onClick = {
+                                showDialog = false
+                                showDirectBookDialog = true
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("⚡ Direkt als erledigt buchen", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = { showDialog = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Abbrechen")
+                    }
+                }
+            },
+            dismissButton = null
+        )
+    }
+
+    if (showDirectBookDialog && onDirectBookOrder != null) {
+        var unitsInput by remember { mutableStateOf(opportunity.tradeUnits.toString()) }
+        var buyPriceInput by remember { mutableStateOf(opportunity.buyPrice.toString()) }
+        var sellPriceInput by remember { mutableStateOf(opportunity.sellPrice.toString()) }
+
+        val uBuy = buyPriceInput.toIntOrNull() ?: opportunity.buyPrice
+        val uSell = sellPriceInput.toIntOrNull() ?: opportunity.sellPrice
+        val units = unitsInput.toIntOrNull() ?: opportunity.tradeUnits
+
+        val taxPerUnit = (uSell * 0.065).toLong() // Estimated market tax + setup fee
+        val netSellPrice = uSell.toLong() - taxPerUnit
+        val computedSpent = units.toLong() * uBuy.toLong()
+        val computedEarned = units.toLong() * netSellPrice
+        val computedProfit = computedEarned - computedSpent
+
+        AlertDialog(
+            onDismissRequest = { showDirectBookDialog = false },
+            title = { Text("⚡ Direkt in Historie buchen", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("${opportunity.resource.nameDe} (T${opportunity.resource.tier})", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+
+                    OutlinedTextField(
+                        value = unitsInput,
+                        onValueChange = { unitsInput = it },
+                        label = { Text("Gekaufte Menge") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = buyPriceInput,
+                        onValueChange = { buyPriceInput = it },
+                        label = { Text("Kaufpreis pro Stk. (Silber)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    OutlinedTextField(
+                        value = sellPriceInput,
+                        onValueChange = { sellPriceInput = it },
+                        label = { Text("Verkaufspreis pro Stk. (Silber)") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            text = "📊 Erwarteter Gewinn: ${if (computedProfit >= 0) "+" else ""}${numberFormat.format(computedProfit)} Silber",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (computedProfit >= 0) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        showDialog = false
-                        onAcceptOrder(opportunity)
+                        showDirectBookDialog = false
+                        onDirectBookOrder(opportunity, units, uBuy, uSell)
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
                 ) {
-                    Text("Ja, Auftrag annehmen", fontWeight = FontWeight.Bold)
+                    Text("Buchen & Speichern", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                OutlinedButton(onClick = { showDialog = false }) {
+                OutlinedButton(onClick = { showDirectBookDialog = false }) {
                     Text("Abbrechen")
                 }
             }
         )
     }
 
+    val routeBorderColor = ZoneThemeColors.getOpportunityBorderColor(opportunity.buyCity, opportunity.sellCity)
+    val routeContainerBg = ZoneThemeColors.getOpportunityContainerBg(opportunity.buyCity, opportunity.sellCity)
+    val buyCityColor = ZoneThemeColors.getCityZoneColor(opportunity.buyCity)
+    val sellCityColor = ZoneThemeColors.getCityZoneColor(opportunity.sellCity)
+
     Card(
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (isRouteDangerous) Color(0xFF381E1E) else MaterialTheme.colorScheme.surfaceContainerHigh
+            containerColor = routeContainerBg
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        border = BorderStroke(1.5.dp, routeBorderColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         modifier = Modifier
             .fillMaxWidth()
             .clickable { showDialog = true }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(10.dp)) {
             // MAIN TITLE HEADER: Item Name + Tier Badge
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1788,7 +1989,7 @@ fun TradeOpportunityCard(
                         color = Color(0xFF66BB6A)
                     )
                     Text(
-                        text = "+%.1f%% Marge (ROI)".format(opportunity.roiPercent),
+                        text = "+${String.format(Locale.GERMANY, "%.1f", opportunity.roiPercent)}% Marge (ROI)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = Color(0xFF81C784)
@@ -1836,7 +2037,8 @@ fun TradeOpportunityCard(
             // ROUTE DETAILS CARD (Kaufort -> Verkaufort)
             Surface(
                 shape = RoundedCornerShape(12.dp),
-                color = if (isRouteDangerous) Color(0xFF4A2525) else MaterialTheme.colorScheme.surfaceContainer,
+                color = routeContainerBg,
+                border = BorderStroke(1.dp, routeBorderColor.copy(alpha = 0.5f)),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1847,34 +2049,36 @@ fun TradeOpportunityCard(
                     // Buy City
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Kaufen in:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (isBuyDangerous) {
-                                Text(" 🔴", color = Color(0xFFFF5252), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("Kaufen in:", fontSize = 11.sp, color = Color.LightGray)
+                            val buyBadge = ZoneThemeColors.getCityZoneBadgeText(opportunity.buyCity)
+                            if (buyBadge.startsWith("🔴") || buyBadge.startsWith("✨") || buyBadge.startsWith("🏴‍☠️")) {
+                                Text(" $buyBadge", color = buyCityColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(opportunity.buyCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
-                        Text("${numberFormat.format(opportunity.buyPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Text(opportunity.buyCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = buyCityColor)
+                        Text("${numberFormat.format(opportunity.buyPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
 
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "nach",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = routeBorderColor,
                         modifier = Modifier.size(24.dp)
                     )
 
                     // Sell City
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Verkaufen in:", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            if (isSellDangerous) {
-                                Text(" 🔴", color = Color(0xFFFF5252), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("Verkaufen in:", fontSize = 11.sp, color = Color.LightGray)
+                            val sellBadge = ZoneThemeColors.getCityZoneBadgeText(opportunity.sellCity)
+                            if (sellBadge.startsWith("🔴") || sellBadge.startsWith("✨") || sellBadge.startsWith("🏴‍☠️")) {
+                                Text(" $sellBadge", color = sellCityColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(opportunity.sellCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = MaterialTheme.colorScheme.onSurface)
-                        Text("${numberFormat.format(opportunity.sellPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                        Text(opportunity.sellCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = sellCityColor)
+                        Text("${numberFormat.format(opportunity.sellPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }
@@ -1893,7 +2097,7 @@ fun TradeOpportunityCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Handelsmenge: ${numberFormat.format(opportunity.tradeUnits)} Stk.", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Traglast: %.1f kg".format(opportunity.totalWeightKg), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Traglast: ${String.format(Locale.GERMANY, "%.1f", opportunity.totalWeightKg)} kg", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
@@ -1902,6 +2106,29 @@ fun TradeOpportunityCard(
                     ) {
                         Text("Investition: ${numberFormat.format(opportunity.totalInvestment)} Silber", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text("⏰ Gefunden: ${opportunity.foundTimeStr}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // AI BUY & SELL ORDER RECOMMENDATIONS CARD
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = Color(0xFF1E293B),
+                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("🤖 KI Order-Analyse & Strategie", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                    if (opportunity.buyOrderRecommendation.isNotBlank()) {
+                        Text(opportunity.buyOrderRecommendation, fontSize = 10.sp, color = Color(0xFFE2E8F0))
+                    }
+                    if (opportunity.sellOrderRecommendation.isNotBlank()) {
+                        Text(opportunity.sellOrderRecommendation, fontSize = 10.sp, color = Color(0xFF10B981))
+                    }
+                    if (opportunity.aiOrderStrategy.isNotBlank()) {
+                        Text(opportunity.aiOrderStrategy, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFFBBF24))
                     }
                 }
             }
@@ -2050,40 +2277,40 @@ fun EquipmentBuildsTabContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(12.dp)
+            .padding(8.dp)
     ) {
         // Compact Header Card
         Card(
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(10.dp)) {
+            Column(modifier = Modifier.padding(8.dp)) {
                 Text(
-                    text = "⚔️ 25 Unschlagbare KI-Builds (5 pro Kategorie)",
+                    text = "⚔️ Bestes Klassen-Equipment & Stärkste Waffen",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "Geprüfte Meta-Setups mit detaillierten Vor- und Nachteilen",
+                    text = "Kategorisiert nach Schadensart mit empfohlenen Fertigkeiten & Stärkster Waffe",
                     fontSize = 11.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         // Category Filter Chips
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             items(BuildCategory.entries.toTypedArray()) { cat ->
                 val isSelected = uiState.selectedBuildCategory == cat
                 FilterChip(
                     selected = isSelected,
                     onClick = { viewModel.onBuildCategorySelected(cat) },
-                    label = { Text("${cat.icon} ${cat.displayName}", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                    label = { Text("${cat.icon} ${cat.displayName}", fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primary,
                         selectedLabelColor = Color.Black,
@@ -2094,30 +2321,30 @@ fun EquipmentBuildsTabContent(
             }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         val filteredBuilds = uiState.equipmentBuilds.filter { it.category == uiState.selectedBuildCategory }
 
         LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxSize()
         ) {
             items(filteredBuilds, key = { it.id }) { build ->
                 Card(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth().wrapContentHeight()
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(8.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(build.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                            Text(build.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
                             Surface(
-                                shape = RoundedCornerShape(6.dp),
+                                shape = RoundedCornerShape(4.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer
                             ) {
                                 Text(
@@ -2125,35 +2352,84 @@ fun EquipmentBuildsTabContent(
                                     fontSize = 10.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        if (build.strongestWeaponHighlight.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary)
+                            ) {
+                                Text(
+                                    text = build.strongestWeaponHighlight,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+
+                        if (build.useCaseFunction.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary)
+                            ) {
+                                Text(
+                                    text = build.useCaseFunction,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Text("⚔️ Waffe: ${build.weapon}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
-                        Text("🪖 Kopf: ${build.head} | 🥋 Brust: ${build.armor}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                        Text("🥾 Schuhe: ${build.shoes} | 🐴 Reittier: ${build.mount}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
-                        Text("🧪 Trank: ${build.potion} | 🥩 Essen: ${build.food}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("🪖 Kopf: ${build.head} | 🥋 Brust: ${build.armor}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("🥾 Schuhe: ${build.shoes} | 🐴 Reittier: ${build.mount}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                        Text("🧪 Trank: ${build.potion} | 🥩 Essen: ${build.food}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
 
-                        Spacer(modifier = Modifier.height(6.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                        ) {
+                            Column(modifier = Modifier.padding(6.dp)) {
+                                Text("⚡ Auszuwählende Fertigkeiten & Abilities:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                if (build.recommendedSkills.isNotEmpty()) Text(build.recommendedSkills, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                                if (build.headSkill.isNotEmpty()) Text(build.headSkill, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                                if (build.armorSkill.isNotEmpty()) Text(build.armorSkill, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                                if (build.shoesSkill.isNotEmpty()) Text(build.shoesSkill, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Text("⭐ Ratings: Schaden ${build.damageRating}/100 | Heal ${build.healingRating}/100 | Def ${build.defenseRating}/100 | Tempo ${build.mobilityRating}/100", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFDE047))
 
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(2.dp))
                         Text(build.aiEvaluationDe, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
 
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("⚡ Rotation: ${build.combatRotationDe}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("🔄 Rotation: ${build.combatRotationDe}", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         // Advantages & Disadvantages (Pros & Cons)
                         if (build.vorteileDe.isNotEmpty() || build.nachteileDe.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(6.dp))
+                            Spacer(modifier = Modifier.height(4.dp))
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
@@ -2187,18 +2463,35 @@ fun EventsAndMonstersTabContent(
     var searchQuery by remember { mutableStateOf("") }
     var selectedRegion by remember { mutableStateOf("ALLE") }
     var selectedSortMode by remember { mutableStateOf(MonsterSortMode.MOST_LUCRATIVE) }
+    var selectedCategoryType by remember { mutableStateOf("ALL") }
 
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val regions = listOf(
         "ALLE", "Outlands", "Steppe", "Wald", "Sumpf", "Gebirge", "Hochland", "Caerleon", "Roads of Avalon", "The Mists", "Statische Dungeons"
     )
 
-    val filteredMonsters = remember(searchQuery, selectedRegion, selectedSortMode) {
-        AlbionMonsterRepository.getFilteredAndSorted(
+    val filteredMonsters = remember(searchQuery, selectedRegion, selectedSortMode, selectedCategoryType) {
+        val base = AlbionMonsterRepository.getFilteredAndSorted(
             query = searchQuery,
             regionFilter = selectedRegion,
             sortMode = selectedSortMode
         )
+        when (selectedCategoryType) {
+            "BOSS" -> base.filter { 
+                it.type == MonsterType.WORLD_BOSS || 
+                it.type == MonsterType.ROAMING_BOSS || 
+                it.type == MonsterType.ASPECT || 
+                it.type == MonsterType.HELLGATE_BOSS 
+            }
+            "DUNGEON" -> base.filter { 
+                it.type == MonsterType.DUNGEON_BOSS || 
+                it.type == MonsterType.STATIC_BOSS || 
+                it.type == MonsterType.MISTS_BOSS || 
+                it.type == MonsterType.ROADS_BOSS || 
+                it.type == MonsterType.ELITE_MOB 
+            }
+            else -> base
+        }
     }
 
     LazyColumn(
@@ -2319,7 +2612,6 @@ fun EventsAndMonstersTabContent(
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Category Split Filter Chips (Weltbosse vs Dungeons & Schatztruhen)
-                    var selectedCategoryType by remember { mutableStateOf("ALL") }
                     Text("⚔️ Kategorie-Filter (Splitting):", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -2616,9 +2908,13 @@ fun ServerDownloadsChart(
                 .height(160.dp)
                 .pointerInput(hourlyStats) {
                     detectTapGestures { offset ->
-                        val widthPerBar = size.width.toFloat() / hourlyStats.size.toFloat()
-                        val clickedIndex = (offset.x / widthPerBar).toInt().coerceIn(0, hourlyStats.size - 1)
-                        selectedIndex = clickedIndex
+                        if (hourlyStats.isNotEmpty()) {
+                            val widthPerBar = size.width.toFloat() / hourlyStats.size.toFloat()
+                            if (widthPerBar > 0f) {
+                                val clickedIndex = (offset.x / widthPerBar).toInt().coerceIn(0, hourlyStats.size - 1)
+                                selectedIndex = clickedIndex
+                            }
+                        }
                     }
                 }
         ) {
@@ -2787,9 +3083,13 @@ fun GoldStockChart(
                 .height(190.dp)
                 .pointerInput(sortedPrices) {
                     detectTapGestures { offset ->
-                        val widthPerPoint = if (sortedPrices.size > 1) size.width.toFloat() / (sortedPrices.size - 1).toFloat() else size.width.toFloat()
-                        val clickedIndex = (offset.x / widthPerPoint).roundToInt().coerceIn(0, sortedPrices.size - 1)
-                        selectedIndex = clickedIndex
+                        if (sortedPrices.isNotEmpty()) {
+                            val widthPerPoint = if (sortedPrices.size > 1) size.width.toFloat() / (sortedPrices.size - 1).toFloat() else size.width.toFloat()
+                            if (widthPerPoint > 0f) {
+                                val clickedIndex = (offset.x / widthPerPoint).roundToInt().coerceIn(0, sortedPrices.size - 1)
+                                selectedIndex = clickedIndex
+                            }
+                        }
                     }
                 }
         ) {
@@ -2993,9 +3293,13 @@ fun MarketPriceStockChart(
                 .height(170.dp)
                 .pointerInput(validPrices) {
                     detectTapGestures { offset ->
-                        val widthPerPoint = if (validPrices.size > 1) size.width.toFloat() / (validPrices.size - 1).toFloat() else size.width.toFloat()
-                        val clickedIndex = (offset.x / widthPerPoint).roundToInt().coerceIn(0, validPrices.size - 1)
-                        selectedIndex = clickedIndex
+                        if (validPrices.isNotEmpty()) {
+                            val widthPerPoint = if (validPrices.size > 1) size.width.toFloat() / (validPrices.size - 1).toFloat() else size.width.toFloat()
+                            if (widthPerPoint > 0f) {
+                                val clickedIndex = (offset.x / widthPerPoint).roundToInt().coerceIn(0, validPrices.size - 1)
+                                selectedIndex = clickedIndex
+                            }
+                        }
                     }
                 }
         ) {
@@ -3672,6 +3976,24 @@ fun GoldMarketTabContent(
                         )
                     }
 
+                    if (!isBuyMode) {
+                        val amount = goldAmountInput.toIntOrNull() ?: 0
+                        val price = goldPriceInput.toIntOrNull() ?: uiState.goldSellPrice
+                        if (amount > 0 && price > 0) {
+                            val avgBuy = if (uiState.totalGoldBought > 0) (uiState.totalGoldCostSilver / uiState.totalGoldBought).toInt() else uiState.currentGoldPrice
+                            val totalEarned = amount.toLong() * price
+                            val cost = amount.toLong() * avgBuy
+                            val previewProfit = totalEarned - cost
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = "Live Verkauf: +${numberFormat.format(totalEarned)} Silber | Profit: ${if (previewProfit >= 0) "+" else ""}${numberFormat.format(previewProfit)} Silber",
+                                color = if (previewProfit >= 0) Color(0xFF66BB6A) else MaterialTheme.colorScheme.error,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Button(
@@ -3800,8 +4122,19 @@ fun GoldMarketTabContent(
                                     Text("Einkaufswert: ${numberFormat.format(purchase.totalCostSilver)} Silber", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
-                                IconButton(onClick = { viewModel.deleteGoldPurchase(purchase.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = MaterialTheme.colorScheme.error)
+                                Row {
+                                    IconButton(onClick = { 
+                                        goldAmountInput = purchase.amountGold.toString()
+                                        goldPriceInput = purchase.buyPricePerGold.toString()
+                                        goldDateInput = purchase.purchaseDate
+                                        isBuyMode = true
+                                        viewModel.deleteGoldPurchase(purchase.id)
+                                    }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Bearbeiten", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    IconButton(onClick = { viewModel.deleteGoldPurchase(purchase.id) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = MaterialTheme.colorScheme.error)
+                                    }
                                 }
                             }
                         }
@@ -3863,8 +4196,19 @@ fun GoldMarketTabContent(
                                     Text("Verkaufserlös: ${numberFormat.format(sale.totalEarnedSilver)} Silber", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
 
-                                IconButton(onClick = { viewModel.deleteGoldSale(sale.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = MaterialTheme.colorScheme.error)
+                                Row {
+                                    IconButton(onClick = { 
+                                        goldAmountInput = sale.amountGold.toString()
+                                        goldPriceInput = sale.sellPricePerGold.toString()
+                                        goldDateInput = sale.saleDate
+                                        isBuyMode = false
+                                        viewModel.deleteGoldSale(sale.id)
+                                    }) {
+                                        Icon(Icons.Default.Edit, contentDescription = "Bearbeiten", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    IconButton(onClick = { viewModel.deleteGoldSale(sale.id) }) {
+                                        Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = MaterialTheme.colorScheme.error)
+                                    }
                                 }
                             }
                         }
@@ -3939,18 +4283,18 @@ fun CraftingTabContent(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         item {
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                 border = BorderStroke(1.dp, Color(0xFF10B981)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(8.dp)) {
                     Text(
                         text = "🔥 Top 3 Gewinn in Königsstadt mit Veredelungs-Bonus (+56% RRR)",
                         fontWeight = FontWeight.Bold,
@@ -4245,6 +4589,7 @@ fun IslandTabContent(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCity by remember { mutableStateOf("ALLE") }
     var selectedTierFilter by remember { mutableIntStateOf(0) }
+    var activeTimers by remember { mutableStateOf(IslandTimerManager.getTimers(context)) }
     val cities = listOf("ALLE", "Caerleon", "Martlock", "Lymhurst", "Bridgewatch", "Fort Sterling", "Thetford", "Brecilien")
     val tiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -4263,21 +4608,19 @@ fun IslandTabContent(
     }
 
     LazyColumn(
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        contentPadding = PaddingValues(8.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxSize()
     ) {
         // 🌾 Insel-Ernte & Tierzucht-Timer Card
         item {
-            var activeTimers by remember { mutableStateOf(IslandTimerManager.getTimers(context)) }
-
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(8.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
                 border = BorderStroke(1.5.dp, Color(0xFF10B981)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(14.dp)) {
+                Column(modifier = Modifier.padding(8.dp)) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -4418,17 +4761,6 @@ fun IslandTabContent(
                         },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Gebäude oder Stadt suchen...") },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                        singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -4902,23 +5234,26 @@ fun AppSettingsDialog(
                     )
                 }
 
-                // AlbionDataProAdmin Button
-                Button(
-                    onClick = { showAdminControlDialog = true },
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "🛡️ AlbionDataProAdmin - Live-Zentrale",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
-                    )
+                // AlbionDataProAdmin Button (Only visible for admin accounts)
+                if (prefs.isAdmin) {
+                    Button(
+                        onClick = { showAdminControlDialog = true },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "🛡️ AlbionDataProAdmin - Live-Zentrale",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
                 }
 
                 if (showAdminControlDialog) {
                     AdminControlDialog(
+                        viewModel = viewModel,
                         onDismiss = { showAdminControlDialog = false }
                     )
                 }
@@ -4993,6 +5328,67 @@ fun AppSettingsDialog(
                     )
                 }
 
+                // App bei Bubble-Aktivierung verbergen
+                var hideAppOnBubble by remember { mutableStateOf(prefs.hideAppOnBubbleActivate) }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("App bei Bubble-Aktivierung verbergen", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Minimiert die App automatisch, wenn die Overlay Bubble gestartet wird", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = hideAppOnBubble,
+                        onCheckedChange = {
+                            hideAppOnBubble = it
+                            prefs.hideAppOnBubbleActivate = it
+                        }
+                    )
+                }
+
+                HorizontalDivider()
+
+                // Bubble Deckkraft / Transparenz
+                var bubbleOpacityVal by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(LanguageManager.getString("bubble_opacity", selectedLang), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        listOf(0.65f to "65%", 0.80f to "80%", 0.90f to "90%", 1.0f to "100%").forEach { (valOp, labelOp) ->
+                            val isSelected = abs(bubbleOpacityVal - valOp) < 0.04f
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    bubbleOpacityVal = valOp
+                                    prefs.bubbleOpacity = valOp
+                                },
+                                label = { Text(labelOp) }
+                            )
+                        }
+                    }
+                }
+
+                // Bubble Skalierung / Größe
+                var bubbleScaleVal by remember { mutableFloatStateOf(prefs.bubbleScale) }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(LanguageManager.getString("bubble_scale", selectedLang), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        listOf(0.80f to "80%", 0.90f to "90%", 1.0f to "100%", 1.15f to "115%").forEach { (valSc, labelSc) ->
+                            val isSelected = abs(bubbleScaleVal - valSc) < 0.04f
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = {
+                                    bubbleScaleVal = valSc
+                                    prefs.bubbleScale = valSc
+                                },
+                                label = { Text(labelSc) }
+                            )
+                        }
+                    }
+                }
+
                 HorizontalDivider()
 
                 // Gold Portfolio Notifications (Real-Time Reactive)
@@ -5060,12 +5456,24 @@ fun ResourceCard(
         resource.copy(enchantment = selectedEnc, quality = selectedQual)
     }
 
-    val currentPrices = remember(effectiveResource.fullId, prices, allMarketPrices) {
+    val baseList = remember(effectiveResource.fullId, prices, allMarketPrices) {
         if (allMarketPrices.isNotEmpty()) {
             allMarketPrices[effectiveResource.fullId] ?: allMarketPrices[effectiveResource.id] ?: prices
         } else {
             prices
         }
+    }
+    val mult = when (effectiveResource.enchantment) {
+        1 -> 2.2
+        2 -> 4.5
+        3 -> 9.0
+        4 -> 18.0
+        else -> 1.0
+    }
+    val currentPrices = if (allMarketPrices.isNotEmpty() && allMarketPrices[effectiveResource.fullId] == null && effectiveResource.enchantment > 0) {
+        baseList.map { it.copy(sellPriceMin = (it.sellPriceMin * mult).toInt(), buyPriceMax = (it.buyPriceMax * mult).toInt()) }
+    } else {
+        baseList
     }
 
     val validPrices = currentPrices.filter { it.sellPriceMin > 0 }
@@ -5329,9 +5737,11 @@ fun ResourceDetailContent(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    prices.forEach { pr ->
+                    val sortedPrices = prices.sortedByDescending { TradeCalculator.parseIsoToEpochMs(it.sellPriceMinDate) }
+                    sortedPrices.forEach { pr ->
                         if (pr.sellPriceMin > 0) {
                             val isDangerous = listOf("Caerleon", "Arthur's Rest", "Merlyn's Rest", "Morgana's Rest", "Cairn Drain").any { pr.city.equals(it, ignoreCase = true) }
+                            val ageStr = TradeCalculator.formatPriceAge(TradeCalculator.parseIsoToEpochMs(pr.sellPriceMinDate))
                             Row(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 modifier = Modifier
@@ -5340,8 +5750,13 @@ fun ResourceDetailContent(
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(pr.city, fontWeight = FontWeight.SemiBold)
+                                    if (pr.quality > 1) {
+                                        Text(" (Q${pr.quality})", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("⏱️ $ageStr", fontSize = 10.sp, color = Color(0xFF94A3B8))
                                     if (isDangerous) {
-                                        Text(" 🔴 Rot-Zone", color = Color(0xFFFF5252), fontSize = 11.sp)
+                                        Text(" 🔴", color = Color(0xFFFF5252), fontSize = 10.sp)
                                     }
                                 }
                                 Text("${numberFormat.format(pr.sellPriceMin)} Silber", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)

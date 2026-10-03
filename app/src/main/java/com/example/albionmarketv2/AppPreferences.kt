@@ -28,6 +28,10 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getFloat("carry_capacity_kg", 2000.0f).toDouble()
         set(value) = prefs.edit().putFloat("carry_capacity_kg", value.toFloat()).apply()
 
+    var goldAmount: Long
+        get() = prefs.getLong("gold_amount", 0L)
+        set(value) = prefs.edit().putLong("gold_amount", value).apply()
+
     var selectedMount: String
         get() = prefs.getString("selected_mount", "Transportochs T5 (+1800 kg)") ?: "Transportochs T5 (+1800 kg)"
         set(value) = prefs.edit().putString("selected_mount", value).apply()
@@ -56,9 +60,21 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getString("ai_bot_name", "AlbionBot") ?: "AlbionBot"
         set(value) = prefs.edit().putString("ai_bot_name", value).apply()
 
-    var bubbleScale: Float
-        get() = prefs.getFloat("bubble_scale", 1.0f)
-        set(value) = prefs.edit().putFloat("bubble_scale", value).apply()
+    var bubbleWidthPortrait: Int
+        get() = prefs.getInt("bubble_width_portrait", 240)
+        set(value) = prefs.edit().putInt("bubble_width_portrait", value.coerceIn(180, 500)).apply()
+
+    var bubbleHeightPortrait: Int
+        get() = prefs.getInt("bubble_height_portrait", 220)
+        set(value) = prefs.edit().putInt("bubble_height_portrait", value.coerceIn(120, 800)).apply()
+
+    var bubbleWidthLandscape: Int
+        get() = prefs.getInt("bubble_width_landscape", 340)
+        set(value) = prefs.edit().putInt("bubble_width_landscape", value.coerceIn(220, 700)).apply()
+
+    var bubbleHeightLandscape: Int
+        get() = prefs.getInt("bubble_height_landscape", 140)
+        set(value) = prefs.edit().putInt("bubble_height_landscape", value.coerceIn(100, 500)).apply()
 
     var maxCityDistance: Int
         get() = prefs.getInt("max_city_distance", 99)
@@ -91,6 +107,10 @@ class AppPreferences(private val context: Context) {
     var appLanguage: String
         get() = prefs.getString("app_language", "DE") ?: "DE"
         set(value) = prefs.edit().putString("app_language", value).apply()
+
+    var dismissedOtaVersion: String
+        get() = prefs.getString("dismissed_ota_version", "") ?: ""
+        set(value) = prefs.edit().putString("dismissed_ota_version", value).apply()
 
     var callMeBotPhone: String
         get() = prefs.getString("callmebot_phone", "") ?: ""
@@ -201,14 +221,18 @@ class AppPreferences(private val context: Context) {
         try {
             val arr = JSONArray(jsonStr)
             for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
+                val obj = arr.optJSONObject(i) ?: continue
+                val itemId = obj.optString("itemId", "")
+                val city = obj.optString("city", "")
+                if (itemId.isBlank() || city.isBlank()) continue
                 list.add(
                     PriceSnapshot(
-                        itemId = obj.getString("itemId"),
-                        city = obj.getString("city"),
-                        sellPriceMin = obj.getInt("sellPriceMin"),
+                        itemId = itemId,
+                        city = city,
+                        sellPriceMin = obj.optInt("sellPriceMin", 0),
                         buyPriceMax = obj.optInt("buyPriceMax", 0),
-                        timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                        timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
+                        sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
                     )
                 )
             }
@@ -222,14 +246,18 @@ class AppPreferences(private val context: Context) {
             try {
                 val arr = JSONArray(legacyStr)
                 for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val itemId = obj.optString("itemId", "")
+                    val city = obj.optString("city", "")
+                    if (itemId.isBlank() || city.isBlank()) continue
                     list.add(
                         PriceSnapshot(
-                            itemId = obj.getString("itemId"),
-                            city = obj.getString("city"),
-                            sellPriceMin = obj.getInt("sellPriceMin"),
+                            itemId = itemId,
+                            city = city,
+                            sellPriceMin = obj.optInt("sellPriceMin", 0),
                             buyPriceMax = obj.optInt("buyPriceMax", 0),
-                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
+                            sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
                         )
                     )
                 }
@@ -251,6 +279,7 @@ class AppPreferences(private val context: Context) {
             obj.put("sellPriceMin", s.sellPriceMin)
             obj.put("buyPriceMax", s.buyPriceMax)
             obj.put("timestampMs", s.timestampMs)
+            obj.put("sellPriceMinAmount", s.sellPriceMinAmount)
             arr.put(obj)
         }
         prefs.edit().putString("price_snapshots_${server.name}_json", arr.toString()).apply()
@@ -266,29 +295,36 @@ class AppPreferences(private val context: Context) {
         try {
             val arr = JSONArray(jsonStr)
             for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
+                val obj = arr.optJSONObject(i) ?: continue
+                val id = obj.optString("id", "")
+                val resourceId = obj.optString("resourceId", "")
+                if (id.isBlank() || resourceId.isBlank()) continue
+
+                val statusStr = obj.optString("status", OrderStatus.ACTIVE.name)
+                val statusEnum = try { OrderStatus.valueOf(statusStr) } catch (_: Exception) { OrderStatus.ACTIVE }
+
                 list.add(
                     TradeOrder(
-                        id = obj.getString("id"),
-                        resourceId = obj.getString("resourceId"),
-                        resourceNameDe = obj.getString("resourceNameDe"),
+                        id = id,
+                        resourceId = resourceId,
+                        resourceNameDe = obj.optString("resourceNameDe", resourceId),
                         resourceNameEn = obj.optString("resourceNameEn", ""),
-                        tier = obj.getInt("tier"),
-                        buyCity = obj.getString("buyCity"),
-                        buyPrice = obj.getInt("buyPrice"),
-                        sellCity = obj.getString("sellCity"),
-                        sellPrice = obj.getInt("sellPrice"),
-                        plannedUnits = obj.getInt("plannedUnits"),
-                        targetNetProfit = obj.getLong("targetNetProfit"),
-                        targetInvestment = obj.getLong("targetInvestment"),
-                        acceptedDate = obj.getString("acceptedDate"),
-                        status = OrderStatus.valueOf(obj.optString("status", OrderStatus.ACTIVE.name)),
-                        actualSilverSpent = if (obj.has("actualSilverSpent")) obj.getLong("actualSilverSpent") else null,
-                        actualSilverEarned = if (obj.has("actualSilverEarned")) obj.getLong("actualSilverEarned") else null,
-                        actualBuyPrice = if (obj.has("actualBuyPrice")) obj.getInt("actualBuyPrice") else null,
-                        actualSellPrice = if (obj.has("actualSellPrice")) obj.getInt("actualSellPrice") else null,
-                        actualUnits = if (obj.has("actualUnits")) obj.getInt("actualUnits") else null,
-                        completedDate = if (obj.has("completedDate")) obj.getString("completedDate") else null
+                        tier = obj.optInt("tier", 4),
+                        buyCity = obj.optString("buyCity", "Caerleon"),
+                        buyPrice = obj.optInt("buyPrice", 0),
+                        sellCity = obj.optString("sellCity", "Caerleon"),
+                        sellPrice = obj.optInt("sellPrice", 0),
+                        plannedUnits = obj.optInt("plannedUnits", 1),
+                        targetNetProfit = obj.optLong("targetNetProfit", 0L),
+                        targetInvestment = obj.optLong("targetInvestment", 0L),
+                        acceptedDate = obj.optString("acceptedDate", ""),
+                        status = statusEnum,
+                        actualSilverSpent = if (obj.has("actualSilverSpent")) obj.optLong("actualSilverSpent") else null,
+                        actualSilverEarned = if (obj.has("actualSilverEarned")) obj.optLong("actualSilverEarned") else null,
+                        actualBuyPrice = if (obj.has("actualBuyPrice")) obj.optInt("actualBuyPrice") else null,
+                        actualSellPrice = if (obj.has("actualSellPrice")) obj.optInt("actualSellPrice") else null,
+                        actualUnits = if (obj.has("actualUnits")) obj.optInt("actualUnits") else null,
+                        completedDate = if (obj.has("completedDate")) obj.optString("completedDate") else null
                     )
                 )
             }
@@ -339,13 +375,15 @@ class AppPreferences(private val context: Context) {
         try {
             val arr = JSONArray(jsonStr)
             for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
+                val obj = arr.optJSONObject(i) ?: continue
+                val id = obj.optString("id", "")
+                if (id.isBlank()) continue
                 list.add(
                     GoldPurchase(
-                        id = obj.getString("id"),
-                        amountGold = obj.getInt("amountGold"),
-                        buyPricePerGold = obj.getInt("buyPricePerGold"),
-                        purchaseDate = obj.getString("purchaseDate")
+                        id = id,
+                        amountGold = obj.optInt("amountGold", 0),
+                        buyPricePerGold = obj.optInt("buyPricePerGold", 0),
+                        purchaseDate = obj.optString("purchaseDate", "")
                     )
                 )
             }
@@ -421,9 +459,17 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getFloat("bubble_opacity", 0.95f)
         set(value) = prefs.edit().putFloat("bubble_opacity", value).apply()
 
+    var bubbleScale: Float
+        get() = prefs.getFloat("bubble_scale", 1.0f)
+        set(value) = prefs.edit().putFloat("bubble_scale", value).apply()
+
     var bubbleCompactMode: Boolean
-        get() = prefs.getBoolean("bubble_compact_mode", false)
+        get() = prefs.getBoolean("bubble_compact_mode", true)
         set(value) = prefs.edit().putBoolean("bubble_compact_mode", value).apply()
+
+    var hideAppOnBubbleActivate: Boolean
+        get() = prefs.getBoolean("hide_app_on_bubble_activate", true)
+        set(value) = prefs.edit().putBoolean("hide_app_on_bubble_activate", value).apply()
 
     var craftingMasteryLevel: Int
         get() = prefs.getInt("crafting_mastery_level", 50)
@@ -434,7 +480,7 @@ class AppPreferences(private val context: Context) {
         set(value) = prefs.edit().putBoolean("is_user_logged_in", value).apply()
 
     var isAdmin: Boolean
-        get() = prefs.getBoolean("is_admin_user", false) || savedUsername.lowercase() == "dnnx"
+        get() = prefs.getBoolean("is_admin_user", false) && savedUsername.lowercase() == "dnnx"
         set(value) = prefs.edit().putBoolean("is_admin_user", value).apply()
 
     var savedUsername: String
@@ -450,7 +496,7 @@ class AppPreferences(private val context: Context) {
             val encrypted = if (value.isNotBlank()) CryptoSecurityUtils.encryptAES(value.trim()) else ""
             prefs.edit()
                 .putString("saved_username_encrypted", encrypted)
-                .putString("user_email", value.trim())
+                .remove("user_email")
                 .apply()
         }
 

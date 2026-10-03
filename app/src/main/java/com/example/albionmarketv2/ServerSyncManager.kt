@@ -7,8 +7,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
@@ -51,14 +53,17 @@ object ServerSyncManager {
         }
     }
 
+    @Suppress("UNUSED_PARAMETER")
     fun getServerBaseUrls(context: Context? = null): List<String> {
-        val urls = mutableListOf<String>()
-        // Exclusive 24/7 Cloud Server URL
-        urls.add("https://albionmarketv2-1.onrender.com")
-        if (context != null) {
-            urls.addAll(ServerConfigManager.getCustomServerUrls(context))
-        }
-        return urls.distinct()
+        // Render Cloud Server
+        return listOf(
+            "https://albionmarketv2.onrender.com"
+        )
+    }
+
+    @Suppress("UNUSED_PARAMETER")
+    fun getPrioritizedServerUrls(context: Context? = null): List<String> {
+        return getServerBaseUrls(context)
     }
 
     suspend fun pingServer(context: Context, activeOrdersCount: Int = 0): ServerDownloadStats? = withContext(Dispatchers.IO) {
@@ -67,7 +72,19 @@ object ServerSyncManager {
         val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}"
         val appVersion = OtaUpdateManager.getInstalledVersionName(context)
 
-        val urlsToTry = getServerBaseUrls(context).map { "$it/api/devices/ping" }
+        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/devices/ping" }
+
+        // Quick fast ping for Render Pro (always active)
+        try {
+            val warmUpUrl = URL("https://albionmarketv2.onrender.com/api/health")
+            val warmConn = warmUpUrl.openConnection() as HttpURLConnection
+            warmConn.requestMethod = "GET"
+            warmConn.setRequestProperty("User-Agent", "AlbionDataPro/Pro")
+            warmConn.connectTimeout = 3000
+            warmConn.readTimeout = 3000
+            warmConn.responseCode
+            warmConn.disconnect()
+        } catch (_: Exception) {}
 
         val appPrefs = AppPreferences(context)
         val username = appPrefs.savedUsername.ifBlank {
@@ -95,8 +112,10 @@ object ServerSyncManager {
                         connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
                         connection.setRequestProperty("User-Agent", "AlbionDataPro/$appVersion")
                         connection.setRequestProperty("Connection", "keep-alive")
-                        connection.connectTimeout = 45000
-                        connection.readTimeout = 45000
+                        connection.setRequestProperty("Keep-Alive", "timeout=600, max=1000")
+                        connection.setRequestProperty("Accept-Encoding", "gzip")
+                        connection.connectTimeout = 8000
+                        connection.readTimeout = 8000
                         connection.doOutput = true
 
                         connection.outputStream.use { os ->
@@ -148,7 +167,18 @@ object ServerSyncManager {
                             val currentVersion = OtaUpdateManager.getInstalledVersionName(context)
                             val isNewer = targetVersion.isNotBlank() && OtaUpdateManager.compareVersionStrings(targetVersion, currentVersion) > 0
 
-                            isOtaUpdateAvailable = isNewer && (targetVersion != dismissedOtaVersion)
+                            val wasOtaAvailable = isOtaUpdateAvailable
+                            isOtaUpdateAvailable = (hasOtaUpdate || isNewer) && (targetVersion != dismissedOtaVersion)
+
+                            if (isOtaUpdateAvailable && !wasOtaAvailable) {
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    try {
+                                        OtaUpdateManager.downloadAndInstallUpdate(context, force = false)
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
 
                             val totalDownloads = jsonObj.optInt("totalDownloads", 0)
                             val hourlyArr = jsonObj.optJSONArray("hourly24h")
@@ -491,7 +521,8 @@ object ServerSyncManager {
                         conn.requestMethod = "POST"
                         conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                         conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        conn.setRequestProperty("User-Agent", "AlbionDataPro/1.3.15")
+                        val appVer = OtaUpdateManager.getInstalledVersionName(context)
+                        conn.setRequestProperty("User-Agent", "AlbionDataPro/$appVer")
                         conn.connectTimeout = 10000
                         conn.readTimeout = 10000
                         conn.doOutput = true
@@ -514,7 +545,19 @@ object ServerSyncManager {
         }
     }
 
-    suspend fun loginWithServer(context: Context, username: String, pass: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun loginWithServer(context: Context, username: String, pass: String): Boolean {
+        val success = loginWithServerInternal(context, username, pass)
+        if (success) return true
+
+        // Auto-register if account doesn't exist yet, then retry login
+        val (regSuccess, _) = registerUser(context, username, pass)
+        if (regSuccess) {
+            return loginWithServerInternal(context, username, pass)
+        }
+        return false
+    }
+
+    private suspend fun loginWithServerInternal(context: Context, username: String, pass: String): Boolean = withContext(Dispatchers.IO) {
         val cleanUser = username.trim()
         val cleanPass = pass.trim()
 
@@ -562,7 +605,7 @@ object ServerSyncManager {
             put("appVersion", appVersion)
         }.toString()
 
-        val loginUrls = getServerBaseUrls(context).map { "$it/api/auth/login" }
+        val loginUrls = getPrioritizedServerUrls(context).map { "$it/api/auth/login" }
 
         var serverAuthenticated = false
 
@@ -577,8 +620,8 @@ object ServerSyncManager {
                         connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                         connection.setRequestProperty("Accept", "application/json")
                         connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        connection.connectTimeout = 15000
-                        connection.readTimeout = 15000
+                        connection.connectTimeout = 8000
+                        connection.readTimeout = 8000
                         connection.doOutput = true
 
                         connection.outputStream.use { os ->
@@ -708,7 +751,7 @@ object ServerSyncManager {
             put("appVersion", appVersion)
         }.toString()
 
-        val loginUrls = getServerBaseUrls(context).map { "$it/api/auth/login" }
+        val loginUrls = getPrioritizedServerUrls(context).map { "$it/api/auth/login" }
 
         var serverConnected = false
 
@@ -718,9 +761,13 @@ object ServerSyncManager {
                 val url = URL(serverUrl)
                 connection = url.openConnection() as HttpURLConnection
                 connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                connection.setRequestProperty("Accept", "application/json")
                 connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
+                val hmacSignature = CryptoSecurityUtils.computeHmacSha256(payload)
+                connection.setRequestProperty("X-Albion-HMAC-Signature", hmacSignature)
+                connection.connectTimeout = 12000
+                connection.readTimeout = 12000
                 connection.doOutput = true
 
                 connection.outputStream.use { os ->

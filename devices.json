@@ -2,12 +2,15 @@
   {
     "hwId": "test",
     "deviceName": "Android App Device",
-    "appVersion": "1.3.8",
+    "appVersion": "1.3.21",
     "activeOrdersCount": 0,
     "username": "AutoConnectedDevice",
     "lastSeen": "2026-10-01T15:16:09.930Z",
     "licenseExpiresAt": "2027-10-01T14:06:08.012Z",
     "bannedUntil": null,
-    "pendingUpdate": false
+    "banReason": null,
+    "unbanned": true,
+    "pendingUpdate": true,
+    "forceOtaUpdate": true
   }
 ]

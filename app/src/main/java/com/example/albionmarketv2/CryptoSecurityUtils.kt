@@ -80,6 +80,7 @@ object CryptoSecurityUtils {
     }
 
     fun encryptAES(plainText: String): String {
+        if (plainText.isBlank()) return ""
         return try {
             val cipher = Cipher.getInstance(TRANSFORMATION)
             cipher.init(Cipher.ENCRYPT_MODE, getSecretKey())
@@ -90,17 +91,19 @@ object CryptoSecurityUtils {
             System.arraycopy(iv, 0, combined, 0, iv.size)
             System.arraycopy(encryptedBytes, 0, combined, iv.size, encryptedBytes.size)
 
-            Base64.encodeToString(combined, Base64.NO_WRAP)
+            "ENC:" + Base64.encodeToString(combined, Base64.NO_WRAP)
         } catch (e: Exception) {
             e.printStackTrace()
-            plainText
+            ""
         }
     }
 
     fun decryptAES(cipherTextBase64: String): String {
+        if (cipherTextBase64.isBlank()) return ""
+        val cleanInput = if (cipherTextBase64.startsWith("ENC:")) cipherTextBase64.removePrefix("ENC:") else cipherTextBase64
         try {
-            val combined = Base64.decode(cipherTextBase64, Base64.NO_WRAP)
-            if (combined.size < 12) return cipherTextBase64
+            val combined = Base64.decode(cleanInput, Base64.NO_WRAP)
+            if (combined.size < 12) return ""
 
             val iv = ByteArray(12)
             System.arraycopy(combined, 0, iv, 0, 12)
@@ -115,7 +118,7 @@ object CryptoSecurityUtils {
             return String(decryptedBytes, Charsets.UTF_8)
         } catch (e: Exception) {
             e.printStackTrace()
-            return cipherTextBase64
+            return ""
         }
     }
 

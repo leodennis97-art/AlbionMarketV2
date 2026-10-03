@@ -17,7 +17,11 @@ class BootReceiver : BroadcastReceiver() {
             (action == Intent.ACTION_POWER_CONNECTED) ||
             (action == "com.example.albionmarketv2.ACTION_RESTART_SYNC_SERVICE")
         ) {
-            PersistentServerSyncService.startService(context)
+            try {
+                PersistentServerSyncService.startService(context)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 }

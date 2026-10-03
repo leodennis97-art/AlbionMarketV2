@@ -1,5 +1,6 @@
 package com.example.albionmarketv2
 
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,12 +48,26 @@ data class TradeOpportunity(
     val updatedTimestamp: Long = System.currentTimeMillis(),
     val updatedDateFormatted: String = "Gerade eben",
     val equivalentGoldProfit: Long = 0L,
-    val stockAvailable: Int = 0
+    val stockAvailable: Int = 0,
+    val buyOrderRecommendation: String = "",
+    val sellOrderRecommendation: String = "",
+    val aiOrderStrategy: String = ""
 ) {
     val foundTimeStr: String
         get() {
-            val sdf = SimpleDateFormat("HH:mm:ss", Locale.GERMANY)
-            return sdf.format(Date(updatedTimestamp))
+            val diff = System.currentTimeMillis() - updatedTimestamp
+            val seconds = diff / 1000
+            val minutes = seconds / 60
+            val hours = minutes / 60
+            return when {
+                seconds < 60 -> "Vor $seconds Sek."
+                minutes < 60 -> "Vor $minutes Min."
+                hours < 24 -> "Vor $hours Std."
+                else -> {
+                    val sdf = SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
+                    sdf.format(Date(updatedTimestamp))
+                }
+            }
         }
 }
 
@@ -272,7 +287,6 @@ object TradeCalculator {
         standpunktCity: String? = null,
         maxCityDistance: Int = 99,
         hideBrecilien: Boolean = false,
-        maxStockCount: Int = 999999,
         hideBlackMarket: Boolean = false
     ): List<TradeOpportunity> {
         val opportunities = mutableListOf<TradeOpportunity>()
@@ -283,7 +297,7 @@ object TradeCalculator {
             for (enc in enchantmentsToCheck) {
                 val resource = if (enc > 0) baseResource.copy(enchantment = enc) else baseResource
 
-                val prices = pricesByItem[resource.fullId] ?: pricesByItem[resource.id] ?: continue
+                val prices = pricesByItem[resource.fullId] ?: continue
                 if (prices.isEmpty()) continue
 
                 val baseFilteredPrices = if (avoidDangerousZones) {
@@ -303,20 +317,23 @@ object TradeCalculator {
                 } else {
                     noBmPrices
                 }
+                
+                val pricesByQuality = filteredPrices.groupBy { it.quality }
+                
+                for ((qual, qPrices) in pricesByQuality) {
+                    val validBuyPrices = if (!standpunktCity.isNullOrBlank() && standpunktCity != "ALLE") {
+                        qPrices.filter { citiesMatch(it.city, standpunktCity) && it.sellPriceMin > 0 }
+                    } else {
+                        qPrices.filter { it.sellPriceMin > 0 }
+                    }
+                    if (validBuyPrices.isEmpty()) continue
 
-                val validBuyPrices = if (!standpunktCity.isNullOrBlank() && standpunktCity != "ALLE") {
-                    filteredPrices.filter { citiesMatch(it.city, standpunktCity) && it.sellPriceMin > 0 }
-                } else {
-                    filteredPrices.filter { it.sellPriceMin > 0 }
-                }
-                if (validBuyPrices.isEmpty()) continue
+                    val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
 
-                val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
+                    val validSellPrices = qPrices.filter { !it.city.equals(bestBuy.city, ignoreCase = true) && it.sellPriceMin > 0 }
+                    if (validSellPrices.isEmpty()) continue
 
-                val validSellPrices = filteredPrices.filter { !it.city.equals(bestBuy.city, ignoreCase = true) && it.sellPriceMin > 0 }
-                if (validSellPrices.isEmpty()) continue
-
-                val bestSell = validSellPrices.maxByOrNull { it.sellPriceMin } ?: continue
+                    val bestSell = validSellPrices.maxByOrNull { it.sellPriceMin } ?: continue
 
                 if (avoidDangerousZones && (isDangerousCity(bestBuy.city) || isDangerousCity(bestSell.city))) {
                     continue
@@ -352,10 +369,6 @@ object TradeCalculator {
                     tradeUnits = min(tradeUnits, availableStock)
                 }
                 
-                if (tradeUnits > maxStockCount) {
-                    tradeUnits = maxStockCount
-                }
-                
                 if (tradeUnits <= 0) continue
 
                 val totalInvestment = tradeUnits.toLong() * buyPrice
@@ -383,7 +396,26 @@ object TradeCalculator {
                 val cityStock = if (bestBuy.sellPriceMinAmount > 0) bestBuy.sellPriceMinAmount else (tradeUnits * 3).coerceAtLeast(25)
 
                 if (zonesWalked > maxCityDistance) continue
-                if (maxStockCount in 1..999998 && cityStock > maxStockCount) continue
+
+                val recommendedBuyOrderPrice = (buyPrice * 0.88).toInt().coerceAtLeast(1)
+                val recommendedSellOrderPrice = (sellPrice - 1).coerceAtLeast(buyPrice + 1)
+                val fmtNum = NumberFormat.getNumberInstance(Locale.GERMANY)
+                
+                val bestBuyAmount = bestBuy.sellPriceMinAmount
+                val bestSellAmount = bestSell.sellPriceMinAmount
+
+                val buyProbability = if (bestBuyAmount > 50 && roi > 15.0) ">90%" else if (bestBuyAmount > 10 && roi > 10.0) "85%" else "70%"
+                val sellProbability = if (bestSellAmount > 50 && roi > 15.0) ">90%" else if (bestSellAmount > 10 && roi > 10.0) "85%" else "70%"
+                
+                val buyOrderRec = "🛒 Kauforder in ${bestBuy.city}: ${fmtNum.format(recommendedBuyOrderPrice)} S. ($buyProbability Chance)"
+                val sellOrderRec = "📈 Verkauforder in ${bestSell.city}: ${fmtNum.format(recommendedSellOrderPrice)} S. ($sellProbability Chance)"
+                val strategy = if (buyProbability == ">90%" && sellProbability == ">90%") {
+                    "💡 KI: Sichere Buy- & Sellorder (über 90% Wahrscheinlichkeit!)"
+                } else if (roi > 15.0) {
+                    "💡 KI: Dual Order (Kauforder in ${bestBuy.city} + Verkauforder in ${bestSell.city})"
+                } else {
+                    "⚡ KI: Sofortkauf + Verkauforder"
+                }
 
                 opportunities.add(
                     TradeOpportunity(
@@ -410,9 +442,13 @@ object TradeCalculator {
                         updatedTimestamp = effectiveTimestamp,
                         updatedDateFormatted = ageStr,
                         equivalentGoldProfit = goldProfit,
-                        stockAvailable = cityStock
+                        stockAvailable = cityStock,
+                        buyOrderRecommendation = buyOrderRec,
+                        sellOrderRecommendation = sellOrderRec,
+                        aiOrderStrategy = strategy
                     )
                 )
+                }
             }
         }
 
@@ -422,16 +458,29 @@ object TradeCalculator {
         ).take(50)
     }
 
-    private fun parseIsoToEpochMs(dateStr: String): Long {
+    fun parseIsoToEpochMs(dateStr: String): Long {
         if (dateStr.isBlank()) return 0L
-        return try {
-            val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
-            sdf.timeZone = TimeZone.getTimeZone("UTC")
-            val date = sdf.parse(dateStr)
-            date?.time ?: 0L
-        } catch (e: Exception) {
-            0L
+        val cleanStr = dateStr.trim()
+        val patterns = listOf(
+            "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss",
+            "yyyy-MM-dd HH:mm:ss",
+            "yyyy-MM-dd"
+        )
+        for (pattern in patterns) {
+            try {
+                val sdf = SimpleDateFormat(pattern, Locale.US)
+                if (pattern.contains("'Z'")) {
+                    sdf.timeZone = TimeZone.getTimeZone("UTC")
+                }
+                val date = sdf.parse(cleanStr)
+                if (date != null) return date.time
+            } catch (_: Exception) {
+            }
         }
+        return 0L
     }
 
     fun formatPriceAge(epochMs: Long): String {

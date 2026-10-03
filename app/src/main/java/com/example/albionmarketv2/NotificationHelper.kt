@@ -31,10 +31,7 @@ object NotificationHelper {
 
     private fun isDeviceOrAppLocked(context: Context): Boolean {
         val keyguardManager = context.getSystemService(Context.KEYGUARD_SERVICE) as? KeyguardManager
-        val isKeyguardLocked = (keyguardManager?.isKeyguardLocked == true) || (keyguardManager?.isDeviceLocked == true)
-        val prefs = AppPreferences(context)
-        val isAppLocked = !prefs.isUserLoggedIn || !ServerSyncManager.isServerConnected
-        return isKeyguardLocked || isAppLocked
+        return (keyguardManager?.isKeyguardLocked == true) || (keyguardManager?.isDeviceLocked == true)
     }
 
     fun showTradeNotification(

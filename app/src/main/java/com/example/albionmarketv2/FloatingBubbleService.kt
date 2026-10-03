@@ -548,30 +548,17 @@ fun BubbleOverlayContent(
     var isCompactMode by remember { mutableStateOf(prefs.bubbleCompactMode) }
     var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
     var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
+    var bubbleWidthPortrait by remember { mutableIntStateOf(prefs.bubbleWidthPortrait) }
+    var bubbleHeightPortrait by remember { mutableIntStateOf(prefs.bubbleHeightPortrait) }
+    var bubbleWidthLandscape by remember { mutableIntStateOf(prefs.bubbleWidthLandscape) }
+    var bubbleHeightLandscape by remember { mutableIntStateOf(prefs.bubbleHeightLandscape) }
 
     val effOpacity = bubbleOpacity.coerceIn(0.3f, 1.0f)
     val effScale = bubbleScale.coerceIn(0.6f, 1.5f)
 
-    val baseWidth = if (isLandscape) {
-        if (isMaximized) (if (isCompactMode) 320.dp else 400.dp) else (if (isCompactMode) 250.dp else 320.dp)
-    } else {
-        if (isMaximized) (if (isCompactMode) 290.dp else 350.dp) else (if (isCompactMode) 230.dp else 280.dp)
-    }
-    val cardWidth = (baseWidth.value * effScale).dp
-
-    val baseMaxHeight = if (isLandscape) {
-        if (isMaximized) (if (isCompactMode) 190.dp else 240.dp) else (if (isCompactMode) 130.dp else 160.dp)
-    } else {
-        if (isMaximized) (if (isCompactMode) 380.dp else 460.dp) else (if (isCompactMode) 220.dp else 280.dp)
-    }
-    val maxBubbleHeight = (baseMaxHeight.value * effScale).dp
-
-    val baseMaxHeightTab = if (isLandscape) {
-        if (isMaximized) (if (isCompactMode) 170.dp else 220.dp) else (if (isCompactMode) 115.dp else 140.dp)
-    } else {
-        if (isMaximized) (if (isCompactMode) 350.dp else 430.dp) else (if (isCompactMode) 195.dp else 250.dp)
-    }
-    val maxBubbleHeightTab = (baseMaxHeightTab.value * effScale).dp
+    val cardWidth = ((if (isLandscape) bubbleWidthLandscape else bubbleWidthPortrait).toFloat() * effScale).dp
+    val maxBubbleHeight = ((if (isLandscape) bubbleHeightLandscape else bubbleHeightPortrait).toFloat() * effScale).dp
+    val maxBubbleHeightTab = ((if (isLandscape) (bubbleHeightLandscape - 45).coerceAtLeast(80) else (bubbleHeightPortrait - 45).coerceAtLeast(100)).toFloat() * effScale).dp
 
     var isExpanded by remember { mutableStateOf(value = false) }
     var isBookingMode by remember { mutableStateOf(value = false) }
@@ -1870,7 +1857,7 @@ fun BubbleCatalogTab(
     uiState: ResourceUiState,
     onFocusModeChanged: (Boolean) -> Unit,
     maxHeight: Dp,
-    onResourceClick: (AlbionResource) -> Unit
+    onResourceClick: (AlbionResource) -> Unit,
 ) {
     var query by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf(ResourceCategory.ALL) }
@@ -1888,7 +1875,10 @@ fun BubbleCatalogTab(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight)
+            .verticalScroll(rememberScrollState()),
     ) {
         // Search TextField
         OutlinedTextField(
@@ -1964,7 +1954,7 @@ fun BubbleCatalogTab(
                         4 -> 18.0
                         else -> 1.0
                     }
-                    val prices = if (priceMap[effectiveResource.fullId] == null && effectiveResource.enchantment > 0) {
+                    val prices = if ((priceMap[effectiveResource.fullId] == null) && (effectiveResource.enchantment > 0)) {
                         rawPrices.map { it.copy(sellPriceMin = (it.sellPriceMin * mult).toInt(), buyPriceMax = (it.buyPriceMax * mult).toInt()) }
                     } else {
                         rawPrices
@@ -2053,7 +2043,7 @@ fun BubbleCatalogTab(
 fun BubbleCraftingTab(
     viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
-    maxHeight: Dp
+    maxHeight: Dp,
 ) {
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -2071,7 +2061,9 @@ fun BubbleCraftingTab(
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight),
     ) {
         items(topItems, key = { "${it.first.fullId}_${it.second}_${it.third}" }) { (res, cost, profit) ->
             Surface(
@@ -2143,7 +2135,7 @@ fun BubbleCraftingTab(
 @Composable
 fun BubbleIslandTab(
     context: Context,
-    maxHeight: Dp
+    maxHeight: Dp,
 ) {
     val buildings = remember { IslandRepository.buildings }
     var selectedCityFilter by remember { mutableStateOf("ALLE") }
@@ -2168,7 +2160,10 @@ fun BubbleIslandTab(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight)
+            .verticalScroll(rememberScrollState()),
     ) {
         // City Filter Chips
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -2265,13 +2260,15 @@ fun BubbleIslandTab(
 @Composable
 fun BubbleEventsTab(
     uiState: ResourceUiState,
-    maxHeight: Dp
+    maxHeight: Dp,
 ) {
     val liveEvents = remember(uiState.liveEventsList) { uiState.liveEventsList.take(10) }
 
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight),
     ) {
         if (liveEvents.isEmpty()) {
             item {
@@ -2336,7 +2333,7 @@ fun BubbleGoldTab(
     viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
     onFocusModeChanged: (Boolean) -> Unit,
-    maxHeight: Dp
+    maxHeight: Dp,
 ) {
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     var goldAmountInput by remember { mutableStateOf("") }
@@ -2887,7 +2884,7 @@ fun BubbleSettingsTab(
                         color = if (isSelected) Color.Black else Color.White,
                         fontSize = 9.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                     )
                 }
             }

@@ -70,15 +70,20 @@ object IslandTimerManager {
         try {
             val arr = JSONArray(jsonStr)
             for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
+                val obj = arr.optJSONObject(i) ?: continue
+                val id = obj.optString("id", "")
+                val nameDe = obj.optString("nameDe", "")
+                if (id.isBlank() || nameDe.isBlank()) continue
+                val catStr = obj.optString("category", TimerCategory.CROP.name)
+                val categoryEnum = try { TimerCategory.valueOf(catStr) } catch (_: Exception) { TimerCategory.CROP }
                 list.add(
                     IslandTimerItem(
-                        id = obj.getString("id"),
-                        nameDe = obj.getString("nameDe"),
-                        category = TimerCategory.valueOf(obj.getString("category")),
-                        durationHours = obj.getInt("durationHours"),
-                        startTimeMs = obj.getLong("startTimeMs"),
-                        expectedHarvestTimeMs = obj.getLong("expectedHarvestTimeMs")
+                        id = id,
+                        nameDe = nameDe,
+                        category = categoryEnum,
+                        durationHours = obj.optInt("durationHours", 22),
+                        startTimeMs = obj.optLong("startTimeMs", System.currentTimeMillis()),
+                        expectedHarvestTimeMs = obj.optLong("expectedHarvestTimeMs", System.currentTimeMillis())
                     )
                 )
             }

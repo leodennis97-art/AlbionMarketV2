@@ -38,7 +38,13 @@ class PersistentServerSyncService : LifecycleService() {
         fun startService(context: Context) {
             try {
                 val intent = Intent(context, PersistentServerSyncService::class.java)
-                context.startForegroundService(intent)
+                try {
+                    context.startForegroundService(intent)
+                } catch (_: Exception) {
+                    try {
+                        context.startService(intent)
+                    } catch (_: Exception) {}
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -77,6 +83,33 @@ class PersistentServerSyncService : LifecycleService() {
         start25SecondUpdateCheckLoop()
         start5MinuteBackgroundCheckLoop()
         startHourlyOtaDownloadLoop()
+        start30MinGoldStatusLoop()
+    }
+
+    private fun start30MinGoldStatusLoop() {
+        serviceScope.launch {
+            while (isRunning) {
+                delay(30.minutes)
+                try {
+                    val prefs = AppPreferences(this@PersistentServerSyncService)
+                    if (prefs.systemNotificationsEnabled) {
+                        val goldPrices = AlbionGoldApi.fetchGoldPrices(prefs.server, count = 1)
+                        val currentGold = goldPrices.firstOrNull()?.price ?: 4250
+                        val ownedGold = prefs.goldAmount
+                        val profit = ownedGold * (currentGold - 4250)
+                        NotificationHelper.showGoldProfitNotification(
+                            this@PersistentServerSyncService,
+                            goldAmount = ownedGold.toInt(),
+                            netProfitSilver = profit,
+                            roiPercent = (profit.toDouble() / (ownedGold * 4250).coerceAtLeast(1L)) * 100.0,
+                            currentGoldPrice = currentGold
+                        )
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -112,12 +145,21 @@ class PersistentServerSyncService : LifecycleService() {
             .setOngoing(true)
             .build()
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-            startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
-        } else {
-            startForeground(NOTIFICATION_ID, notification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+            } else {
+                startForeground(NOTIFICATION_ID, notification)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            try {
+                startForeground(NOTIFICATION_ID, notification)
+            } catch (_: Exception) {}
         }
     }
+
+    private var consecutivePingFailures = 0
 
     private fun startContinuousServerLoop() {
         serviceScope.launch {
@@ -132,7 +174,19 @@ class PersistentServerSyncService : LifecycleService() {
 
                     // Ping server and update device status continuously
                     val stats = ServerSyncManager.pingServer(this@PersistentServerSyncService, activeOrdersCount)
-                    isConnected = (stats != null)
+                    if (stats != null) {
+                        isConnected = true
+                        consecutivePingFailures = 0
+                        ServerSyncManager.isServerConnected = true
+                    } else {
+                        consecutivePingFailures++
+                        if (consecutivePingFailures >= 3) {
+                            isConnected = false
+                            ServerSyncManager.isServerConnected = false
+                        } else {
+                            isConnected = true // Maintain stable connected state during transient blips
+                        }
+                    }
 
                     // Sync price snapshots
                     val snapshots = prefs.getPriceSnapshots(prefs.server)
@@ -140,13 +194,10 @@ class PersistentServerSyncService : LifecycleService() {
                         ServerSyncManager.syncPriceSnapshots(this@PersistentServerSyncService, snapshots)
                     }
                 } catch (e: Exception) {
-                    if (e is RuntimeException && e.message?.contains("FATAL CRASH") == true) {
-                        throw e
-                    }
                     e.printStackTrace()
                 }
-                // Hyper-persistent connection loop: 1.5s keep-alive pulse when connected, 500ms rapid retry when offline
-                delay(if (isConnected) 1500L else 500L)
+                // Optimized background connection loop: 8s pulse when connected, 3s retry when offline
+                delay(if (isConnected) 8000L else 3000L)
             }
         }
     }
@@ -155,7 +206,7 @@ class PersistentServerSyncService : LifecycleService() {
         serviceScope.launch {
             while (isRunning) {
                 try {
-                    // 1. Strict internet dependency check (throws RuntimeException if no internet)
+                    // 1. Strict internet dependency check
                     NetworkDependencyManager.checkInternetOrCrash(this@PersistentServerSyncService)
 
                     // 2. Ping Localhost and check for 25s update signals / patches
@@ -163,9 +214,7 @@ class PersistentServerSyncService : LifecycleService() {
                     val activeOrdersCount = prefs.getTradeOrders().count { it.status == OrderStatus.ACTIVE }
                     ServerSyncManager.pingServer(this@PersistentServerSyncService, activeOrdersCount)
                 } catch (e: Exception) {
-                    if (e is RuntimeException && e.message?.contains("FATAL CRASH") == true) {
-                        throw e // Crash app as instructed if no internet
-                    }
+                    e.printStackTrace()
                 }
                 delay(25.seconds) // 25-second update loop
             }
@@ -180,6 +229,10 @@ class PersistentServerSyncService : LifecycleService() {
             while (isRunning) {
                 try {
                     val prefs = AppPreferences(this@PersistentServerSyncService)
+                    if (!prefs.systemNotificationsEnabled) {
+                        delay(5.minutes)
+                        continue
+                    }
 
                     // 1. Check Gold Price change >= 5%
                     val goldPrices = AlbionGoldApi.fetchGoldPrices(prefs.server, count = 1)
@@ -255,30 +308,17 @@ class PersistentServerSyncService : LifecycleService() {
         serviceScope.launch {
             while (isRunning) {
                 try {
-                    // Hourly 24h download stats & OTA AlbionDataPro.apk from local host / ngrok
+                    // Periodic check of download stats from Render Cloud
                     NetworkDependencyManager.checkInternetOrCrash(this@PersistentServerSyncService)
                     
-                    // 24h download stündlich wiederherstellen
                     val stats = ServerSyncManager.fetchDownloadStats(this@PersistentServerSyncService)
                     if (stats.hourly24h.isNotEmpty()) {
                         println("24h Downloads Hourly Sync: Total=${stats.totalDownloads}")
                     }
-                    
-                    val prefs = AppPreferences(this@PersistentServerSyncService)
-                    if (prefs.isUserLoggedIn) {
-                        val hasUpdate = OtaUpdateManager.downloadAndInstallUpdate(this@PersistentServerSyncService)
-                        if (hasUpdate) {
-                            NotificationHelper.showTradeNotification(
-                                this@PersistentServerSyncService,
-                                "🚀 Update Heruntergeladen",
-                                "Die neueste AlbionDataPro.apk wurde erfolgreich heruntergeladen und wird installiert."
-                            )
-                        }
-                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-                delay(30.seconds)
+                delay(15.minutes)
             }
         }
     }

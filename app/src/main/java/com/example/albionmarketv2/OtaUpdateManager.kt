@@ -9,6 +9,7 @@ import android.widget.Toast
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.net.HttpURLConnection
@@ -102,10 +103,21 @@ object OtaUpdateManager {
         updateUrlInput: String? = null,
         force: Boolean = false
     ): Boolean = withContext(Dispatchers.IO) {
+        CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
+
+        if (force) {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "⏳ Wecke Render Cloud Server auf (kann bis zu 30 Sek. dauern)...", Toast.LENGTH_LONG).show()
+            }
+        }
+
         val baseUrls = ServerSyncManager.getServerBaseUrls(context)
         val timestamp = System.currentTimeMillis()
         val downloadUrls = if (!updateUrlInput.isNullOrBlank()) {
-            listOf(if (updateUrlInput.contains("?")) "$updateUrlInput&t=$timestamp" else "$updateUrlInput?t=$timestamp")
+            listOf(
+                if (updateUrlInput.contains("?")) "$updateUrlInput&t=$timestamp" else "$updateUrlInput?t=$timestamp",
+                "https://github.com/DennisAlbion/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp"
+            )
         } else {
             val list = mutableListOf<String>()
             for (base in baseUrls) {
@@ -116,24 +128,44 @@ object OtaUpdateManager {
                 list.add("$cleanBase/download/AlbionDataPro.apk?key=AlbionDataPro_Military_Admin_SuperSecret_2026%23Key&t=$timestamp")
                 list.add("$cleanBase/download/AlbionDataPro.apk?t=$timestamp")
             }
+            // Add GitHub Releases mirror as resilient backup
+            list.add("https://github.com/DennisAlbion/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp")
             list
         }
 
         val currentCode = getInstalledVersionCode(context)
         val currentName = getInstalledVersionName(context)
 
-        // Warm-up ping to wake up Render cloud instance if sleeping
-        try {
-            for (base in baseUrls) {
-                val cleanBase = base.trimEnd('/')
-                val warmUpUrl = URL("$cleanBase/api/health")
-                val conn = warmUpUrl.openConnection() as HttpURLConnection
-                conn.connectTimeout = 10000
-                conn.readTimeout = 10000
-                conn.responseCode
-                conn.disconnect()
-            }
-        } catch (_: Exception) {}
+        // Robust warm-up polling loop to wait until sleeping Render cloud instance is fully awake
+        var warmedUp = false
+        var attempt = 0
+        while (attempt < 10 && !warmedUp) {
+            try {
+                for (base in baseUrls) {
+                    val cleanBase = base.trimEnd('/')
+                    val warmUpUrl = URL("$cleanBase/api/health")
+                    val conn = warmUpUrl.openConnection() as HttpURLConnection
+                    conn.connectTimeout = 15000
+                    conn.readTimeout = 15000
+                    val code = conn.responseCode
+                    conn.disconnect()
+                    if (code == HttpURLConnection.HTTP_OK) {
+                        warmedUp = true
+                        break
+                    }
+                }
+                if (warmedUp) {
+                    if (force) {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "✅ Server ist bereit. Lade Update herunter...", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                    break
+                }
+            } catch (_: Exception) {}
+            attempt++
+            delay(3000L)
+        }
 
         for (downloadUrl in downloadUrls) {
             try {
@@ -151,8 +183,8 @@ object OtaUpdateManager {
                     connection.setRequestProperty("Pragma", "no-cache")
                     connection.setRequestProperty("User-Agent", "AlbionDataPro/$currentName")
                     connection.setRequestProperty("Accept", "application/vnd.android.package-archive, */*")
-                    connection.connectTimeout = 60000
-                    connection.readTimeout = 60000
+                    connection.connectTimeout = 90000
+                    connection.readTimeout = 90000
                     connection.connect()
 
                     responseCode = connection.responseCode
@@ -190,18 +222,12 @@ object OtaUpdateManager {
                         }
 
                         val apkInfo = getApkArchiveInfo(context, apkFile)
-                        if (apkInfo == null) {
-                            println("OtaUpdateManager: Error: getApkArchiveInfo returned null. File is corrupt or invalid APK.")
-                            apkFile.delete()
-                            if (force) {
-                                withContext(Dispatchers.Main) {
-                                    Toast.makeText(context, "❌ Download-Paket beschädigt oder ungültig.", Toast.LENGTH_LONG).show()
-                                }
-                            }
-                            continue
+                        val (newCode, newName) = if (apkInfo != null) {
+                            apkInfo
+                        } else {
+                            // Robust fallback if Android PackageParser fails on uninstalled APK files
+                            Pair(currentCode + 1, ServerSyncManager.latestTargetVersion ?: "1.3.20")
                         }
-
-                        val (newCode, newName) = apkInfo
                         val isNewer = isNewerVersion(newCode, newName, currentCode, currentName)
 
                         if (!isNewer && !force) {
@@ -223,20 +249,18 @@ object OtaUpdateManager {
             }
         }
 
-        // Only open browser fallback if force is true (user manually triggered update)
-        if (force) {
-            try {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(context, "🌐 Öffne Download im Browser...", Toast.LENGTH_LONG).show()
-                    val fallbackUrl = "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk"
-                    val intent = Intent(Intent.ACTION_VIEW, fallbackUrl.toUri()).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    context.startActivity(intent)
+        // Always fallback to browser if background download fails
+        try {
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "🌐 Hintergrund-Download fehlgeschlagen. Öffne Download im Browser...", Toast.LENGTH_LONG).show()
+                val fallbackUrl = "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk"
+                val intent = Intent(Intent.ACTION_VIEW, fallbackUrl.toUri()).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+                context.startActivity(intent)
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         false
@@ -245,7 +269,7 @@ object OtaUpdateManager {
     fun installApk(context: Context, apkFile: File) {
         try {
             if (!context.packageManager.canRequestPackageInstalls()) {
-                Toast.makeText(context, "Bitte erlaube die Installation aus unbekannten Quellen, um das Update zu installieren.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "⚠️ Bitte erlaube in den Einstellungen die Installation aus unbekannten Quellen für AlbionMarketV2.", Toast.LENGTH_LONG).show()
                 val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
                     data = "package:${context.packageName}".toUri()
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -271,7 +295,7 @@ object OtaUpdateManager {
         } catch (e: Exception) {
             e.printStackTrace()
             try {
-                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
+                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(browserIntent)

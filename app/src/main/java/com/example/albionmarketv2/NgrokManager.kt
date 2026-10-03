@@ -12,8 +12,8 @@ object NgrokManager {
             Session.withAuthtokenFromEnv().connect().use { session ->
                 val forwarder = session.httpEndpoint()
                     .domain("speller-importer-captivate.ngrok-free.dev")
-                    .forward(URL("http://localhost:8085"))
-                println("Available at: ${forwarder.url}")
+                    .forward(URL("https://albionmarketv2.onrender.com"))
+                println("Connected to Render via Ngrok at: ${forwarder.url}")
             }
         } catch (e: Exception) {
             e.printStackTrace()

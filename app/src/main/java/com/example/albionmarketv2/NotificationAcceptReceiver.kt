@@ -21,8 +21,8 @@ class NotificationAcceptReceiver : BroadcastReceiver() {
                 val currentOrders = prefs.getTradeOrders()
                 val activeOrders = currentOrders.filter { it.status == OrderStatus.ACTIVE }
 
-                if (activeOrders.size >= 3) {
-                    Toast.makeText(context, "⚠️ Maximal 3 aktive Aufträge gleichzeitig erlaubt!", Toast.LENGTH_LONG).show()
+                if (activeOrders.size >= 10) {
+                    Toast.makeText(context, "⚠️ Maximal 10 aktive Aufträge gleichzeitig erlaubt!", Toast.LENGTH_LONG).show()
                     return
                 }
 

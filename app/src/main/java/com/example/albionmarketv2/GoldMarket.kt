@@ -154,7 +154,7 @@ object AlbionGoldApi {
                     val jsonArray = JSONArray(responseText)
 
                     for (i in 0 until jsonArray.length()) {
-                        val obj = jsonArray.getJSONObject(i)
+                        val obj = jsonArray.optJSONObject(i) ?: continue
                         val price = obj.optInt("price", 0)
                         val timestamp = obj.optString("timestamp", "")
                         if (price > 0) {

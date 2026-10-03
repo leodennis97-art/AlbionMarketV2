@@ -18,7 +18,8 @@ import java.util.UUID
 
 enum class OpportunitySort {
     HIGHEST_MARGIN,
-    NEWEST
+    NEWEST,
+    FEWEST_STOCK
 }
 
 data class ResourceUiState(
@@ -41,12 +42,12 @@ data class ResourceUiState(
     val server: AlbionServer = AlbionServer.EUROPE,
     val silverBudget: Long = 1_000_000L,
     val carryCapacityKg: Double = 2_000.0,
+    val goldAmount: Long = 0L,
     val selectedMount: String = "Transportochs T5 (+1800 kg)",
     val selectedBag: String = "Tasche T5 (+220 kg)",
     val selectedBoots: String = "Transport-Schuhe T4 (+80 kg)",
     val targetMarginPercent: Double = 5.0,
     val maxZonesFilter: Int = 99, // Max zu durchlaufende Gebiete / Zonen
-    val maxStockFilter: Int = 999999,
     val hideBrecilien: Boolean = false,
     val hideBlackMarket: Boolean = false,
     val favoriteItemIds: Set<String> = emptySet(),
@@ -71,7 +72,7 @@ data class ResourceUiState(
     // Total scanned items count across cycles
     val totalScannedItemsCount: Long = 0L,
 
-    // Active & Completed Orders (Max 3 active orders allowed)
+    // Active & Completed Orders (Max 10 active orders allowed)
     val tradeOrders: List<TradeOrder> = emptyList(),
     val orderErrorMsg: String? = null,
 
@@ -90,7 +91,7 @@ data class ResourceUiState(
 
     // KI Ausrüstung & Build-Sets
     val equipmentBuilds: List<EquipmentBuild> = EquipmentBuildRepository.builds,
-    val selectedBuildCategory: BuildCategory = BuildCategory.DAMAGE,
+    val selectedBuildCategory: BuildCategory = BuildCategory.MELEE_DPS,
 
     val marketPrices: Map<String, List<MarketPrice>> = emptyMap(),
     val tradeOpportunities: List<TradeOpportunity> = emptyList(),
@@ -146,9 +147,11 @@ data class ResourceUiState(
     val totalGoldCurrentValueSilver: Long
         get() = totalGoldOwned.toLong() * currentGoldPrice
 
+    @Suppress("unused")
     val realizedGoldProfitSilver: Long
         get() = totalGoldEarnedSilver - (totalGoldSold.toLong() * avgGoldBuyPrice)
 
+    @Suppress("unused")
     val unrealizedGoldProfitSilver: Long
         get() = totalGoldCurrentValueSilver - remainingGoldCostSilver
 
@@ -173,6 +176,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             server = prefs.server,
             silverBudget = prefs.silverBudget,
             carryCapacityKg = prefs.carryCapacityKg,
+            goldAmount = prefs.goldAmount,
             selectedMount = prefs.selectedMount,
             selectedBag = prefs.selectedBag,
             selectedBoots = prefs.selectedBoots,
@@ -180,7 +184,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             hasPremium = prefs.hasPremium,
             avoidDangerousZones = prefs.avoidDangerousZones,
             maxZonesFilter = prefs.maxCityDistance,
-            maxStockFilter = prefs.minStockCount,
             hideBrecilien = prefs.hideBrecilien,
             hideBlackMarket = prefs.hideBlackMarket,
             favoriteItemIds = prefs.favoriteItemIds,
@@ -195,7 +198,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             goldPurchases = prefs.getGoldPurchases(),
             goldSales = prefs.getGoldSales(),
             priceSnapshots = prefs.getPriceSnapshots(),
-            marketPrices = emptyMap()
+            marketPrices = emptyMap(),
         )
     )
     val uiState: StateFlow<ResourceUiState> = _uiState.asStateFlow()
@@ -244,25 +247,25 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
 
                 // 2. Marktdaten & Server-Sync Zyklus (alle 3 Sekunden)
-                if (cycleTick % 3L == 0L) {
+                if ((cycleTick % 3L) == 0L) {
                     fetchMarketPricesInternal()
                     reloadOrdersFromPrefs()
                     val serverStats = ServerSyncManager.pingServer(getApplication(), _uiState.value.activeOrders.size)
-                    if (serverStats != null) {
+                    serverStats?.let { stats ->
                         _uiState.value = _uiState.value.copy(
-                            totalServerDownloads = serverStats.totalDownloads,
-                            hourlyDownloads24h = serverStats.hourly24h
+                            totalServerDownloads = stats.totalDownloads,
+                            hourlyDownloads24h = stats.hourly24h
                         )
                     }
                 }
 
                 // 3. Goldmarkt-Kurs Zyklus (alle 30 Sekunden)
-                if (cycleTick % 30L == 0L && cycleTick > 0L) {
+                if ((cycleTick % 30L) == 0L && cycleTick > 0L) {
                     fetchGoldPricesInternal()
                 }
 
                 // 4. Live Events Zyklus (alle 10 Minuten)
-                if (cycleTick % 600L == 0L && cycleTick > 0L) {
+                if ((cycleTick % 600L) == 0L && cycleTick > 0L) {
                     val freshEvents = AlbionWorldData.generateLiveEvents()
                     _uiState.value = _uiState.value.copy(liveEventsList = freshEvents)
                 }
@@ -335,6 +338,13 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         recalculateOpportunities(updated)
     }
 
+    fun onGoldPriceChanged(price: Int) {
+        val current = _uiState.value
+        val updated = current.copy(currentGoldPrice = price)
+        _uiState.value = updated
+        recalculateOpportunities(updated)
+    }
+
     fun onEquipmentLoadoutChanged(mount: String, bag: String, boots: String) {
         prefs.selectedMount = mount
         prefs.selectedBag = bag
@@ -358,6 +368,13 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val current = _uiState.value
         val updated = current.copy(carryCapacityKg = capacity)
         recalculateOpportunities(updated)
+    }
+
+    fun onGoldAmountChanged(amount: Long) {
+        prefs.goldAmount = amount
+        val current = _uiState.value
+        val updated = current.copy(goldAmount = amount)
+        _uiState.value = updated
     }
 
     fun onTargetMarginChanged(marginPercent: Double) {
@@ -402,13 +419,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val clamped = level.coerceIn(0, 100)
         prefs.craftingMasteryLevel = clamped
         _uiState.value = _uiState.value.copy(craftingMasteryLevel = clamped)
-    }
-
-    fun onMaxStockFilterChanged(maxStock: Int) {
-        prefs.minStockCount = maxStock
-        val current = _uiState.value
-        val updated = current.copy(maxStockFilter = maxStock)
-        recalculateOpportunities(updated)
     }
 
     fun onPremiumToggled(hasPremium: Boolean) {
@@ -491,12 +501,12 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         )
     }
 
-    // Trade Order Actions (Limit bis zu 3 gleichzeitig)
+    // Trade Order Actions (Limit bis zu 10 gleichzeitig)
     fun acceptTradeOpportunity(opp: TradeOpportunity) {
         reloadOrdersFromPrefs()
-        if (_uiState.value.activeOrders.size >= 3) {
+        if (_uiState.value.activeOrders.size >= 10) {
             _uiState.value = _uiState.value.copy(
-                orderErrorMsg = "Maximal 3 aktive Aufträge gleichzeitig erlaubt! Bitte schließe zuerst einen bestehenden Auftrag ab."
+                orderErrorMsg = "Maximal 10 aktive Aufträge gleichzeitig erlaubt! Bitte schließe zuerst einen bestehenden Auftrag ab."
             )
             return
         }
@@ -540,9 +550,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
     ) {
         val currentOrders = _uiState.value.tradeOrders
         val activeOrders = currentOrders.filter { it.status == OrderStatus.ACTIVE }
-        if (activeOrders.size >= 3) {
+        if (activeOrders.size >= 10) {
             _uiState.value = _uiState.value.copy(
-                orderErrorMsg = "Maximal 3 aktive Aufträge gleichzeitig erlaubt! Schließe einen bestehenden Auftrag ab, um einen neuen anzunehmen."
+                orderErrorMsg = "Maximal 10 aktive Aufträge gleichzeitig erlaubt! Schließe einen bestehenden Auftrag ab, um einen neuen anzunehmen."
             )
             return
         }
@@ -711,8 +721,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
     fun acceptIslandBuildingOrder(bldg: IslandBuilding) {
         val currentOrders = _uiState.value.tradeOrders
         val active = currentOrders.filter { it.status == OrderStatus.ACTIVE }
-        if (active.size >= 3) {
-            _uiState.value = _uiState.value.copy(orderErrorMsg = "⚠️ Maximal 3 aktive Aufträge gleichzeitig erlaubt!")
+        if (active.size >= 10) {
+            _uiState.value = _uiState.value.copy(orderErrorMsg = "⚠️ Maximal 10 aktive Aufträge gleichzeitig erlaubt!")
             return
         }
         val dateStr = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.GERMANY).format(Date())
@@ -804,6 +814,14 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         _uiState.value = _uiState.value.copy(goldPurchases = updatedList)
     }
 
+    fun updateGoldPurchase(id: String, newAmount: Int, newPrice: Int) {
+        val updatedList = _uiState.value.goldPurchases.map { 
+            if (it.id == id) it.copy(amountGold = newAmount, buyPricePerGold = newPrice) else it 
+        }
+        prefs.saveGoldPurchases(updatedList)
+        _uiState.value = _uiState.value.copy(goldPurchases = updatedList)
+    }
+
     fun addGoldSale(amountGold: Int, sellPricePerGold: Int, saleDate: String) {
         val dateStr = saleDate.ifBlank {
             SimpleDateFormat("dd.MM.yyyy", Locale.GERMANY).format(Date())
@@ -823,6 +841,14 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     fun deleteGoldSale(id: String) {
         val updatedList = _uiState.value.goldSales.filter { it.id != id }
+        prefs.saveGoldSales(updatedList)
+        _uiState.value = _uiState.value.copy(goldSales = updatedList)
+    }
+
+    fun updateGoldSale(id: String, newAmount: Int, newPrice: Int) {
+        val updatedList = _uiState.value.goldSales.map { 
+            if (it.id == id) it.copy(amountGold = newAmount, sellPricePerGold = newPrice) else it 
+        }
         prefs.saveGoldSales(updatedList)
         _uiState.value = _uiState.value.copy(goldSales = updatedList)
     }
@@ -881,6 +907,21 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         recalculateOpportunities(updated)
     }
 
+    fun forceReloadAllResources() {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                // Wipe cache and re-fetch from API
+                val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds() } catch (_: Exception) { emptyList() }
+                if (dynamicItems.isNotEmpty()) {
+                    AlbionResourceRepository.addDynamicResources(dynamicItems)
+                }
+                fetchMarketPricesInternal()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun resetPriceHistoryAndRedownload() {
         viewModelScope.launch {
             prefs.savePriceSnapshots(server = _uiState.value.server, snapshots = emptyList())
@@ -935,24 +976,19 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 val priceMap = if (combinedPrices.isNotEmpty()) {
                     combinedPrices.groupBy { it.itemId }
                 } else {
-                    val existing = _uiState.value.marketPrices
-                    if (existing.isNotEmpty()) {
-                        existing
-                    } else {
+                    _uiState.value.marketPrices.ifEmpty {
                         val cached = prefs.getPriceSnapshots(server = _uiState.value.server)
-                        if (cached.isNotEmpty()) {
-                            cached.map {
-                                MarketPrice(
-                                    itemId = it.itemId,
-                                    city = it.city,
-                                    quality = 1,
-                                    sellPriceMin = it.sellPriceMin,
-                                    sellPriceMinDate = "",
-                                    buyPriceMax = it.buyPriceMax,
-                                    buyPriceMaxDate = ""
-                                )
-                            }.groupBy { it.itemId }
-                        } else {
+                        cached.asSequence().map {
+                            MarketPrice(
+                                itemId = it.itemId,
+                                city = it.city,
+                                quality = 1,
+                                sellPriceMin = it.sellPriceMin,
+                                sellPriceMinDate = "",
+                                buyPriceMax = it.buyPriceMax,
+                                buyPriceMaxDate = ""
+                            )
+                        }.groupBy { it.itemId }.ifEmpty {
                             AlbionMarketApi.getFallbackMarketPrices()
                         }
                     }
@@ -968,7 +1004,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                         itemId = it.itemId,
                         city = it.city,
                         sellPriceMin = it.sellPriceMin,
-                        buyPriceMax = it.buyPriceMax
+                        buyPriceMax = it.buyPriceMax,
+                        sellPriceMinAmount = it.sellPriceMinAmount
                     )
                 }
                 val accumulatedSnapshots = _uiState.value.priceSnapshots + newSnapshots
@@ -995,8 +1032,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
                 val currentState = _uiState.value
                 if (currentState.systemNotificationsEnabled && currentState.tradeOpportunities.isNotEmpty()) {
-                    val topOpp = currentState.tradeOpportunities.firstOrNull()
-                    if (topOpp != null) {
+                    currentState.tradeOpportunities.firstOrNull()?.let { topOpp ->
                         val sysKey = "SYS_${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.totalNetProfit}"
                         if (!notifiedKeys.contains(sysKey)) {
                             notifiedKeys.add(sysKey)
@@ -1009,8 +1045,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 }
 
                 if (currentState.callMeBotAutoSend && currentState.callMeBotPhone.isNotBlank() && currentState.callMeBotApiKey.isNotBlank() && currentState.tradeOpportunities.isNotEmpty()) {
-                    val topOpp = currentState.tradeOpportunities.firstOrNull()
-                    if (topOpp != null) {
+                    currentState.tradeOpportunities.firstOrNull()?.let { topOpp ->
                         val waKey = "WA_${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.totalNetProfit}"
                         if (!notifiedKeys.contains(waKey)) {
                             notifiedKeys.add(waKey)
@@ -1057,7 +1092,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 standpunktCity = standpunkt,
                 maxCityDistance = state.maxZonesFilter,
                 hideBrecilien = state.hideBrecilien,
-                maxStockCount = state.maxStockFilter,
                 hideBlackMarket = state.hideBlackMarket
             ).filter { it.roiPercent >= effectiveMargin }
 
@@ -1100,8 +1134,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             // Sorting
             newCalculated = when (state.sortOption) {
                 OpportunitySort.NEWEST -> newCalculated.sortedByDescending { it.updatedTimestamp }
+                OpportunitySort.FEWEST_STOCK -> newCalculated.sortedBy { it.stockAvailable }
                 OpportunitySort.HIGHEST_MARGIN -> newCalculated.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
-            }.take(50)
+            }.distinctBy { it.resource.id }.take(20)
 
             _uiState.value = state.copy(
                 targetMarginPercent = effectiveMargin,
@@ -1138,7 +1173,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                             city = p.city,
                             sellPriceMin = p.sellPriceMin,
                             buyPriceMax = p.buyPriceMax,
-                            timestampMs = System.currentTimeMillis()
+                            timestampMs = System.currentTimeMillis(),
+                            sellPriceMinAmount = p.sellPriceMinAmount
                         )
                     }
                 }
@@ -1156,6 +1192,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         }
     }
 
+    @Suppress("unused")
     private fun startContinuousSavingLoop() {
         viewModelScope.launch {
             while (true) {

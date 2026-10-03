@@ -51,7 +51,7 @@ object AlbionMarketApi {
                 if (responseText.trim().startsWith("[")) {
                     val jsonArray = JSONArray(responseText)
                     for (i in 0 until jsonArray.length()) {
-                        val obj = jsonArray.getJSONObject(i)
+                        val obj = jsonArray.optJSONObject(i) ?: continue
                         val id = obj.optString("id", "")
                         val nameEn = obj.optString("name", id)
                         val nameDe = translateAlbionTermsToGerman(nameEn)
@@ -155,7 +155,7 @@ object AlbionMarketApi {
                     val jsonArray = JSONArray(responseText)
 
                     for (i in 0 until jsonArray.length()) {
-                        val obj = jsonArray.getJSONObject(i)
+                        val obj = jsonArray.optJSONObject(i) ?: continue
                         val itemId = obj.optString("item_id", obj.optString("ItemId", ""))
                         val city = obj.optString("city", obj.optString("City", ""))
                         val quality = obj.optInt("quality", obj.optInt("Quality", 1))
@@ -197,43 +197,54 @@ object AlbionMarketApi {
         val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
 
         for (res in AlbionResourceRepository.resources) {
-            val basePrice = when (res.tier) {
-                1 -> 50
-                2 -> 120
-                3 -> 350
-                4 -> 1200
-                5 -> 3800
-                6 -> 12500
-                7 -> 45000
-                8 -> 180000
-                else -> 1000
-            }
-
-            val list = mutableListOf<MarketPrice>()
-            cities.forEachIndexed { _, city ->
-                val cityMult = when (city) {
-                    "Caerleon" -> 1.35
-                    "Bridgewatch" -> if (res.category == ResourceCategory.RESOURCES) 0.85 else 1.0
-                    "Lymhurst" -> if (res.category == ResourceCategory.RESOURCES) 0.85 else 1.05
-                    "Fort Sterling" -> if (res.category == ResourceCategory.RESOURCES) 0.85 else 1.02
-                    "Martlock" -> if (res.category == ResourceCategory.RESOURCES) 0.85 else 1.03
-                    "Thetford" -> if (res.category == ResourceCategory.RESOURCES) 0.85 else 1.04
-                    else -> 1.10
+            for (enc in 0..4) {
+                val enchantedRes = if (enc > 0) res.copy(enchantment = enc) else res
+                val basePrice = when (enchantedRes.tier) {
+                    1 -> 50
+                    2 -> 120
+                    3 -> 350
+                    4 -> 1200
+                    5 -> 3800
+                    6 -> 12500
+                    7 -> 45000
+                    8 -> 180000
+                    else -> 1000
                 }
-                val sellPrice = (basePrice * cityMult).toInt()
-                list.add(
-                    MarketPrice(
-                        itemId = res.fullId,
-                        city = city,
-                        quality = 1,
-                        sellPriceMin = sellPrice,
-                        sellPriceMinDate = "2026-03-28T04:00:00",
-                        buyPriceMax = (sellPrice * 0.85).toInt(),
-                        buyPriceMaxDate = "2026-03-28T04:00:00"
+
+                val encMult = when (enc) {
+                    1 -> 2.2
+                    2 -> 4.5
+                    3 -> 9.0
+                    4 -> 18.0
+                    else -> 1.0
+                }
+
+                val list = mutableListOf<MarketPrice>()
+                cities.forEachIndexed { _, city ->
+                    val cityMult = when (city) {
+                        "Caerleon" -> 1.35
+                        "Bridgewatch" -> if (enchantedRes.category == ResourceCategory.RESOURCES) 0.85 else 1.0
+                        "Lymhurst" -> if (enchantedRes.category == ResourceCategory.RESOURCES) 0.85 else 1.05
+                        "Fort Sterling" -> if (enchantedRes.category == ResourceCategory.RESOURCES) 0.85 else 1.02
+                        "Martlock" -> if (enchantedRes.category == ResourceCategory.RESOURCES) 0.85 else 1.03
+                        "Thetford" -> if (enchantedRes.category == ResourceCategory.RESOURCES) 0.85 else 1.04
+                        else -> 1.10
+                    }
+                    val sellPrice = (basePrice * encMult * cityMult).toInt()
+                    list.add(
+                        MarketPrice(
+                            itemId = enchantedRes.fullId,
+                            city = city,
+                            quality = 1,
+                            sellPriceMin = sellPrice,
+                            sellPriceMinDate = "2026-03-28T04:00:00",
+                            buyPriceMax = (sellPrice * 0.85).toInt(),
+                            buyPriceMaxDate = "2026-03-28T04:00:00"
+                        )
                     )
-                )
+                }
+                map[enchantedRes.fullId] = list
             }
-            map[res.fullId] = list
         }
         return map
     }

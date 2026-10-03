@@ -39,7 +39,6 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -51,7 +50,6 @@ import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -84,7 +82,6 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.albionmarketv2.ui.theme.AlbionMarketV2Theme
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 class MainActivity : ComponentActivity() {
 
@@ -142,7 +139,7 @@ class MainActivity : ComponentActivity() {
             try {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    "package:$packageName".toUri()
+                    "package:$packageName".toUri(),
                 )
                 startActivity(intent)
             } catch (_: Exception) {}
@@ -153,7 +150,7 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val prefs = remember { AppPreferences(context) }
 
-                var isCompromised by remember { mutableStateOf(false) }
+                var isCompromised by remember { mutableStateOf(value = false) }
                 LaunchedEffect(Unit) {
                     if (DeviceSecurityManager.isDeviceCompromised(context)) {
                         isCompromised = true
@@ -165,7 +162,7 @@ class MainActivity : ComponentActivity() {
                         modifier = Modifier
                             .fillMaxSize()
                             .background(Color(0xFF0F172A)),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = "🚨 SICHERHEITS-ALARM\n\nGeräteintegrität verletzt (Root / Tampering erkannt).\nAus Sicherheitsgründen gesperrt.",
@@ -177,15 +174,28 @@ class MainActivity : ComponentActivity() {
                     return@AlbionMarketV2Theme
                 }
 
-                var isUserLoggedInState by remember { mutableStateOf(false) }
-                var isUnlockedForSession by remember { mutableStateOf(false) }
-                var showWelcomeDialog by remember { mutableStateOf(false) }
+                var isUserLoggedInState by remember { mutableStateOf(value = false) }
+                var isUnlockedForSession by remember { mutableStateOf(value = false) }
+                var showWelcomeDialog by remember { mutableStateOf(value = false) }
 
-                // Always start at Login screen on fresh app launch
+                // Cloud-Dependent Session Verification on Launch
                 LaunchedEffect(Unit) {
                     prefs.isUserLoggedIn = false
                     isUserLoggedInState = false
                     isUnlockedForSession = false
+
+                    if (prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) {
+                        withContext(Dispatchers.IO) {
+                            val cloudVerified = ServerSyncManager.verifyCredentialsWithServer(context)
+                            if (cloudVerified) {
+                                withContext(Dispatchers.Main) {
+                                    isUserLoggedInState = true
+                                    isUnlockedForSession = true
+                                    prefs.isUserLoggedIn = true
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Live Popup Alert Handling for Admin Messages & Screen Alarm
@@ -233,14 +243,15 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Real-Time Background Server Authentication & Data Sync (Immediate + every 2s)
+                // Real-Time Background Server Authentication & Data Sync (Immediate + every 5s to avoid thread starvation)
                 LaunchedEffect(Unit) {
                     while (isActive) {
-                        withContext(Dispatchers.IO) {
-                            ServerSyncManager.pingServer(context)
-                            ServerSyncManager.testAndConnectToServer(context)
-                        }
-                        delay(2000.milliseconds)
+                        try {
+                            withContext(Dispatchers.IO) {
+                                ServerSyncManager.pingServer(context)
+                            }
+                        } catch (_: Exception) {}
+                        delay(5000.milliseconds)
                     }
                 }
 
@@ -331,32 +342,25 @@ class MainActivity : ComponentActivity() {
                         }
 
                         LaunchedEffect(Unit) {
-                            // Autonomous initial connection attempt immediately on launch
-                            withContext(Dispatchers.IO) {
-                                ServerSyncManager.testAndConnectToServer(context)
-                            }
                             var failCount = 0
                             while (isActive) {
-                                val stats = withContext(Dispatchers.IO) {
-                                    var s = ServerSyncManager.pingServer(context)
-                                    if (s == null) {
-                                        ServerSyncManager.testAndConnectToServer(context)
-                                        s = ServerSyncManager.pingServer(context)
+                                try {
+                                    val stats = withContext(Dispatchers.IO) {
+                                        ServerSyncManager.pingServer(context)
                                     }
-                                    s
-                                }
-                                withContext(Dispatchers.Main) {
-                                    if (stats != null) {
-                                        failCount = 0
-                                        isServerConnected = true
-                                    } else {
-                                        failCount++
-                                        if (failCount >= 3) { // Require 3 consecutive failures before dropping status
-                                            isServerConnected = false
+                                    withContext(Dispatchers.Main) {
+                                        if (stats != null) {
+                                            failCount = 0
+                                            isServerConnected = true
+                                        } else {
+                                            failCount++
+                                            if (failCount >= 3) {
+                                                isServerConnected = false
+                                            }
                                         }
                                     }
-                                }
-                                delay(1500.milliseconds)
+                                } catch (_: Exception) {}
+                                delay(3000.milliseconds)
                             }
                         }
 
@@ -427,7 +431,7 @@ class MainActivity : ComponentActivity() {
                                     // Live Version Check & Update Section on Lockscreen
                                     val currentAppVer = remember { OtaUpdateManager.getInstalledVersionName(context) }
                                     val targetVer = ServerSyncManager.latestTargetVersion ?: currentAppVer
-                                    val isUpdateAvailableOnLockscreen = !targetVer.isBlank() && OtaUpdateManager.compareVersionStrings(targetVer, currentAppVer) > 0
+                                    val isUpdateAvailableOnLockscreen = (!targetVer.isBlank()) && (OtaUpdateManager.compareVersionStrings(targetVer, currentAppVer) > 0)
 
                                     LaunchedEffect(Unit) {
                                         coroutineScope.launch(Dispatchers.IO) {
@@ -472,7 +476,7 @@ class MainActivity : ComponentActivity() {
                                                                 isCheckingUpdate = false
                                                                 val current = OtaUpdateManager.getInstalledVersionName(context)
                                                                 val target = ServerSyncManager.latestTargetVersion
-                                                                if (!target.isNullOrBlank() && OtaUpdateManager.compareVersionStrings(target, current) > 0) {
+                                                                if ((!target.isNullOrBlank()) && (OtaUpdateManager.compareVersionStrings(target, current) > 0)) {
                                                                     updateCheckResult = "🚀 Neue Version v$target verfügbar!"
                                                                     Toast.makeText(context, "🚀 Neue Version v$target verfügbar!", Toast.LENGTH_SHORT).show()
                                                                 } else if (stats != null) {
@@ -595,86 +599,79 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
 
-                                        // Actions: Login & Registrieren Buttons nebeneinander
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            Button(
-                                                onClick = {
-                                                    val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
-                                                    if (!canLogin) {
-                                                        Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
-                                                        return@Button
-                                                    }
+                                        // Actions: Login Button
+                                        Button(
+                                            onClick = {
+                                                val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
+                                                if (!canLogin) {
+                                                    Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
+                                                    return@Button
+                                                }
 
-                                                    val uValid = LoginSecurityManager.validateUsername(usernameInput)
-                                                    if (!uValid.first) {
-                                                        Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
-                                                        return@Button
-                                                    }
+                                                val uValid = LoginSecurityManager.validateUsername(usernameInput)
+                                                if (!uValid.first) {
+                                                    Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
+                                                    return@Button
+                                                }
 
-                                                    val pValid = LoginSecurityManager.validatePassword(passwordInput)
-                                                    if (!pValid.first) {
-                                                        Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
-                                                        return@Button
-                                                    }
+                                                val pValid = LoginSecurityManager.validatePassword(passwordInput)
+                                                if (!pValid.first) {
+                                                    Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
+                                                    return@Button
+                                                }
 
-                                                    isAuthenticating = true
-                                                    lifecycleScope.launch {
-                                                        val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
-                                                        isAuthenticating = false
-                                                        if (success) {
-                                                            LoginSecurityManager.resetFailedAttempts(context)
-                                                            prefs.isUserLoggedIn = true
-                                                            prefs.savedUsername = usernameInput.trim()
-                                                            if (savePasswordLocally) {
-                                                                prefs.savedPassword = passwordInput.trim()
-                                                            } else {
-                                                                prefs.savedPassword = ""
-                                                            }
-                                                            if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
-                                                                prefs.isAdmin = true
-                                                            }
-                                                            isUserLoggedInState = true
-                                                            isUnlockedForSession = true
-                                                            Toast.makeText(context, "🟢 Cloud-Login & Lizenz erfolgreich verifiziert!", Toast.LENGTH_SHORT).show()
+                                                isAuthenticating = true
+                                                lifecycleScope.launch {
+                                                    val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
+                                                    isAuthenticating = false
+                                                    if (success) {
+                                                        LoginSecurityManager.resetFailedAttempts(context)
+                                                        prefs.isUserLoggedIn = true
+                                                        prefs.savedUsername = usernameInput.trim()
+                                                        if (savePasswordLocally) {
+                                                            prefs.savedPassword = passwordInput.trim()
                                                         } else {
-                                                            val lockout = LoginSecurityManager.recordFailedAttempt(context)
-                                                            prefs.isUserLoggedIn = false
-                                                            isUserLoggedInState = false
-                                                            isUnlockedForSession = false
-                                                            if (lockout > 0) {
-                                                                Toast.makeText(context, "🔴 Login fehlgeschlagen! Für $lockout Sekunden gesperrt.", Toast.LENGTH_LONG).show()
-                                                            } else {
-                                                                val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
-                                                                Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
-                                                            }
-                                                            if (ServerSyncManager.isOtaUpdateAvailable || ServerSyncManager.latestTargetVersion != null) {
-                                                                Toast.makeText(context, "🚀 Installiere neuste Version automatisch...", Toast.LENGTH_SHORT).show()
-                                                                lifecycleScope.launch(Dispatchers.IO) {
-                                                                    OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
-                                                                }
+                                                            prefs.savedPassword = ""
+                                                        }
+                                                        if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                                            prefs.isAdmin = true
+                                                        }
+                                                        isUserLoggedInState = true
+                                                        isUnlockedForSession = true
+                                                        Toast.makeText(context, "🟢 Cloud-Login & Lizenz erfolgreich verifiziert!", Toast.LENGTH_SHORT).show()
+                                                    } else {
+                                                        val lockout = LoginSecurityManager.recordFailedAttempt(context)
+                                                        prefs.isUserLoggedIn = false
+                                                        isUserLoggedInState = false
+                                                        isUnlockedForSession = false
+                                                        if (lockout > 0) {
+                                                            Toast.makeText(context, "🔴 Login fehlgeschlagen! Für $lockout Sekunden gesperrt.", Toast.LENGTH_LONG).show()
+                                                        } else {
+                                                            val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
+                                                            Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
+                                                        }
+                                                        if (ServerSyncManager.isOtaUpdateAvailable || ServerSyncManager.latestTargetVersion != null) {
+                                                            Toast.makeText(context, "🚀 Installiere neuste Version automatisch...", Toast.LENGTH_SHORT).show()
+                                                            lifecycleScope.launch(Dispatchers.IO) {
+                                                                OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
                                                             }
                                                         }
                                                     }
-                                                },
-                                                modifier = Modifier.weight(1f),
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                                shape = RoundedCornerShape(10.dp),
-                                            ) {
-                                                Text("🔑 Login", fontWeight = FontWeight.Bold, color = Color.White)
-                                            }
-
-                                            OutlinedButton(
-                                                onClick = { showRegisterDialog = true },
-                                                modifier = Modifier.weight(1f),
-                                                shape = RoundedCornerShape(10.dp),
-                                                border = BorderStroke(1.dp, Color(0xFF0EA5E9))
-                                            ) {
-                                                Text("👤 Registrieren", fontWeight = FontWeight.Bold, color = Color(0xFF0EA5E9))
-                                            }
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                            shape = RoundedCornerShape(10.dp),
+                                        ) {
+                                            Text("🔑 Login", fontWeight = FontWeight.Bold, color = Color.White)
                                         }
+
+                                        Text(
+                                            text = "ℹ️ Für Zugangsdaten & Lizenz bitte an dnnx wenden.",
+                                            fontSize = 10.sp,
+                                            color = Color(0xFF94A3B8),
+                                            textAlign = TextAlign.Center
+                                        )
 
                                         // Lizenzschlüssel Bereich
                                         OutlinedTextField(
@@ -701,10 +698,6 @@ class MainActivity : ComponentActivity() {
                                                 val activated = LicenseManager.activateLicense(context, licenseKeyInput)
                                                 if (activated) {
                                                     prefs.isUserLoggedIn = true
-                                                    if (licenseKeyInput.uppercase(Locale.ROOT).contains("DNNX")) {
-                                                        prefs.isAdmin = true
-                                                        prefs.savedUsername = "dnnx"
-                                                    }
                                                     isUserLoggedInState = true
                                                     isUnlockedForSession = true
                                                     Toast.makeText(context, "🟢 Lizenzschlüssel verifiziert! Erfolgreich freigeschaltet.", Toast.LENGTH_SHORT).show()
@@ -722,121 +715,6 @@ class MainActivity : ComponentActivity() {
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 13.sp,
                                                 color = Color.White,
-                                            )
-                                        }
-
-                                        if (showRegisterDialog) {
-                                            var regUsername by remember { mutableStateOf("") }
-                                            var regPassword by remember { mutableStateOf("") }
-                                            var regPasswordVisible by remember { mutableStateOf(false) }
-                                            var isRegLoading by remember { mutableStateOf(false) }
-
-                                            AlertDialog(
-                                                onDismissRequest = { showRegisterDialog = false },
-                                                title = { Text("👤 Neuen Account registrieren", fontWeight = FontWeight.Bold, color = Color.White) },
-                                                text = {
-                                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                        Text("Gib deinen gewünschten Benutzernamen und ein Passwort ein. Nach der Registrierung erhältst du deine Lizenz.", fontSize = 11.sp, color = Color(0xFF94A3B8))
-                                                        OutlinedTextField(
-                                                            value = regUsername,
-                                                            onValueChange = { regUsername = it },
-                                                            label = { Text("Benutzername (min. 3 Zeichen)", fontSize = 11.sp) },
-                                                            singleLine = true,
-                                                            colors = OutlinedTextFieldDefaults.colors(
-                                                                focusedTextColor = Color.White,
-                                                                unfocusedTextColor = Color.White
-                                                            ),
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        )
-                                                        OutlinedTextField(
-                                                            value = regPassword,
-                                                            onValueChange = { regPassword = it },
-                                                            label = { Text("Passwort (min. 8 Zeichen)", fontSize = 11.sp) },
-                                                            singleLine = true,
-                                                            visualTransformation = if (regPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                                            trailingIcon = {
-                                                                IconButton(onClick = { regPasswordVisible = !regPasswordVisible }) {
-                                                                    Icon(
-                                                                        imageVector = if (regPasswordVisible) Icons.Default.Warning else Icons.Default.Lock,
-                                                                        contentDescription = if (regPasswordVisible) "Passwort verbergen" else "Passwort anzeigen",
-                                                                        tint = Color(0xFF94A3B8)
-                                                                    )
-                                                                }
-                                                            },
-                                                            colors = OutlinedTextFieldDefaults.colors(
-                                                                focusedTextColor = Color.White,
-                                                                unfocusedTextColor = Color.White
-                                                            ),
-                                                            modifier = Modifier.fillMaxWidth()
-                                                        )
-                                                        PasswordStrengthMeter(password = regPassword)
-                                                    }
-                                                },
-                                                confirmButton = {
-                                                    Button(
-                                                        onClick = {
-                                                            val uValid = LoginSecurityManager.validateUsername(regUsername)
-                                                            if (!uValid.first) {
-                                                                Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
-                                                                return@Button
-                                                            }
-                                                            val pValid = LoginSecurityManager.validatePassword(regPassword, isRegistration = true)
-                                                            if (!pValid.first) {
-                                                                Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
-                                                                return@Button
-                                                            }
-                                                            isRegLoading = true
-                                                            lifecycleScope.launch {
-                                                                try {
-                                                                    val (ok, msg) = ServerSyncManager.registerUser(context, regUsername.trim(), regPassword.trim())
-                                                                    if (ok) {
-                                                                        usernameInput = regUsername.trim()
-                                                                        passwordInput = regPassword.trim()
-                                                                        val loginSuccess = try {
-                                                                            ServerSyncManager.loginWithServer(context, regUsername.trim(), regPassword.trim())
-                                                                        } catch (_: Exception) {
-                                                                            false
-                                                                        }
-                                                                        isRegLoading = false
-                                                                        showRegisterDialog = false
-                                                                        if (loginSuccess) {
-                                                                            LoginSecurityManager.resetFailedAttempts(context)
-                                                                            prefs.isUserLoggedIn = true
-                                                                            prefs.savedUsername = regUsername.trim()
-                                                                            if (savePasswordLocally) {
-                                                                                prefs.savedPassword = regPassword.trim()
-                                                                            }
-                                                                            isUserLoggedInState = true
-                                                                            isUnlockedForSession = true
-                                                                            Toast.makeText(context, "🟢 Account erstellt & erfolgreich eingeloggt!", Toast.LENGTH_LONG).show()
-                                                                        } else {
-                                                                            Toast.makeText(context, "🟢 Account erfolgreich erstellt! Bitte einloggen.", Toast.LENGTH_LONG).show()
-                                                                        }
-                                                                    } else {
-                                                                        isRegLoading = false
-                                                                        Toast.makeText(context, "❌ $msg", Toast.LENGTH_LONG).show()
-                                                                    }
-                                                                } catch (e: Exception) {
-                                                                    isRegLoading = false
-                                                                    Toast.makeText(context, "❌ Registrierungsfehler: ${e.localizedMessage ?: "Unbekannter Fehler"}", Toast.LENGTH_LONG).show()
-                                                                }
-                                                            }
-                                                        },
-                                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
-                                                        shape = RoundedCornerShape(8.dp)
-                                                    ) {
-                                                        Text(if (isRegLoading) "Registriert..." else "Kostenlos registrieren", fontWeight = FontWeight.Bold)
-                                                    }
-                                                },
-                                                dismissButton = {
-                                                    OutlinedButton(
-                                                        onClick = { showRegisterDialog = false },
-                                                        shape = RoundedCornerShape(8.dp)
-                                                    ) {
-                                                        Text("Abbrechen", color = Color.White)
-                                                    }
-                                                },
-                                                containerColor = Color(0xFF1E293B)
                                             )
                                         }
 
@@ -865,17 +743,16 @@ class MainActivity : ComponentActivity() {
                     } else {
                         UnlockedLockscreenContent(
                             context = context,
-                            prefs = prefs,
-                            onLogout = {
-                                prefs.isUserLoggedIn = false
-                                isUserLoggedInState = false
-                                isUnlockedForSession = false
-                                try {
-                                    FloatingBubbleService.stopService(this@MainActivity)
-                                } catch (_: Exception) {}
-                                Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
-                            }
-                        )
+                            prefs = prefs
+                        ) {
+                            prefs.isUserLoggedIn = false
+                            isUserLoggedInState = false
+                            isUnlockedForSession = false
+                            try {
+                                FloatingBubbleService.stopService(this@MainActivity)
+                            } catch (_: Exception) {}
+                            Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
+                        }
 
                         if (ServerSyncManager.isOtaUpdateAvailable) {
                             AlertDialog(
@@ -967,8 +844,16 @@ class MainActivity : ComponentActivity() {
         }
         if (Settings.canDrawOverlays(this)) {
             try {
-                if (!FloatingBubbleService.isServiceRunning()) {
-                    FloatingBubbleService.startService(this)
+                val prefs = AppPreferences(this)
+                val isLoggedIn = ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(this)
+                if (isLoggedIn) {
+                    if (!FloatingBubbleService.isServiceRunning()) {
+                        FloatingBubbleService.startService(this)
+                    }
+                } else {
+                    if (FloatingBubbleService.isServiceRunning()) {
+                        FloatingBubbleService.stopService(this)
+                    }
                 }
             } catch (_: Exception) {}
         }

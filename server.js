@@ -16,26 +16,8 @@ const PORT = process.env.PORT || 4000;
 const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'AlbionDataPro_Military_Admin_SuperSecret_2026#Key';
 
-// Security Middleware: Allow ONLY connections from Render cloud environment
-// All other requests will be immediately dropped
+// Security Middleware: Allow all connections (removed IP block on 74.220.*)
 app.use((req, res, next) => {
-    const clientIp = req.ip || req.connection.remoteAddress;
-
-    // Allow local development
-    if (clientIp === '::1' || clientIp === '127.0.0.1' || clientIp === '::ffff:127.0.0.1') {
-        return next();
-    }
-
-    // Since we are running ON Render, we don't necessarily need to filter by Render's own IP
-    // as the Render proxy already handles incoming requests.
-    // However, we want to ensure the app communicates ONLY with onrender.com for outgoing requests
-    // from the client side, which is handled in network_security_config.xml.
-
-    // For incoming requests on the server, if you specifically want to block 74.220.* IPs:
-    if (clientIp && clientIp.includes('74.220.')) {
-         return res.status(403).json({ error: 'Access Denied: Blocked IP Range' });
-    }
-
     next();
 });
 

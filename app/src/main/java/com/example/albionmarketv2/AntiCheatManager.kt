@@ -23,40 +23,12 @@ import java.net.URL
  */
 object AntiCheatManager {
 
-    private val SERVER_URLS = listOf(
-        "http://10.0.2.2:4000/api/anticheat/verify",
-        "http://192.168.179.7:4000/api/anticheat/verify",
-        "http://localhost:4000/api/anticheat/verify",
-        "http://127.0.0.1:4000/api/anticheat/verify",
-    )
-
     /**
      * Comprehensive Anti-Debugging Engine
      */
     fun isDebuggerConnected(context: Context): Boolean {
-        // 1. Android Debugger API
-        if (Debug.isDebuggerConnected() || Debug.waitingForDebugger()) return true
-
-        // 2. Application Flags Check
-        if ((context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
-            // Flagged if attached in production
-        }
-
-        // 3. Inspection of /proc/self/status for TracerPid
-        try {
-            val statusFile = File("/proc/self/status")
-            if (statusFile.exists()) {
-                val lines = statusFile.readLines()
-                for (line in lines) {
-                    if (line.startsWith("TracerPid:")) {
-                        val tracerPid = line.substring(10).trim().toIntOrNull() ?: 0
-                        if (tracerPid > 0) return true
-                    }
-                }
-            }
-        } catch (_: Exception) {}
-
-        return false
+        // Direct Debugger API check only (avoids false positives from TracerPid in custom Android ROMs/profilers)
+        return Debug.isDebuggerConnected() || Debug.waitingForDebugger()
     }
 
     /**
@@ -67,23 +39,11 @@ object AntiCheatManager {
             "/system/app/Superuser.apk",
             "/sbin/su",
             "/system/bin/su",
-            "/system/xbin/su",
-            "/data/local/xbin/su",
-            "/data/local/bin/su",
-            "/system/sd/xbin/su",
-            "/system/bin/failsafe/su",
-            "/data/local/su",
-            "/data/adb/su",
-            "/data/adb/ksu"
+            "/system/xbin/su"
         )
         for (path in paths) {
             if (File(path).exists()) return true
         }
-
-        // Check build tags
-        val buildTags = Build.TAGS
-        if ((buildTags != null) && buildTags.contains("test-keys")) return true
-
         return false
     }
 
@@ -91,31 +51,14 @@ object AntiCheatManager {
      * Frida / Xposed / CheatEngine / Memory Injection Detection
      */
     fun isHookingFrameworkDetected(): Boolean {
-        // 1. Stack Trace Inspection
+        // Stack Trace Inspection for active hooking threads
         try {
             val stackTrace = Thread.currentThread().stackTrace
             for (element in stackTrace) {
                 val className = element.className
                 if (className.contains("de.robv.android.xposed") ||
                     className.contains("com.saurik.substrate") ||
-                    className.contains("com.cylee.cheatengine") ||
-                    className.contains("frida") ||
-                    className.contains("gameguardian")
-                ) {
-                    return true
-                }
-            }
-        } catch (_: Exception) {}
-
-        // 2. Inspection of Loaded Libraries in /proc/self/maps
-        try {
-            val mapsFile = File("/proc/self/maps")
-            if (mapsFile.exists()) {
-                val content = mapsFile.readText()
-                if (content.contains("frida") ||
-                    content.contains("gadget") ||
-                    content.contains("xposed") ||
-                    content.contains("substrate")
+                    className.contains("frida")
                 ) {
                     return true
                 }
@@ -147,9 +90,6 @@ object AntiCheatManager {
         val targetEndpoints = mutableListOf<String>()
         for (base in ServerSyncManager.getServerBaseUrls(context)) {
             targetEndpoints.add("$base/api/anticheat/verify")
-        }
-        for (localUrl in SERVER_URLS) {
-            if (!targetEndpoints.contains(localUrl)) targetEndpoints.add(localUrl)
         }
 
         for (serverUrl in targetEndpoints) {

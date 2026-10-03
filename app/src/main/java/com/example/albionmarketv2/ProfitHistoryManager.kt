@@ -23,13 +23,15 @@ object ProfitHistoryManager {
         try {
             val arr = JSONArray(jsonStr)
             for (i in 0 until arr.length()) {
-                val obj = arr.getJSONObject(i)
+                val obj = arr.optJSONObject(i) ?: continue
+                val id = obj.optString("id", "")
+                if (id.isBlank()) continue
                 list.add(
                     ProfitEntry(
-                        id = obj.getString("id"),
-                        title = obj.getString("title"),
-                        netProfitSilver = obj.getLong("netProfitSilver"),
-                        dateStr = obj.getString("dateStr"),
+                        id = id,
+                        title = obj.optString("title", "Gewinn"),
+                        netProfitSilver = obj.optLong("netProfitSilver", 0L),
+                        dateStr = obj.optString("dateStr", ""),
                         timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
                     )
                 )

@@ -27,9 +27,17 @@ data class TradeOrder(
     val actualSilverEarned: Long? = null,
     val actualBuyPrice: Int? = null, // Realized Unit Buy Price
     val actualSellPrice: Int? = null, // Realized Unit Sell Price
-    val actualUnits: Int? = null, // Realized Quantity
+    val actualUnits: Int? = null, // Realized Sold Units
     val completedDate: String? = null
 ) {
+    fun isPriceStillValid(allPrices: Map<String, List<MarketPrice>>): Boolean {
+        if (status != OrderStatus.ACTIVE) return false
+        val prices = allPrices[resourceId] ?: return false
+        // Check if there is still any price <= buyPrice in buyCity, and >= sellPrice in sellCity
+        val buyValid = prices.any { it.city == buyCity && it.sellPriceMin > 0 && it.sellPriceMin <= buyPrice }
+        val sellValid = prices.any { it.city == sellCity && it.sellPriceMin > 0 && it.sellPriceMin >= sellPrice }
+        return buyValid && sellValid
+    }
     val effectiveBuyPrice: Int
         get() = actualBuyPrice ?: buyPrice
 

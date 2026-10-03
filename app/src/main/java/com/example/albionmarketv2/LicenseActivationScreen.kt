@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +25,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -48,6 +50,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -67,12 +72,8 @@ fun LicenseActivationScreen(
     val prefs = remember { AppPreferences(context) }
     var usernameInput by remember { mutableStateOf(prefs.savedUsername) }
     var passwordInput by remember { mutableStateOf("") }
-    var captchaNum1 by remember { mutableIntStateOf((3..12).random()) }
-    var captchaNum2 by remember { mutableIntStateOf((2..9).random()) }
-    var captchaInput by remember { mutableStateOf("") }
-    var isCaptchaSolved by remember { mutableStateOf(false) }
     var isAuthenticating by remember { mutableStateOf(value = false) }
-    var statusText by remember { mutableStateOf("Bitte Server-Zugangsdaten & Captcha eingeben") }
+    var statusText by remember { mutableStateOf("Bitte Server-Zugangsdaten eingeben") }
 
     Box(
         modifier = Modifier
@@ -84,28 +85,29 @@ fun LicenseActivationScreen(
         Card(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
-                .padding(16.dp),
+                .padding(8.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-            shape = RoundedCornerShape(24.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+            border = BorderStroke(1.dp, Color(0xFF06B6D4)),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Lock",
                     tint = Color(0xFFF59E0B),
-                    modifier = Modifier.size(48.dp)
+                    modifier = Modifier.size(36.dp)
                 )
 
                 Text(
                     text = "🔒 Server Login & Authentifizierung",
-                    fontSize = 18.sp,
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     textAlign = TextAlign.Center
@@ -130,6 +132,8 @@ fun LicenseActivationScreen(
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                 } else {
+                    var passwordVisible by remember { mutableStateOf(false) }
+
                     OutlinedTextField(
                         value = usernameInput,
                         onValueChange = { usernameInput = it },
@@ -149,7 +153,16 @@ fun LicenseActivationScreen(
                         onValueChange = { passwordInput = it },
                         label = { Text("Passwort", color = Color(0xFF94A3B8)) },
                         singleLine = true,
-                        visualTransformation = PasswordVisualTransformation(),
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = Icons.Default.Lock,
+                                    contentDescription = if (passwordVisible) "Passwort verbergen" else "Passwort anzeigen",
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
+                        },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF3B82F6),
                             unfocusedBorderColor = Color(0xFF475569),
@@ -159,92 +172,32 @@ fun LicenseActivationScreen(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    OutlinedTextField(
-                        value = captchaInput,
-                        onValueChange = {
-                            captchaInput = it
-                            isCaptchaSolved = false
-                        },
-                        label = { Text("🤖 Mensch-Bestätigung: Was ist $captchaNum1 + $captchaNum2 ?", color = Color(0xFF38BDF8)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = if (isCaptchaSolved) Color(0xFF10B981) else Color(0xFF38BDF8),
-                            unfocusedBorderColor = Color(0xFF475569),
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    // Dedicated Button to verify Math Captcha first!
+                    var showCaptchaDialog by remember { mutableStateOf(false) }
+                    
                     Button(
                         onClick = {
-                            val expectedAnswer = captchaNum1 + captchaNum2
-                            if (captchaInput.trim().toIntOrNull() == expectedAnswer) {
-                                isCaptchaSolved = true
-                                statusText = "🟢 Mathe-Aufgabe richtig gelöst! Jetzt einloggen..."
-                                Toast.makeText(context, "🟢 Mathe-Aufgabe korrekt gelöst!", Toast.LENGTH_SHORT).show()
-                            } else {
-                                isCaptchaSolved = false
-                                statusText = "❌ Falsches Mathe-Captcha! Bitte richtig lösen."
-                                Toast.makeText(context, "❌ Falsche Antwort! Neue Aufgabe wird erzeugt.", Toast.LENGTH_SHORT).show()
-                                captchaNum1 = (3..12).random()
-                                captchaNum2 = (2..9).random()
-                                captchaInput = ""
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isCaptchaSolved) Color(0xFF10B981) else Color(0xFF38BDF8)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = if (isCaptchaSolved) "✅ Mathe-Aufgabe gelöst" else "🤖 Mathe-Aufgabe prüfen",
-                            fontWeight = FontWeight.Bold,
-                            color = if (isCaptchaSolved) Color.White else Color.Black
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Button(
-                        onClick = {
-                            if (!isCaptchaSolved) {
-                                val expectedAnswer = captchaNum1 + captchaNum2
-                                if (captchaInput.trim().toIntOrNull() == expectedAnswer) {
-                                    isCaptchaSolved = true
-                                } else {
-                                    statusText = "❌ Bitte zuerst die Mathe-Aufgabe prüfen & richtig lösen!"
-                                    Toast.makeText(context, "❌ Bitte zuerst die Mathe-Aufgabe richtig lösen!", Toast.LENGTH_SHORT).show()
-                                    return@Button
-                                }
-                            }
-
-                            if (usernameInput.isBlank() || passwordInput.isBlank()) {
-                                statusText = "Bitte Benutzername und Passwort eingeben"
+                            val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
+                            if (!canLogin) {
+                                statusText = "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden."
+                                Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
                                 return@Button
                             }
 
-                            isAuthenticating = true
-                            statusText = "Verbinde mit Server..."
-                            coroutineScope.launch {
-                                val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
-                                isAuthenticating = false
-                                if (success) {
-                                    prefs.isUserLoggedIn = true
-                                    prefs.savedUsername = usernameInput.trim()
-                                    prefs.savedPassword = passwordInput.trim()
-                                    if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
-                                        prefs.isAdmin = true
-                                    }
-                                    statusText = "Anmeldung erfolgreich!"
-                                    onLicenseActivated()
-                                } else {
-                                    statusText = "Zugangsdaten ungültig oder Konto nicht freigegeben"
-                                }
+                            val uValid = LoginSecurityManager.validateUsername(usernameInput)
+                            if (!uValid.first) {
+                                statusText = uValid.second
+                                Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
+                                return@Button
                             }
+
+                            val pValid = LoginSecurityManager.validatePassword(passwordInput)
+                            if (!pValid.first) {
+                                statusText = pValid.second
+                                Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
+                                return@Button
+                            }
+
+                            showCaptchaDialog = true
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -257,6 +210,73 @@ fun LicenseActivationScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Einloggen", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
+                    }
+                    
+                    if (showCaptchaDialog) {
+                        var captchaInputDialog by remember { mutableStateOf("") }
+                        var num1 by remember { mutableIntStateOf((3..12).random()) }
+                        var num2 by remember { mutableIntStateOf((2..9).random()) }
+
+                        AlertDialog(
+                            onDismissRequest = { showCaptchaDialog = false },
+                            title = { Text("🤖 Mensch-Bestätigung", fontWeight = FontWeight.Bold) },
+                            text = {
+                                Column {
+                                    Text("Was ist $num1 + $num2 ?")
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    OutlinedTextField(
+                                        value = captchaInputDialog,
+                                        onValueChange = { captchaInputDialog = it },
+                                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                        singleLine = true,
+                                        modifier = Modifier.fillMaxWidth()
+                                    )
+                                }
+                            },
+                            confirmButton = {
+                                Button(onClick = {
+                                    if (captchaInputDialog.trim().toIntOrNull() == num1 + num2) {
+                                        showCaptchaDialog = false
+                                        isAuthenticating = true
+                                        statusText = "Verbinde mit Server..."
+                                        coroutineScope.launch {
+                                            val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
+                                            isAuthenticating = false
+                                            if (success) {
+                                                LoginSecurityManager.resetFailedAttempts(context)
+                                                prefs.isUserLoggedIn = true
+                                                prefs.savedUsername = usernameInput.trim()
+                                                prefs.savedPassword = passwordInput.trim()
+                                                if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                                    prefs.isAdmin = true
+                                                }
+                                                statusText = "Anmeldung erfolgreich!"
+                                                onLicenseActivated()
+                                            } else {
+                                                val lockout = LoginSecurityManager.recordFailedAttempt(context)
+                                                if (lockout > 0) {
+                                                    statusText = "Login fehlgeschlagen! Für $lockout Sekunden gesperrt."
+                                                } else {
+                                                    statusText = ServerSyncManager.lastLoginErrorMessage ?: "Anmeldung fehlgeschlagen. Bitte Daten prüfen."
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        Toast.makeText(context, "❌ Falsche Antwort! Neue Aufgabe wird erstellt.", Toast.LENGTH_SHORT).show()
+                                        num1 = (3..12).random()
+                                        num2 = (2..9).random()
+                                        captchaInputDialog = ""
+                                    }
+                                }) {
+                                    Text("Prüfen & Einloggen")
+                                }
+                            },
+                            dismissButton = {
+                                Button(onClick = { showCaptchaDialog = false }) {
+                                    Text("Abbrechen")
+                                }
+                            }
+                        )
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -370,17 +390,10 @@ fun TelegramLicensePurchaseSection(context: Context) {
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "👑 Unsere Exklusiven High-End Features",
-                    fontSize = if (isLandscape) 13.sp else 14.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color(0xFFFFD700)
-                )
-
-                RainbowBlinkingText(rainbowName = "AlbionDataPro", fontSize = if (isLandscape) 12.sp else 13.sp)
+                RainbowBlinkingText(rainbowName = "AlbionDataPro", fontSize = if (isLandscape) 14.sp else 16.sp)
             }
 
             Text(

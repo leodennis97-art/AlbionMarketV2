@@ -33,8 +33,8 @@ object LicenseManager {
 
     fun getActivatedCode(context: Context): String {
         val appPrefs = AppPreferences(context)
-        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
-            return "👑 Admin (Keine Lizenz erforderlich / Unbegrenzt)"
+        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true) || appPrefs.savedUsername.equals("opa", ignoreCase = true)) {
+            return "👑 Unbegrenzt (Keine Lizenz erforderlich)"
         }
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
@@ -145,7 +145,7 @@ object LicenseManager {
 
     fun isLicenseValid(context: Context): Boolean {
         val appPrefs = AppPreferences(context)
-        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
+        if (appPrefs.isUserLoggedIn || appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true) || appPrefs.savedUsername.equals("opa", ignoreCase = true)) {
             return true
         }
 
@@ -256,8 +256,8 @@ object LicenseManager {
 
     fun getExpirationDateString(context: Context): String {
         val appPrefs = AppPreferences(context)
-        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true)) {
-            return "👑 Admin-Konto (Keine Lizenz erforderlich / Unbegrenzt)"
+        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true) || appPrefs.savedUsername.equals("opa", ignoreCase = true)) {
+            return "👑 Unbegrenzt (Keine Lizenz erforderlich)"
         }
 
         val prefs = getPrefs(context)
@@ -289,6 +289,19 @@ object LicenseManager {
         return "Testzeitraum & Lizenz abgelaufen (Hardware ID: $hwId)"
     }
 
+    fun getRemainingPremiumDays(context: Context): Long {
+        val appPrefs = AppPreferences(context)
+        if (appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true) || appPrefs.savedUsername.equals("opa", ignoreCase = true)) {
+            return 999L
+        }
+        val prefs = getPrefs(context)
+        val hwId = getHardwareId(context)
+        val exp = prefs.getLong("license_exp_$hwId", 0L)
+        val diff = exp - System.currentTimeMillis()
+        if (diff <= 0L) return 0L
+        return diff / (24L * 3600L * 1000L)
+    }
+
     fun getSavedUserEmail(context: Context): String {
         return getPrefs(context).getString(KEY_USER_EMAIL, "") ?: ""
     }
@@ -303,14 +316,6 @@ object LicenseManager {
         val prefs = getPrefs(context)
         val hwId = getHardwareId(context)
         val appPrefs = AppPreferences(context)
-
-        if (cleanCode.startsWith("LOGIN-DNNX-ADMIN") || cleanCode == "DNNX") {
-            prefs.edit().putString(KEY_ACTIVATED_CODE, "LOGIN-DNNX-ADMIN").apply()
-            appPrefs.isUserLoggedIn = true
-            appPrefs.savedUsername = "dnnx"
-            appPrefs.isAdmin = true
-            return true
-        }
 
         if (cleanCode.startsWith("ALBION-3M-")) {
             val exp = System.currentTimeMillis() + (90L * 24L * 3600L * 1000L)
@@ -379,22 +384,12 @@ object LicenseManager {
             return false
         }
 
-        // Standard pre-defined accounts or saved device account check
-        val knownUsers = mapOf(
-            "dnnx" to "Dean3153...",
-            "user" to "user123",
-            "lol" to "lol",
-            "testuser2026" to "Password123!"
-        )
-
-        val expectedPass = knownUsers[cleanUser.lowercase(Locale.ROOT)]
-        val matchesKnown = expectedPass != null && expectedPass.equals(cleanPass, ignoreCase = true)
         val matchesSaved = appPrefs.savedUsername.isNotBlank() &&
                            appPrefs.savedUsername.equals(cleanUser, ignoreCase = true) &&
                            appPrefs.savedPassword.isNotBlank() &&
                            appPrefs.savedPassword.equals(cleanPass, ignoreCase = true)
 
-        if (matchesKnown || matchesSaved) {
+        if (matchesSaved) {
             val prefs = getPrefs(context)
             prefs.edit().putString(KEY_ACTIVATED_CODE, "USER-$cleanUser").apply()
             appPrefs.isUserLoggedIn = true
@@ -403,7 +398,7 @@ object LicenseManager {
             return true
         }
 
-        // Username / password combination does NOT exist! Access denied!
+        // Must be authenticated via Admin Console on Cloud Server!
         return false
     }
 

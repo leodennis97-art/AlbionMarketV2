@@ -198,7 +198,7 @@ object AdminControlManager {
     private const val ADMIN_API_KEY = "AlbionDataPro_Military_Admin_SuperSecret_2026#Key"
 
     private fun getBaseUrl(context: Context): String {
-        return ServerSyncManager.getServerBaseUrls(context).firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+        return ServerSyncManager.getServerBaseUrls(context).firstOrNull() ?: "https://albionmarketv2.onrender.com"
     }
 
     private suspend fun postJson(baseUrl: String, endpoint: String, json: JSONObject): JSONObject? = withContext(Dispatchers.IO) {
@@ -208,7 +208,7 @@ object AdminControlManager {
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             conn.setRequestProperty("Accept", "application/json")
-            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
             conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
             conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
             conn.connectTimeout = 12000
@@ -235,7 +235,7 @@ object AdminControlManager {
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.setRequestProperty("Accept", "application/json")
-            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
             conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
             conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
             conn.connectTimeout = 12000
@@ -358,7 +358,7 @@ object AdminControlManager {
             conn.requestMethod = "POST"
             conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
             conn.setRequestProperty("Accept", "application/json")
-            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
             conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
             conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
             conn.connectTimeout = 12000
@@ -551,7 +551,7 @@ object AdminControlManager {
                 val url = URL("$base$ep")
                 val conn = url.openConnection() as HttpURLConnection
                 conn.requestMethod = "GET"
-                conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/1.3.15")
+                conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
                 conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
                 conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
                 conn.connectTimeout = 6000
@@ -1930,7 +1930,7 @@ fun SendAlertDialog(
 
     val presetMessages = listOf(
         "⚠️ Wichtiger Server-Wartungshinweis: Bitte App neustarten.",
-        "🚀 Neues Update v1.3.15 verfügbar! Bitte jetzt aktualisieren.",
+        "🚀 Neues Update v$CURRENT_APP_VERSION verfügbar! Bitte jetzt aktualisieren.",
         "🚨 Sicherheits-Überprüfung gestartet.",
         "💬 Bitte kontaktiere den Support via Telegram."
     )

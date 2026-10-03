@@ -7,5 +7,14 @@
     "isLicensed": true,
     "licenseExpiresAt": "2099-12-31T23:59:59.000Z",
     "createdAt": "2026-10-01T08:33:20.374Z"
+  },
+  {
+    "id": "usr_opa_1740000000000",
+    "username": "opa",
+    "password": "opa",
+    "isAdmin": false,
+    "isLicensed": true,
+    "licenseExpiresAt": "2099-12-31T23:59:59.000Z",
+    "createdAt": "2026-10-01T12:00:00.000Z"
   }
 ]

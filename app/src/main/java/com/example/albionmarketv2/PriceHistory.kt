@@ -12,7 +12,8 @@ data class PriceSnapshot(
     val city: String,
     val sellPriceMin: Int,
     val buyPriceMax: Int,
-    val timestampMs: Long = System.currentTimeMillis()
+    val timestampMs: Long = System.currentTimeMillis(),
+    val sellPriceMinAmount: Int = 0
 )
 
 data class ItemPriceHistory(

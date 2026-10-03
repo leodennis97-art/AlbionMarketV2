@@ -9,26 +9,26 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 val AlbionShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp),
-    small = RoundedCornerShape(10.dp),
-    medium = RoundedCornerShape(14.dp),
-    large = RoundedCornerShape(18.dp),
-    extraLarge = RoundedCornerShape(24.dp)
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(6.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(12.dp),
+    extraLarge = RoundedCornerShape(16.dp)
 )
 
 private val AlbionLogoColorScheme = darkColorScheme(
     primary = LogoGoldPrimary,
     onPrimary = OnPrimaryBlack,                  // Schwarz auf Gold für perfekten Kontrast (Text auf Knöpfen)
-    primaryContainer = PrimaryContainerDark,      // Dunkler Container verhindert knallgelbe Flächen
-    onPrimaryContainer = OnPrimaryContainerGold,  // Goldener Text auf dunklem Container
-    secondary = LogoBronze,
+    primaryContainer = PrimaryContainerDark,      // Dunkler Container
+    onPrimaryContainer = OnPrimaryContainerGold,  // Goldener Text
+    secondary = LogoCyanPrimary,                  // Logo Cyan Accent (#06B6D4)
     onSecondary = OnPrimaryBlack,
     secondaryContainer = SecondaryContainerDark,
-    onSecondaryContainer = OnSecondaryContainerGold,
-    tertiary = LogoGoldLight,
+    onSecondaryContainer = OnSecondaryContainerCyan,
+    tertiary = EmeraldGreen,                     // Logo Emerald Green (#10B981)
     onTertiary = OnPrimaryBlack,
-    tertiaryContainer = Color(0xFF332608),
-    onTertiaryContainer = Color(0xFFFEF08A),
+    tertiaryContainer = Color(0xFF063726),
+    onTertiaryContainer = Color(0xFFA7F3D0),
     background = CosmicDarkBg,
     onBackground = TextMain,
     surface = GlassSurface,

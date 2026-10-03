@@ -10,6 +10,14 @@
     <!-- HTTPS Endpoints -->
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">onrender.com</domain>
+        <domain includeSubdomains="true">albiononlinebuilds.com</domain>
+        <domain includeSubdomains="true">albion-online.com</domain>
+        <domain includeSubdomains="true">ngrok-free.dev</domain>
+        <domain includeSubdomains="true">loca.lt</domain>
+        <domain includeSubdomains="true">74.220.51.1</domain>
+        <domain includeSubdomains="true">74.220.59.1</domain>
+        <domain includeSubdomains="true">74.220.51.0</domain>
+        <domain includeSubdomains="true">74.220.59.0</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

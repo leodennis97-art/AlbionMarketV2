@@ -42,6 +42,7 @@ object ExternalStorageBackupManager {
                     put("sellPriceMin", s.sellPriceMin)
                     put("buyPriceMax", s.buyPriceMax)
                     put("timestampMs", s.timestampMs)
+                    put("sellPriceMinAmount", s.sellPriceMinAmount)
                 }
                 arr.put(obj)
             }
@@ -61,14 +62,18 @@ object ExternalStorageBackupManager {
                 val jsonStr = file.readText(Charsets.UTF_8)
                 val arr = JSONArray(jsonStr)
                 for (i in 0 until arr.length()) {
-                    val obj = arr.getJSONObject(i)
+                    val obj = arr.optJSONObject(i) ?: continue
+                    val itemId = obj.optString("itemId", "")
+                    val city = obj.optString("city", "")
+                    if (itemId.isBlank() || city.isBlank()) continue
                     list.add(
                         PriceSnapshot(
-                            itemId = obj.getString("itemId"),
-                            city = obj.getString("city"),
-                            sellPriceMin = obj.getInt("sellPriceMin"),
+                            itemId = itemId,
+                            city = city,
+                            sellPriceMin = obj.optInt("sellPriceMin", 0),
                             buyPriceMax = obj.optInt("buyPriceMax", 0),
-                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis())
+                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
+                            sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
                         )
                     )
                 }

@@ -2,31 +2,34 @@ package com.example.albionmarketv2.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Logo Gold & Bronze Palette (aus aot_logo.xml - Hoher Kontrast)
-val LogoGoldPrimary = Color(0xFFE5A918)       // Edles Albion Gold (#E5A918)
+// Logo Palette (aus aot_logo.xml: Cyan #06B6D4, Amber Gold #F59E0B, Emerald Green #10B981, Deep Slate #0F172A)
+val LogoGoldPrimary = Color(0xFFF59E0B)       // Warmes Logo Gold/Amber (#F59E0B)
 val LogoGoldLight = Color(0xFFFACC15)         // Akzent-Gold (#FACC15)
 val LogoGoldDark = Color(0xFFB8860B)          // Satiniertes Gold (#B8860B)
 val LogoBronze = Color(0xFFC49415)            // Warmes Bronze (#C49415)
 
+val LogoCyanPrimary = Color(0xFF06B6D4)       // Logo Cyan / Electric Blue (#06B6D4)
+val LogoCyanLight = Color(0xFF38BDF8)         // Helles Logo Cyan (#38BDF8)
+
 // Kontraststarke Container & Oberflächen
-val OnPrimaryBlack = Color(0xFF000000)         // Reines Schwarz für maximale Lesbarkeit auf Gold-Buttons!
+val OnPrimaryBlack = Color(0xFF000000)         // Reines Schwarz für maximale Lesbarkeit auf Primär-Buttons
 val PrimaryContainerDark = Color(0xFF2B200A)   // Dunkler Gold-Container
 val OnPrimaryContainerGold = Color(0xFFFDE68A) // Heller Gold-Text auf dunkelgoldenem Container
 
-val SecondaryContainerDark = Color(0xFF241A06)
-val OnSecondaryContainerGold = Color(0xFFFEF3C7)
+val SecondaryContainerDark = Color(0xFF0E2A38) // Dunkler Cyan-Container
+val OnSecondaryContainerCyan = Color(0xFFBAE6FD)
 
-// Hintergrund & Metallic Glass Oberflächen
-val CosmicDarkBg = Color(0xFF0B0F17)          // Tiefdunkler Hintergrund für perfekten Kontrast
-val GlassSurface = Color(0xFF131B26)          // Dunkle Glas-Oberfläche
-val GlassSurfaceHigh = Color(0xFF1C2636)      // Anhebung für Cards/Container
-val GlassSurfaceElevated = Color(0xFF222C3D)  // Höhere Stufe für Dialoge & Popups
-val GlassBorder = Color(0xFF4A3B1C)           // Bronzener Rand
-val GlassBorderLight = Color(0xFF5A4926)      // Heller Bronze-Rand
+// Hintergrund & Metallic Glass Oberflächen (Slate Theme aus Logo)
+val CosmicDarkBg = Color(0xFF0B0F17)          // Tiefdunkler Hintergrund (#0B0F17)
+val GlassSurface = Color(0xFF0F172A)          // Dark Slate Surface aus Logo (#0F172A)
+val GlassSurfaceHigh = Color(0xFF1E293B)      // Secondary Slate Level (#1E293B)
+val GlassSurfaceElevated = Color(0xFF334155)  // Dialoge & Cards Level (#334155)
+val GlassBorder = Color(0xFF06B6D4)           // Cyan Border Akzent
+val GlassBorderLight = Color(0xFFF59E0B)      // Gold Border Akzent
 
 // Akzent- & Systemfarben
-val EmeraldGreen = Color(0xFF10B981)          // Gewinn-Grün
-val CrimsonRed = Color(0xFFEF4444)            // Verlust-Rot
+val EmeraldGreen = Color(0xFF10B981)          // Gewinn-Grün & Logo Green (#10B981)
+val CrimsonRed = Color(0xFFEF4444)            // Verlust-Rot (#EF4444)
 val CyberBlue = Color(0xFF38BDF8)             // Support- & Links-Blau
 val RoyalPurple = Color(0xFFA855F7)           // Special-Tier Lila
 val AmberOrange = Color(0xFFF59E0B)           // Warnungs-Orange

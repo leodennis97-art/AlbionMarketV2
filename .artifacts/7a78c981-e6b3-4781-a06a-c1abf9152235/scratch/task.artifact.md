@@ -1,0 +1,4 @@
+- [ ] Add separate width and height preferences for vertical and horizontal orientations in AppPreferences
+- [ ] Remove scale/zoom buttons from FloatingBubbleService header and replace with or adjust width/height controls or settings
+- [ ] Update BubbleSettingsTab to allow setting width and height separately for vertical and horizontal views
+- [ ] Verify build and test
