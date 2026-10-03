@@ -96,13 +96,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         billingManager = BillingManager(this)
 
-        // Initialize Server Config & Start 24/7 Persistent Server Sync Service
+        // Initialize Server Config
         ServerConfigManager.initServerConfig(this)
-        try {
-            PersistentServerSyncService.startService(this)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
 
         // Setup Notification Channel & Request Notifications Permission
         NotificationHelper.createNotificationChannel(this)
@@ -249,15 +244,23 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Automatic Floating Overlay Bubble Management (Only when user is authenticated & logged in)
+                // Automatic Floating Overlay Bubble & Notification Management (Only when user is authenticated & logged in)
                 LaunchedEffect(isUserLoggedInState) {
                     if (isUserLoggedInState && LicenseManager.isLicenseValid(context)) {
+                        try {
+                            PersistentServerSyncService.startService(context)
+                        } catch (_: Exception) {}
+
                         if (Settings.canDrawOverlays(context) && !FloatingBubbleService.isServiceRunning()) {
                             try {
                                 FloatingBubbleService.startService(context)
                             } catch (_: Exception) {}
                         }
                     } else {
+                        try {
+                            PersistentServerSyncService.stopService(context)
+                        } catch (_: Exception) {}
+
                         if (FloatingBubbleService.isServiceRunning()) {
                             try {
                                 FloatingBubbleService.stopService(context)
@@ -279,7 +282,6 @@ class MainActivity : ComponentActivity() {
                         var isAuthenticating by remember { mutableStateOf(false) }
                         var licenseKeyInput by remember { mutableStateOf("") }
                         var showLoginUpdatesDialog by remember { mutableStateOf(false) }
-                        var showRegisterDialog by remember { mutableStateOf(false) }
                         var isCheckingUpdate by remember { mutableStateOf(false) }
                         var updateCheckResult by remember { mutableStateOf<String?>(null) }
                         val coroutineScope = rememberCoroutineScope()
@@ -785,29 +787,38 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                             isRegLoading = true
                                                             lifecycleScope.launch {
-                                                                val (ok, msg) = ServerSyncManager.registerUser(context, regUsername.trim(), regPassword.trim())
-                                                                if (ok) {
-                                                                    usernameInput = regUsername.trim()
-                                                                    passwordInput = regPassword.trim()
-                                                                    val loginSuccess = ServerSyncManager.loginWithServer(context, regUsername.trim(), regPassword.trim())
-                                                                    isRegLoading = false
-                                                                    showRegisterDialog = false
-                                                                    if (loginSuccess) {
-                                                                        LoginSecurityManager.resetFailedAttempts(context)
-                                                                        prefs.isUserLoggedIn = true
-                                                                        prefs.savedUsername = regUsername.trim()
-                                                                        if (savePasswordLocally) {
-                                                                            prefs.savedPassword = regPassword.trim()
+                                                                try {
+                                                                    val (ok, msg) = ServerSyncManager.registerUser(context, regUsername.trim(), regPassword.trim())
+                                                                    if (ok) {
+                                                                        usernameInput = regUsername.trim()
+                                                                        passwordInput = regPassword.trim()
+                                                                        val loginSuccess = try {
+                                                                            ServerSyncManager.loginWithServer(context, regUsername.trim(), regPassword.trim())
+                                                                        } catch (_: Exception) {
+                                                                            false
                                                                         }
-                                                                        isUserLoggedInState = true
-                                                                        isUnlockedForSession = true
-                                                                        Toast.makeText(context, "🟢 Account erstellt & erfolgreich eingeloggt!", Toast.LENGTH_LONG).show()
+                                                                        isRegLoading = false
+                                                                        showRegisterDialog = false
+                                                                        if (loginSuccess) {
+                                                                            LoginSecurityManager.resetFailedAttempts(context)
+                                                                            prefs.isUserLoggedIn = true
+                                                                            prefs.savedUsername = regUsername.trim()
+                                                                            if (savePasswordLocally) {
+                                                                                prefs.savedPassword = regPassword.trim()
+                                                                            }
+                                                                            isUserLoggedInState = true
+                                                                            isUnlockedForSession = true
+                                                                            Toast.makeText(context, "🟢 Account erstellt & erfolgreich eingeloggt!", Toast.LENGTH_LONG).show()
+                                                                        } else {
+                                                                            Toast.makeText(context, "🟢 Account erfolgreich erstellt! Bitte einloggen.", Toast.LENGTH_LONG).show()
+                                                                        }
                                                                     } else {
-                                                                        Toast.makeText(context, "🟢 Account erfolgreich erstellt! Bitte einloggen.", Toast.LENGTH_LONG).show()
+                                                                        isRegLoading = false
+                                                                        Toast.makeText(context, "❌ $msg", Toast.LENGTH_LONG).show()
                                                                     }
-                                                                } else {
+                                                                } catch (e: Exception) {
                                                                     isRegLoading = false
-                                                                    Toast.makeText(context, "❌ $msg", Toast.LENGTH_LONG).show()
+                                                                    Toast.makeText(context, "❌ Registrierungsfehler: ${e.localizedMessage ?: "Unbekannter Fehler"}", Toast.LENGTH_LONG).show()
                                                                 }
                                                             }
                                                         },
