@@ -16,8 +16,8 @@ android {
         applicationId 'com.example.albionmarketv2'
         minSdk 26
         targetSdk 35
-        versionCode 208
-        versionName '2.0.8'
+        versionCode 209
+        versionName '2.0.9'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
@@ -69,6 +69,7 @@ tasks.register("uploadApkToRender") {
             def boundary = "----AndroidGradleBoundary" + System.currentTimeMillis()
             conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary)
             conn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+            conn.setRequestProperty("x-admin-key", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
             conn.setRequestProperty("X-Target-Version", versionName)
             
             conn.outputStream.withCloseable { os ->
