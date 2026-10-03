@@ -125,7 +125,7 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = "2.1.0";
+const CURRENT_SERVER_VERSION = "2.1.1";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -228,6 +228,18 @@ function syncLatestApk() {
     } catch (e) {
         console.error('[OTA Sync] Fehler bei APK-Prüfung:', e.message);
     }
+}
+
+function getAppVersionFromGradle() {
+    try {
+        const buildGradlePath = path.join(__dirname, 'app', 'build.gradle');
+        if (fs.existsSync(buildGradlePath)) {
+            const content = fs.readFileSync(buildGradlePath, 'utf8');
+            const match = content.match(/versionName\s+['"]([^'"]+)['"]/);
+            if (match) return match[1];
+        }
+    } catch (e) {}
+    return CURRENT_SERVER_VERSION;
 }
 
 // Autonome Echtzeit-Cloud-Schleife: Erkennt App-Änderungen in Gradle sofort und synchronisiert Server & Geräte
@@ -1386,6 +1398,14 @@ app.get(['/admin'], (req, res) => {
 
             <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>
             <div class="url-box">${tunnelUrl}</div>
+
+            <div style="margin-top: 16px; padding: 16px; background: #0f172a; border-radius: 12px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <strong>📱 Neueste APK Version v${CURRENT_SERVER_VERSION} bereitgestellt</strong>
+                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Direkt herunterladen und auf Android-Geräten installieren.</div>
+                </div>
+                <a href="/download" class="btn" style="background: #10b981; text-decoration: none; padding: 10px 20px; font-size: 14px;">📥 APK herunterladen (v${CURRENT_SERVER_VERSION})</a>
+            </div>
 
             <div class="stat-box">
                 <div class="stat-card">

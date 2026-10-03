@@ -837,6 +837,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val updatedList = _uiState.value.goldSales + newSale
         prefs.saveGoldSales(updatedList)
         _uiState.value = _uiState.value.copy(goldSales = updatedList)
+        sendLiveGoldNotification()
     }
 
     fun deleteGoldSale(id: String) {

@@ -7,9 +7,10 @@ object DesktopBridgeManager {
 
     fun generateCompanionQrPayload(context: Context): String {
         val hwId = DeviceHardwareManager.getHardwareId(context)
+        val versionName = OtaUpdateManager.getInstalledVersionName(context)
         return JSONObject().apply {
             put("app", "AlbionDataPro")
-            put("version", "1.3.18")
+            put("version", versionName)
             put("hwId", hwId)
             put("bridgeUrl", "https://albionmarketv2.onrender.com/bridge/$hwId")
         }.toString()

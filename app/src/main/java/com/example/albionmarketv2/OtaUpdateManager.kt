@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import android.provider.Settings
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -205,7 +206,10 @@ object OtaUpdateManager {
                 println("OtaUpdateManager: Checking URL $currentUrl -> Response Code: $responseCode")
 
                 if (responseCode == HttpURLConnection.HTTP_OK) {
-                    val apkFile = File(context.getExternalFilesDir(null), "albion_update.apk")
+                    // Direkt in den öffentlichen Android Download-Ordner herunterladen, um Paketfehler zu umgehen
+                    val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                    if (!downloadsDir.exists()) downloadsDir.mkdirs()
+                    val apkFile = File(downloadsDir, "AlbionDataPro.apk")
                     if (apkFile.exists()) apkFile.delete()
 
                     connection.inputStream.use { input ->
@@ -216,32 +220,16 @@ object OtaUpdateManager {
 
                     if (apkFile.exists() && apkFile.length() > 500_000L) {
                         if (!isZipApkHeader(apkFile)) {
-                            println("OtaUpdateManager: Downloaded file has invalid ZIP/APK signature. Skipping.")
+                            println("OtaUpdateManager: Heruntergeladene Datei hat keine gültige APK-Signatur (vermutlich HTML-Fehlerseite).")
                             apkFile.delete()
                             continue
                         }
 
-                        val apkInfo = getApkArchiveInfo(context, apkFile)
-                        val (newCode, newName) = if (apkInfo != null) {
-                            apkInfo
-                        } else {
-                            // Robust fallback if Android PackageParser fails on uninstalled APK files
-                            Pair(currentCode + 1, ServerSyncManager.latestTargetVersion ?: "1.3.20")
-                        }
-                        val isNewer = isNewerVersion(newCode, newName, currentCode, currentName)
-
-                        if (!isNewer && !force) {
-                            println("OtaUpdateManager: APK ($newName / Code $newCode) ist NICHT neuer als die installierte Version ($currentName / Code $currentCode). Update übersprungen.")
-                            apkFile.delete()
-                            return@withContext false
-                        }
-
                         withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "✅ Update erfolgreich in Downloads gespeichert. Starte Installation...", Toast.LENGTH_LONG).show()
                             installApk(context, apkFile)
                         }
                         return@withContext true
-                    } else {
-                        if (apkFile.exists()) apkFile.delete()
                     }
                 }
             } catch (e: Exception) {
@@ -249,16 +237,17 @@ object OtaUpdateManager {
             }
         }
 
-        // Always fallback to browser if background download fails
+        // Direkter Link zum APK-Download auf der Render-Website, um "Paket ungültig" (HTML-Seiten-Download) zu verhindern
         try {
             withContext(Dispatchers.Main) {
-                Toast.makeText(context, "🌐 Hintergrund-Download fehlgeschlagen. Öffne Download im Browser...", Toast.LENGTH_LONG).show()
-                val fallbackUrl = "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk"
-                val intent = Intent(Intent.ACTION_VIEW, fallbackUrl.toUri()).apply {
+                Toast.makeText(context, "🌐 Starte direkten APK-Download von Render...", Toast.LENGTH_LONG).show()
+                val apkDirectUrl = "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk"
+                val intent = Intent(Intent.ACTION_VIEW, apkDirectUrl.toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(intent)
             }
+            return@withContext true
         } catch (e: Exception) {
             e.printStackTrace()
         }

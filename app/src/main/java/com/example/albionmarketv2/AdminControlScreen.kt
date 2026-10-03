@@ -126,7 +126,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "1.3.18"
+const val CURRENT_APP_VERSION = "2.1.1"
 
 data class AdminDevice(
     val hwId: String,
@@ -2690,12 +2690,17 @@ fun AdminDevicesTab(
                 val hwId = deleteTargetDevice?.hwId ?: return@ConfirmDeleteDialog
                 deleteTargetDevice = null
                 coroutineScope.launch {
-                    val deleted = AdminControlManager.deleteDevice(context, hwId)
-                    if (deleted) {
-                        Toast.makeText(context, "🟢 Gerät gelöscht", Toast.LENGTH_SHORT).show()
-                        onRefresh()
-                    } else {
-                        Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                    try {
+                        val deleted = AdminControlManager.deleteDevice(context, hwId)
+                        if (deleted) {
+                            Toast.makeText(context, "🟢 Gerät gelöscht", Toast.LENGTH_SHORT).show()
+                            onRefresh()
+                        } else {
+                            Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_SHORT).show()
                     }
                 }
             }

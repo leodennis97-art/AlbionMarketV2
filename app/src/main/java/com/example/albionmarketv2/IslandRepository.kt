@@ -35,28 +35,26 @@ object IslandRepository {
             return list
         }
 
-        val silverCosts = mapOf(
-            1 to 2_500L,
-            2 to 5_000L,
-            3 to 25_000L,
-            4 to 75_000L,
-            5 to 220_000L,
-            6 to 650_000L,
-            7 to 1_800_000L,
-            8 to 5_000_000L
+        // Exakte Albion Online Ressourcen-Kosten für Gebäude-Upgrades von T1 bis T8
+        val upgradeData = mapOf(
+            1 to Triple(2_500L, "20x T1 Raues Holz", "20x T1 Rauer Stein"),
+            2 to Triple(10_000L, "50x T2 Birkenplanken", "50x T2 Kalksteinblock"),
+            3 to Triple(35_000L, "120x T3 Kastanienplanken", "120x T3 Sandsteinblock"),
+            4 to Triple(120_000L, "300x T4 Zedernplanken", "300x T4 Travertinblock"),
+            5 to Triple(380_000L, "750x T5 Kiefernplanken", "750x T5 Granitblock"),
+            6 to Triple(1_200_000L, "1.800x T6 Blautannenenplanken", "1.800x T6 Schieferblock"),
+            7 to Triple(3_500_000L, "4.200x T7 Mahagoniplanken", "4.200x T7 Basaltblock"),
+            8 to Triple(9_000_000L, "10.000x T8 Himbeerplanken", "10.000x T8 Marmorblock")
         )
 
         for (t in 1..maxTier) {
+            val step = upgradeData[t] ?: Triple(0L, "Keine", "Keine")
             val tName = when (t) {
                 1 -> "Stufe T1 (Bauplatz erschließen)"
                 2 -> "Stufe T2 (Fundament & Neubau)"
                 else -> "Stufe T$t (Gebäude-Upgrade)"
             }
-            val cost = silverCosts[t] ?: 0L
-            val woodStr = ""
-            val stoneStr = ""
-
-            list.add(BuildingUpgradeStep(t, tName, cost, woodStr, stoneStr))
+            list.add(BuildingUpgradeStep(t, tName, step.first, step.second, step.third))
         }
         return list
     }

@@ -820,8 +820,8 @@ object ServerSyncManager {
             }
         }
 
-        // On temporary server disconnect, maintain session locally & keep searching in background
-        return@withContext !serverConnected
+        // Strikte Cloud- und Lizenzprüfung: Kein automatischer Offline-Fallbacks!
+        return@withContext false
     }
 
     suspend fun backupUserData(context: Context): Boolean = withContext(Dispatchers.IO) {

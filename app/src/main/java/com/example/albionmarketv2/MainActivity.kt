@@ -178,24 +178,11 @@ class MainActivity : ComponentActivity() {
                 var isUnlockedForSession by remember { mutableStateOf(value = false) }
                 var showWelcomeDialog by remember { mutableStateOf(value = false) }
 
-                // Cloud-Dependent Session Verification on Launch
+                // Kein automatischer Login beim Start: Jeder Start erfordert manuelle Anmeldung mit Cloud- und Lizenzprüfung
                 LaunchedEffect(Unit) {
                     prefs.isUserLoggedIn = false
                     isUserLoggedInState = false
                     isUnlockedForSession = false
-
-                    if (prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) {
-                        withContext(Dispatchers.IO) {
-                            val cloudVerified = ServerSyncManager.verifyCredentialsWithServer(context)
-                            if (cloudVerified) {
-                                withContext(Dispatchers.Main) {
-                                    isUserLoggedInState = true
-                                    isUnlockedForSession = true
-                                    prefs.isUserLoggedIn = true
-                                }
-                            }
-                        }
-                    }
                 }
 
                 // Live Popup Alert Handling for Admin Messages & Screen Alarm
@@ -432,7 +419,7 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
 
-                                        // New Dedicated Buttons: Test / Ping Server Live & Update App
+                                        // Buttons nebeneinander oder kompakter ohne großen Abstand
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -471,11 +458,14 @@ class MainActivity : ComponentActivity() {
 
                                             Button(
                                                 onClick = {
-                                                    coroutineScope.launch {
-                                                        val updated = OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
-                                                        if (!updated) {
-                                                            Toast.makeText(context, "Kein Update verfügbar / aktuell.", Toast.LENGTH_SHORT).show()
+                                                    try {
+                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2.onrender.com".toUri()).apply {
+                                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                         }
+                                                        context.startActivity(webIntent)
+                                                    } catch (e: Exception) {
+                                                        e.printStackTrace()
+                                                        Toast.makeText(context, "❌ Fehler beim Öffnen der Website", Toast.LENGTH_SHORT).show()
                                                     }
                                                 },
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
@@ -483,7 +473,7 @@ class MainActivity : ComponentActivity() {
                                                 modifier = Modifier.weight(1f),
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                             ) {
-                                                Text("🚀 App Aktualisieren", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                Text("🌐 Download (Render)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                             }
                                         }
                                     }

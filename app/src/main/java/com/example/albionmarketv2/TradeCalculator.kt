@@ -307,13 +307,13 @@ object TradeCalculator {
                 }
 
                 val noBmPrices = if (hideBlackMarket) {
-                    baseFilteredPrices.filter { !isBlackMarket(it.city) }
+                    baseFilteredPrices.filter { p -> !isBlackMarket(p.city) }
                 } else {
                     baseFilteredPrices
                 }
 
                 val filteredPrices = if (hideBrecilien) {
-                    noBmPrices.filter { !it.city.contains("Brecilien", ignoreCase = true) }
+                    noBmPrices.filter { p -> !p.city.contains("Brecilien", ignoreCase = true) }
                 } else {
                     noBmPrices
                 }

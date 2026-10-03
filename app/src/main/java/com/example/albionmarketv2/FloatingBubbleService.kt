@@ -205,10 +205,6 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
             if (enableFocus) {
                 layoutParams.flags = layoutParams.flags and WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE.inv()
-                composeView?.isFocusable = true
-                composeView?.isFocusableInTouchMode = true
-                composeView?.requestFocus()
-                imm?.showSoftInput(composeView, InputMethodManager.SHOW_IMPLICIT)
             } else {
                 layoutParams.flags = layoutParams.flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
                 composeView?.windowToken?.let { token ->
@@ -2191,13 +2187,18 @@ fun BubbleIslandTab(
                     Text("Keine aktiven Ernte-Timer.", color = Color.LightGray, fontSize = 9.sp)
                 } else {
                     activeTimers.forEach { timer ->
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+                        Column(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
                         ) {
-                            Text("• ${timer.nameDe}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                            Text(timer.remainingFormatted(), color = if (timer.isReady()) Color(0xFF10B981) else Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("• ${timer.nameDe}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                Text(timer.remainingFormatted(), color = if (timer.isReady()) Color(0xFF10B981) else Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                            }
+                            Text("Fertig am: ${timer.expectedHarvestDateFormatted()}", color = Color(0xFF94A3B8), fontSize = 8.sp)
                         }
                     }
                 }
@@ -2212,25 +2213,23 @@ fun BubbleIslandTab(
                     color = Color(0xFF1E3A4C),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column(modifier = Modifier.padding(4.dp)) {
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(bldg.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                                Text("⚡ ${bldg.abilityDescDe}", color = Color.LightGray, fontSize = 9.sp)
-                                Text("📍 Bonus: ${bldg.cityBonusCity}", color = Color(0xFF81D4FA), fontSize = 9.sp)
-                            }
-                        }
+                    Column(modifier = Modifier.padding(6.dp)) {
+                        Text(bldg.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("⚡ ${bldg.abilityDescDe}", color = Color.LightGray, fontSize = 9.sp)
+                        Text("📍 Bonus: ${bldg.cityBonusCity}", color = Color(0xFF81D4FA), fontSize = 9.sp)
                         Spacer(modifier = Modifier.height(2.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("🌾 Ertrag: $yieldQty", color = Color(0xFFFFB74D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            Text("💰 Wert in ${if (selectedCityFilter == "ALLE") "Stadt" else selectedCityFilter}: $yieldPrice", color = Color(0xFF10B981), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text("🌾 Ertrag: $yieldQty | 💰 Wert: $yieldPrice", color = Color(0xFFFFB74D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("🏗️ Gebäude-Upgrades (T1 bis T8 Ressourcen & Kosten):", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                        bldg.upgrades.forEach { step ->
+                            val fmtSilver = NumberFormat.getNumberInstance(Locale.GERMANY).format(step.silverCost)
+                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                                Text("• ${step.tierName}: ${fmtSilver} S.", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                if (step.woodReq.isNotBlank()) {
+                                    Text("   Holz/Planken: ${step.woodReq} | Stein/Blöcke: ${step.stoneReq}", color = Color(0xFF94A3B8), fontSize = 8.sp)
+                                }
+                            }
                         }
                     }
                 }
@@ -2409,111 +2408,164 @@ fun BubbleGoldTab(
             }
         }
 
-        // Gold Purchase Entry Form inside Floating Bubble
+        // Gold Purchase & Sale Entry Form inside Floating Bubble
+        var goldSaleAmountInput by remember { mutableStateOf("") }
+        var goldSalePriceInput by remember { mutableStateOf("") }
+
         Surface(
             shape = RoundedCornerShape(10.dp),
             color = Color(0xFF1E3A4C),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(modifier = Modifier.padding(6.dp)) {
-                Text("✍️ Goldkauf eintragen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                Text("✍️ Goldkauf / Verkauf eintragen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
                 Spacer(modifier = Modifier.height(2.dp))
+                
+                // Kauf Form
+                Text("Kauf:", color = Color(0xFF81C784), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
                     OutlinedTextField(
                         value = goldAmountInput,
-                        onValueChange = { 
-                            goldAmountInput = it 
-                        },
+                        onValueChange = { goldAmountInput = it },
                         label = { Text("Menge", fontSize = 9.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    onFocusModeChanged(true)
-                                }
-                            }
+                        modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                     )
-
                     OutlinedTextField(
                         value = goldPriceInput,
-                        onValueChange = { 
-                            goldPriceInput = it
-                        },
+                        onValueChange = { goldPriceInput = it },
                         label = { Text("Preis/Gold", fontSize = 9.sp) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         singleLine = true,
-                        modifier = Modifier
-                            .weight(1f)
-                            .onFocusChanged { focusState ->
-                                if (focusState.isFocused) {
-                                    onFocusModeChanged(true)
-                                }
-                            }
+                        modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Button(
                     onClick = {
                         val amount = goldAmountInput.toIntOrNull() ?: 0
                         val price = goldPriceInput.toIntOrNull() ?: 0
-                        if ((amount > 0) && (price > 0)) {
-                            val dateStr = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.GERMANY).format(Date())
-                            val prefs = AppPreferences(viewModel.getApplication())
-                            val currentPurchases = prefs.getGoldPurchases()
-                            val newPurchase = GoldPurchase(
-                                id = UUID.randomUUID().toString(),
-                                amountGold = amount,
-                                buyPricePerGold = price,
-                                purchaseDate = dateStr
-                            )
-                            prefs.saveGoldPurchases(currentPurchases + newPurchase)
+                        if (amount > 0 && price > 0) {
+                            viewModel.addGoldPurchase(amount, price, "")
                             goldAmountInput = ""
                             goldPriceInput = ""
                             onFocusModeChanged(false)
-                            Toast.makeText(viewModel.getApplication(), "Goldkauf gespeichert! Portfolio wird beobachtet.", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(viewModel.getApplication(), "Goldkauf gespeichert!", Toast.LENGTH_SHORT).show()
                         } else {
                             Toast.makeText(viewModel.getApplication(), "Gültige Menge & Preis eingeben", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF81C784)),
+                    modifier = Modifier.fillMaxWidth().height(28.dp),
+                    contentPadding = PaddingValues(0.dp)
                 ) {
-                    Text("+ Goldkauf speichern", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Text("+ Kauf eintragen", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                // Verkauf Form
+                Text("Verkauf:", color = Color(0xFFFFB74D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = goldSaleAmountInput,
+                        onValueChange = { goldSaleAmountInput = it },
+                        label = { Text("Menge", fontSize = 9.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                    )
+                    OutlinedTextField(
+                        value = goldSalePriceInput,
+                        onValueChange = { goldSalePriceInput = it },
+                        label = { Text("Verkaufspreis/Gold", fontSize = 9.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                    )
+                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Button(
+                    onClick = {
+                        val amount = goldSaleAmountInput.toIntOrNull() ?: 0
+                        val price = goldSalePriceInput.toIntOrNull() ?: 0
+                        if (amount > 0 && price > 0) {
+                            viewModel.addGoldSale(amount, price, "")
+                            goldSaleAmountInput = ""
+                            goldSalePriceInput = ""
+                            onFocusModeChanged(false)
+                            Toast.makeText(viewModel.getApplication(), "Goldverkauf gespeichert!", Toast.LENGTH_SHORT).show()
+                        } else {
+                            Toast.makeText(viewModel.getApplication(), "Gültige Menge & Preis eingeben", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    shape = RoundedCornerShape(6.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFB74D)),
+                    modifier = Modifier.fillMaxWidth().height(28.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("+ Verkauf eintragen", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.sp)
                 }
             }
         }
-        // Einnahmen-Historie für Gold (Top 3)
+        
+        // Einnahmen-Historie für Gold (Top 3 Käufe & Verkäufe)
         val prefs = remember { AppPreferences(viewModel.getApplication()) }
         val goldPurchases = prefs.getGoldPurchases()
-        if (goldPurchases.isNotEmpty()) {
+        val goldSales = prefs.getGoldSales()
+        
+        if (goldPurchases.isNotEmpty() || goldSales.isNotEmpty()) {
             Spacer(modifier = Modifier.height(2.dp))
-            Text("📜 Letzte 3 Goldkäufe", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-            goldPurchases.takeLast(3).reversed().forEach { purchase ->
+            Text("📜 Letzte Gold-Transaktionen", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+            goldPurchases.takeLast(2).reversed().forEach { purchase ->
                 val netProfit = purchase.netProfitSilver(uiState.currentGoldPrice)
-                val roi = purchase.roiPercent(uiState.currentGoldPrice)
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(6.dp),
                     color = Color(0xFF0A1922),
                     border = BorderStroke(1.dp, Color(0xFF1E3A4C)),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                 ) {
                     Column(modifier = Modifier.padding(4.dp)) {
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("${fmt.format(purchase.amountGold)} Gold", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                            Text("🛒 ${fmt.format(purchase.amountGold)} Gold (Kauf)", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 9.sp)
                             Text(
-                                text = "${if (netProfit >= 0) "+" else ""}${fmt.format(netProfit)} S. (%.1f%%)".format(roi),
+                                text = "${if (netProfit >= 0) "+" else ""}${fmt.format(netProfit)} S.",
                                 color = if (netProfit >= 0) Color(0xFF66BB6A) else Color(0xFFEF4444),
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
+                                fontSize = 9.sp
                             )
                         }
-                        Text("Kaufpreis: ${fmt.format(purchase.buyPricePerGold)} S./Gold", color = Color.LightGray, fontSize = 9.sp)
+                        Text("Kaufpreis: ${fmt.format(purchase.buyPricePerGold)} S./Gold", color = Color.LightGray, fontSize = 8.sp)
+                    }
+                }
+            }
+            goldSales.takeLast(2).reversed().forEach { sale ->
+                val realized = sale.realizedProfit(uiState.currentGoldPrice)
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF0A1922),
+                    border = BorderStroke(1.dp, Color(0xFF1E3A4C)),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(4.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("💰 ${fmt.format(sale.amountGold)} Gold (Verkauf)", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                            Text(
+                                text = "+${fmt.format(sale.totalEarnedSilver)} S.",
+                                color = Color(0xFF66BB6A),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 9.sp
+                            )
+                        }
+                        Text("Verkaufspreis: ${fmt.format(sale.sellPricePerGold)} S./Gold", color = Color.LightGray, fontSize = 8.sp)
                     }
                 }
             }
@@ -2813,6 +2865,10 @@ fun BubbleSettingsTab(
     var hasPremium by remember { mutableStateOf(prefs.hasPremium) }
     var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
     var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
+    var bubbleWidthPortrait by remember { mutableIntStateOf(prefs.bubbleWidthPortrait) }
+    var bubbleHeightPortrait by remember { mutableIntStateOf(prefs.bubbleHeightPortrait) }
+    var bubbleWidthLandscape by remember { mutableIntStateOf(prefs.bubbleWidthLandscape) }
+    var bubbleHeightLandscape by remember { mutableIntStateOf(prefs.bubbleHeightLandscape) }
 
     Column(
         modifier = Modifier
@@ -2874,64 +2930,36 @@ fun BubbleSettingsTab(
             }
         }
 
-        // Fine-tuning Height & Width via Width/Height buttons
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-            val currentW = prefs.bubbleWidthPortrait
-            val currentH = prefs.bubbleHeightPortrait
+        // Fine-tuning Height & Width via direct clean Sliders with immediate State updates
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            val currentW = bubbleWidthPortrait
+            val currentH = bubbleHeightPortrait
 
-            Text("Aktuell Breite: ${currentW}px | Höhe: ${currentH}px", fontSize = 9.sp, color = Color(0xFF94A3B8))
+            Text("Aktuelle Fenster-Breite: ${currentW}px", fontSize = 10.sp, color = Color(0xFF94A3B8))
+            Slider(
+                value = currentW.toFloat(),
+                onValueChange = { newValue ->
+                    val w = newValue.toInt()
+                    bubbleWidthPortrait = w
+                    bubbleWidthLandscape = (w * 1.25f).toInt()
+                    prefs.bubbleWidthPortrait = w
+                    prefs.bubbleWidthLandscape = (w * 1.25f).toInt()
+                },
+                valueRange = 220f..600f
+            )
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        prefs.bubbleWidthPortrait = (prefs.bubbleWidthPortrait - 20).coerceAtLeast(220)
-                        prefs.bubbleWidthLandscape = (prefs.bubbleWidthLandscape - 20).coerceAtLeast(250)
-                    },
-                    modifier = Modifier.weight(1f).height(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("◀ Schmaler", fontSize = 9.sp, color = Color.White)
-                }
-
-                Button(
-                    onClick = {
-                        prefs.bubbleWidthPortrait = (prefs.bubbleWidthPortrait + 20).coerceAtMost(600)
-                        prefs.bubbleWidthLandscape = (prefs.bubbleWidthLandscape + 20).coerceAtMost(800)
-                    },
-                    modifier = Modifier.weight(1f).height(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("Breiter ▶", fontSize = 9.sp, color = Color.White)
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = {
-                        prefs.bubbleHeightPortrait = (prefs.bubbleHeightPortrait - 20).coerceAtLeast(200)
-                        prefs.bubbleHeightLandscape = (prefs.bubbleHeightLandscape - 20).coerceAtLeast(150)
-                    },
-                    modifier = Modifier.weight(1f).height(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("▼ Flacher", fontSize = 9.sp, color = Color.White)
-                }
-
-                Button(
-                    onClick = {
-                        prefs.bubbleHeightPortrait = (prefs.bubbleHeightPortrait + 20).coerceAtMost(900)
-                        prefs.bubbleHeightLandscape = (prefs.bubbleHeightLandscape + 20).coerceAtMost(900)
-                    },
-                    modifier = Modifier.weight(1f).height(30.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("▲ Höher", fontSize = 9.sp, color = Color.White)
-                }
-            }
+            Text("Aktuelle Fenster-Höhe: ${currentH}px", fontSize = 10.sp, color = Color(0xFF94A3B8))
+            Slider(
+                value = currentH.toFloat(),
+                onValueChange = { newValue ->
+                    val h = newValue.toInt()
+                    bubbleHeightPortrait = h
+                    bubbleHeightLandscape = h
+                    prefs.bubbleHeightPortrait = h
+                    prefs.bubbleHeightLandscape = h
+                },
+                valueRange = 200f..900f
+            )
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {

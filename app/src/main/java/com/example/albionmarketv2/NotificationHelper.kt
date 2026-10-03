@@ -34,12 +34,18 @@ object NotificationHelper {
         return (keyguardManager?.isKeyguardLocked == true) || (keyguardManager?.isDeviceLocked == true)
     }
 
+    private fun isUserLoggedInAndLicensed(context: Context): Boolean {
+        val prefs = AppPreferences(context)
+        return prefs.isUserLoggedIn && LicenseManager.isLicenseValid(context)
+    }
+
     fun showTradeNotification(
         context: Context,
         title: String,
         message: String,
         notificationId: Int = System.currentTimeMillis().toInt(),
     ) {
+        if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
 
         createNotificationChannel(context)
@@ -81,6 +87,7 @@ object NotificationHelper {
         opp: TradeOpportunity,
         notificationId: Int = System.currentTimeMillis().toInt(),
     ) {
+        if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
 
         createNotificationChannel(context)
@@ -169,6 +176,7 @@ object NotificationHelper {
         currentGoldPrice: Int,
         notificationId: Int = System.currentTimeMillis().toInt(),
     ) {
+        if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
 
         createNotificationChannel(context)
