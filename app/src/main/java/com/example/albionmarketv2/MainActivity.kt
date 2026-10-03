@@ -424,8 +424,16 @@ class MainActivity : ComponentActivity() {
 
                                     // Live Version Check & Update Section on Lockscreen
                                     val currentAppVer = remember { OtaUpdateManager.getInstalledVersionName(context) }
-                                    val targetVer = ServerSyncManager.latestTargetVersion
-                                    val isUpdateAvailableOnLockscreen = !targetVer.isNullOrBlank() && OtaUpdateManager.compareVersionStrings(targetVer, currentAppVer) > 0
+                                    val targetVer = ServerSyncManager.latestTargetVersion ?: currentAppVer
+                                    val isUpdateAvailableOnLockscreen = !targetVer.isBlank() && OtaUpdateManager.compareVersionStrings(targetVer, currentAppVer) > 0
+
+                                    LaunchedEffect(Unit) {
+                                        coroutineScope.launch(Dispatchers.IO) {
+                                            try {
+                                                ServerSyncManager.pingServer(context)
+                                            } catch (_: Exception) {}
+                                        }
+                                    }
 
                                     Surface(
                                         shape = RoundedCornerShape(10.dp),
@@ -449,18 +457,6 @@ class MainActivity : ComponentActivity() {
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.Bold,
                                                         color = Color.White
-                                                    )
-                                                    Text(
-                                                        text = if (targetVer.isNullOrBlank()) {
-                                                            "⚡ Server-Version: Wird geprüft..."
-                                                        } else if (isUpdateAvailableOnLockscreen) {
-                                                            "🚀 Neue Version verfügbar: v$targetVer"
-                                                        } else {
-                                                            "⚡ Server-Version: v$targetVer (Aktuell)"
-                                                        },
-                                                        fontSize = 10.sp,
-                                                        fontWeight = if (isUpdateAvailableOnLockscreen) FontWeight.Bold else FontWeight.Normal,
-                                                        color = if (isUpdateAvailableOnLockscreen) Color(0xFF34D399) else Color(0xFF94A3B8)
                                                     )
                                                 }
 
