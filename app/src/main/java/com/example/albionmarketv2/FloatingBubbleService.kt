@@ -413,7 +413,11 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
         val filteredResources = resources.filter { res ->
             val matchesCategory = if (bubbleCategory != "ALL") {
-                try { res.category == ResourceCategory.valueOf(bubbleCategory) } catch (_: Exception) { true }
+                try {
+                    res.category.name.equals(bubbleCategory, ignoreCase = true) || res.category.name == bubbleCategory
+                } catch (_: Exception) {
+                    true
+                }
             } else true
 
             val matchesTier = if (bubbleTier > 0) {

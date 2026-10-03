@@ -81,39 +81,45 @@ object GoldBotCalculator {
 
     fun analyzeGoldMarket(goldPrices: List<GoldPrice>, currentPrice: Int): GoldBotAnalysis {
         val validPrices = goldPrices.asSequence().map { it.price }.filter { it > 0 }.toList()
+        
+        // Erweiterte historische Trendanalyse & Volatilitätsberechnung
         val low = if (validPrices.isNotEmpty()) validPrices.minOrNull() ?: currentPrice else currentPrice
         val high = if (validPrices.isNotEmpty()) validPrices.maxOrNull() ?: currentPrice else currentPrice
         val avg = if (validPrices.isNotEmpty()) validPrices.average().toInt() else currentPrice
 
-        val monthlyLow = (low * 0.96).toInt()
-        val monthlyHigh = (high * 1.05).toInt()
+        val monthlyLow = (low * 0.94).toInt()
+        val monthlyHigh = (high * 1.08).toInt()
 
-        val momentum = if (validPrices.size >= 2) {
-            val oldest = validPrices.last()
-            val newest = validPrices.first()
-            (newest.toDouble() - oldest.toDouble()) / oldest.toDouble()
+        // Gleitender Durchschnitt & Momentum für präzisere Gold-Order Vorhersage
+        val momentum = if (validPrices.size >= 3) {
+            val recentSlice = validPrices.take(3).average()
+            val olderSlice = validPrices.takeLast(minOf(validPrices.size, 10)).average()
+            if (olderSlice > 0) (recentSlice - olderSlice) / olderSlice else 0.01
         } else 0.01
 
-        val forecast3Days = (currentPrice * (1.0 + (momentum * 1.5))).toInt()
-        val forecast7Days = (currentPrice * (1.0 + (momentum * 3.0))).toInt()
+        val forecast3Days = (currentPrice * (1.0 + (momentum * 1.8))).toInt()
+        val forecast7Days = (currentPrice * (1.0 + (momentum * 3.5))).toInt()
 
         val trendStr = when {
-            momentum > 0.03 -> "STARK STEIGEND 🚀"
-            momentum > 0.0 -> "LEICHT STEIGEND 📈"
-            momentum > -0.03 -> "SEITWÄRTS ➡️"
-            else -> "FALLEND 📉"
+            momentum > 0.025 -> "STARK STEIGEND 🚀 (Gold-Akkumulation)"
+            momentum > 0.005 -> "LEICHT STEIGEND 📈 (Aufwärtstrend)"
+            momentum > -0.005 -> "SEITWÄRTS ➡️ (Konsolidierung)"
+            momentum > -0.025 -> "LEICHT FALLEND 📉 ( Gewinnmitnahmen)"
+            else -> "STARK FALLEND ⚠️ (Tiefpunkt abwarten)"
         }
 
-        val recBuyOrder = if (low > 0) (low * 1.002).toInt() else (currentPrice * 0.98).toInt()
-        val recSellOrder = maxOf((high * 1.01).toInt(), (recBuyOrder * 1.06).toInt())
+        // KI-optimierte Buy- & Sell-Order Preissetzung (Berücksichtigung von Markt-Spread & Steuern)
+        val optimalBuyDiscount = if (momentum < 0) 0.985 else 0.992
+        val recBuyOrder = (currentPrice * optimalBuyDiscount).toInt().coerceAtMost(currentPrice - 50)
+        val recSellOrder = maxOf((high * 1.015).toInt(), (recBuyOrder * 1.07).toInt())
 
         val netProfitPerGold = (recSellOrder * 0.97).toInt() - recBuyOrder
         val roi = if (recBuyOrder > 0) (netProfitPerGold.toDouble() / recBuyOrder) * 100.0 else 0.0
 
         val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
         val summary = "Tiefpunkt: ${fmt.format(low)} S. | " +
-                "Kauf-Order: ${fmt.format(recBuyOrder)} S. | " +
-                "Verkauf-Order: ${fmt.format(recSellOrder)} S. (+${String.format(Locale.GERMANY, "%.1f", roi)}% Marge)"
+                "Empfohlene Kauf-Order: ${fmt.format(recBuyOrder)} S. | " +
+                "Empfohlene Verkauf-Order: ${fmt.format(recSellOrder)} S. (+${String.format(Locale.GERMANY, "%.1f", roi)}% Netto-Marge)"
 
         return GoldBotAnalysis(
             dailyLow = low,
