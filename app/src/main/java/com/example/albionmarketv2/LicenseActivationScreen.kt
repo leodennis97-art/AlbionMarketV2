@@ -113,14 +113,73 @@ fun LicenseActivationScreen(
                     textAlign = TextAlign.Center
                 )
 
+                // Live Server Connection Status Indicator
+                val isConn = ServerSyncManager.isServerConnected
+                val statusBg = if (isConn) Color(0xFF065F46) else Color(0xFF991B1B)
+                val statusFg = if (isConn) Color(0xFF34D399) else Color(0xFFF87171)
+                val statusLabel = if (isConn) "🟢 Cloud verbunden (Render Pro)" else "🔴 Keine Verbindung zur Render Cloud"
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(statusBg, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = statusLabel,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusFg,
+                        textAlign = TextAlign.Center
+                    )
+                }
+
+                // Update Button with exact same width/dimensions as connection status box
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            statusText = "Suche nach Updates..."
+                            val updated = OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
+                            if (!updated) {
+                                statusText = "Kein Update verfügbar / aktuell."
+                                Toast.makeText(context, "Kein Update verfügbar. App ist auf dem neuesten Stand.", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Update",
+                            tint = Color.White,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "🔄 Auf Update prüfen / Installieren",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+
                 Text(
                     text = statusText,
                     fontSize = 12.sp,
                     color = Color(0xFF94A3B8),
                     textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    softWrap = false,
-                    overflow = TextOverflow.Ellipsis
+                    maxLines = 2,
+                    softWrap = true
                 )
 
                 if (isAuthenticating) {

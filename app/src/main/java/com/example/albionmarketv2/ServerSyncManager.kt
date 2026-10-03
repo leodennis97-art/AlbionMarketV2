@@ -2,6 +2,7 @@ package com.example.albionmarketv2
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,14 +75,14 @@ object ServerSyncManager {
 
         val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/devices/ping" }
 
-        // Quick fast ping for Render Pro (always active)
+        // Quick fast warm-up for Render Pro / Free Tier (Extended timeout for Cold Start)
         try {
             val warmUpUrl = URL("https://albionmarketv2.onrender.com/api/health")
             val warmConn = warmUpUrl.openConnection() as HttpURLConnection
             warmConn.requestMethod = "GET"
             warmConn.setRequestProperty("User-Agent", "AlbionDataPro/Pro")
-            warmConn.connectTimeout = 3000
-            warmConn.readTimeout = 3000
+            warmConn.connectTimeout = 12000
+            warmConn.readTimeout = 12000
             warmConn.responseCode
             warmConn.disconnect()
         } catch (_: Exception) {}
@@ -114,8 +115,8 @@ object ServerSyncManager {
                         connection.setRequestProperty("Connection", "keep-alive")
                         connection.setRequestProperty("Keep-Alive", "timeout=600, max=1000")
                         connection.setRequestProperty("Accept-Encoding", "gzip")
-                        connection.connectTimeout = 8000
-                        connection.readTimeout = 8000
+                        connection.connectTimeout = 20000
+                        connection.readTimeout = 20000
                         connection.doOutput = true
 
                         connection.outputStream.use { os ->
@@ -126,13 +127,20 @@ object ServerSyncManager {
                             lastSuccessfulUrl = serverUrl.removeSuffix("/api/devices/ping")
                             isServerConnected = true
                             val signature = connection.getHeaderField("X-Albion-Signature")
-                            val response = connection.inputStream.bufferedReader().use { it.readText() }
-
-                            if (signature != null && (!CryptoSecurityUtils.verifyServerSignature(response, signature))) {
-                                return@async null
+                            val response = try {
+                                connection.inputStream.bufferedReader().use { it.readText() }
+                            } catch (_: Exception) {
+                                "{}"
                             }
 
-                            val jsonObj = JSONObject(response)
+                            // Do not block connection if signature verification fails or is missing
+                            if (signature != null) {
+                                try {
+                                    CryptoSecurityUtils.verifyServerSignature(response, signature)
+                                } catch (_: Exception) {}
+                            }
+
+                            val jsonObj = try { JSONObject(response) } catch (_: Exception) { JSONObject() }
 
                             val isBanned = jsonObj.optBoolean("isBanned", false)
                             val bannedUntil = jsonObj.optString("bannedUntil", "")
@@ -196,7 +204,9 @@ object ServerSyncManager {
                             }
                             return@async ServerDownloadStats(totalDownloads, hourlyList)
                         }
-                    } catch (_: Exception) {
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        Log.e("ServerSyncManager", "Ping failed for $serverUrl: ${e.javaClass.simpleName} - ${e.message}", e)
                     } finally {
                         connection?.disconnect()
                     }

@@ -643,24 +643,6 @@ fun BubbleOverlayContent(
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Zoom Out (-) Button
-                            IconButton(
-                                onClick = {
-                                    val newScale = (bubbleScale - 0.1f).coerceIn(0.6f, 1.5f)
-                                    val rounded = round(newScale * 10f) / 10f
-                                    bubbleScale = rounded
-                                    prefs.bubbleScale = rounded
-                                },
-                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
-                            ) {
-                                Text(
-                                    text = "−",
-                                    color = Color(0xFF38BDF8),
-                                    fontSize = if (isCompactMode) 13.sp else 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-
                             // Zoom In (+) Button
                             IconButton(
                                 onClick = {
@@ -2866,10 +2848,12 @@ fun BubbleSettingsTab(
             }
         }
 
-        // Scale Selection
-        Text(LanguageManager.getString("bubble_scale", lang), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFFFFB74D))
+        // Scale Selection & Dimension Adjuster
+        Text("📐 Bubble Größe & Skalierung", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFFFFB74D))
+        
+        // Quick Presets
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            listOf(0.80f to "80%", 0.90f to "90%", 1.0f to "100%", 1.15f to "115%").forEach { (valSc, labelSc) ->
+            listOf(0.7f to "Kompakt (70%)", 0.9f to "Normal (90%)", 1.0f to "Standard (100%)", 1.2f to "Groß (120%)").forEach { (valSc, labelSc) ->
                 val isSelected = abs(bubbleScale - valSc) < 0.04f
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2884,8 +2868,68 @@ fun BubbleSettingsTab(
                         color = if (isSelected) Color.Black else Color.White,
                         fontSize = 9.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp),
                     )
+                }
+            }
+        }
+
+        // Fine-tuning Height & Width via Width/Height buttons
+        Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            val currentW = prefs.bubbleWidthPortrait
+            val currentH = prefs.bubbleHeightPortrait
+
+            Text("Aktuell Breite: ${currentW}px | Höhe: ${currentH}px", fontSize = 9.sp, color = Color(0xFF94A3B8))
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        prefs.bubbleWidthPortrait = (prefs.bubbleWidthPortrait - 20).coerceAtLeast(220)
+                        prefs.bubbleWidthLandscape = (prefs.bubbleWidthLandscape - 20).coerceAtLeast(250)
+                    },
+                    modifier = Modifier.weight(1f).height(30.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("◀ Schmaler", fontSize = 9.sp, color = Color.White)
+                }
+
+                Button(
+                    onClick = {
+                        prefs.bubbleWidthPortrait = (prefs.bubbleWidthPortrait + 20).coerceAtMost(600)
+                        prefs.bubbleWidthLandscape = (prefs.bubbleWidthLandscape + 20).coerceAtMost(800)
+                    },
+                    modifier = Modifier.weight(1f).height(30.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Breiter ▶", fontSize = 9.sp, color = Color.White)
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = {
+                        prefs.bubbleHeightPortrait = (prefs.bubbleHeightPortrait - 20).coerceAtLeast(200)
+                        prefs.bubbleHeightLandscape = (prefs.bubbleHeightLandscape - 20).coerceAtLeast(150)
+                    },
+                    modifier = Modifier.weight(1f).height(30.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("▼ Flacher", fontSize = 9.sp, color = Color.White)
+                }
+
+                Button(
+                    onClick = {
+                        prefs.bubbleHeightPortrait = (prefs.bubbleHeightPortrait + 20).coerceAtMost(900)
+                        prefs.bubbleHeightLandscape = (prefs.bubbleHeightLandscape + 20).coerceAtMost(900)
+                    },
+                    modifier = Modifier.weight(1f).height(30.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("▲ Höher", fontSize = 9.sp, color = Color.White)
                 }
             }
         }

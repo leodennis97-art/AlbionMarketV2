@@ -398,33 +398,93 @@ class MainActivity : ComponentActivity() {
                                         false -> Color(0xFFEF4444)
                                         null -> Color(0xFFF59E0B)
                                     }
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = statusColor.copy(alpha = 0.15f),
-                                        border = BorderStroke(1.dp, statusColor),
+                                    Column(
                                         modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
                                     ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.Center,
-                                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp),
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = statusColor.copy(alpha = 0.15f),
+                                            border = BorderStroke(1.dp, statusColor),
+                                            modifier = Modifier.fillMaxWidth(),
                                         ) {
-                                            Surface(
-                                                shape = RoundedCornerShape(6.dp),
-                                                color = statusColor,
-                                                modifier = Modifier.size(8.dp),
-                                            ) {}
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = when (isServerConnected) {
-                                                    true -> "🟢 Server-Verbindung aktiv (Cloud)"
-                                                    false -> "🔴 Keine Verbindung zur Cloud"
-                                                    null -> "🟡 Suche Cloud-Server (Verbinde...)"
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.Center,
+                                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp),
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = statusColor,
+                                                    modifier = Modifier.size(8.dp),
+                                                ) {}
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = when (isServerConnected) {
+                                                        true -> "🟢 Server-Verbindung aktiv (Cloud)"
+                                                        false -> "🔴 Keine Verbindung zur Cloud"
+                                                        null -> "🟡 Suche Cloud-Server (Verbinde...)"
+                                                    },
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = statusColor,
+                                                )
+                                            }
+                                        }
+
+                                        // New Dedicated Buttons: Test / Ping Server Live & Update App
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Button(
+                                                onClick = {
+                                                    isServerConnected = null
+                                                    Toast.makeText(context, "📡 Kontaktiere Render Cloud & wecke Server...", Toast.LENGTH_SHORT).show()
+                                                    coroutineScope.launch(Dispatchers.IO) {
+                                                        try {
+                                                            val stats = ServerSyncManager.pingServer(context)
+                                                            withContext(Dispatchers.Main) {
+                                                                isServerConnected = (stats != null)
+                                                                if (isServerConnected == true) {
+                                                                    Toast.makeText(context, "🟢 Cloud-Verbindung erfolgreich hergestellt!", Toast.LENGTH_SHORT).show()
+                                                                } else {
+                                                                    Toast.makeText(context, "🔴 Cloud-Server nicht erreichbar. Bitte Internetverbindung prüfen.", Toast.LENGTH_LONG).show()
+                                                                }
+                                                            }
+                                                        } catch (e: Exception) {
+                                                            e.printStackTrace()
+                                                            withContext(Dispatchers.Main) {
+                                                                isServerConnected = false
+                                                                Toast.makeText(context, "❌ Fehler: ${e.javaClass.simpleName} - ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                            }
+                                                        }
+                                                    }
                                                 },
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = statusColor,
-                                            )
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                            ) {
+                                                Text("📡 Verbindung prüfen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
+
+                                            Button(
+                                                onClick = {
+                                                    coroutineScope.launch {
+                                                        val updated = OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
+                                                        if (!updated) {
+                                                            Toast.makeText(context, "Kein Update verfügbar / aktuell.", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
+                                            ) {
+                                                Text("🚀 App Aktualisieren", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            }
                                         }
                                     }
 

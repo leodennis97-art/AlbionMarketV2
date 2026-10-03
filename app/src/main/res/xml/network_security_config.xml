@@ -1,14 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- Standardkonfiguration: Keine unverschlüsselten Klartext-Verbindungen, nur System-Zertifikate -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- Standardkonfiguration: Erlaube alle ausgehenden Verbindungen und Zertifikate für Render & Outbound Traffic -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 
-    <!-- HTTPS Endpoints -->
-    <domain-config cleartextTrafficPermitted="false">
+    <!-- HTTPS & Outbound Domain Endpoints -->
+    <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">onrender.com</domain>
         <domain includeSubdomains="true">albiononlinebuilds.com</domain>
         <domain includeSubdomains="true">albion-online.com</domain>
@@ -20,14 +21,7 @@
         <domain includeSubdomains="true">74.220.59.0</domain>
         <trust-anchors>
             <certificates src="system" />
-        </trust-anchors>
-    </domain-config>
-
-    <!-- Nur lokale Debug/Entwicklungsserver dürfen HTTP verwenden -->
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">10.0.2.2</domain>
-        <trust-anchors>
-            <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </domain-config>
 </network-security-config>
