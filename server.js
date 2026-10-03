@@ -125,7 +125,7 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = "2.1.1";
+const CURRENT_SERVER_VERSION = "2.1.2";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
