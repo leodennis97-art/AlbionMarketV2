@@ -16,8 +16,8 @@ android {
         applicationId 'com.example.albionmarketv2'
         minSdk 26
         targetSdk 35
-        versionCode 200
-        versionName '2.0.0'
+        versionCode 208
+        versionName '2.0.8'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
@@ -35,6 +35,99 @@ android {
     }
     buildFeatures {
         compose true
+    }
+}
+
+android.applicationVariants.all { variant ->
+    variant.assembleProvider.get().finalizedBy("uploadApkToRender")
+}
+
+// Autonomer Gradle-Task zum Hochladen der APK und Aktualisieren der Zielversion auf Render
+tasks.register("uploadApkToRender") {
+    doLast {
+        // Prüfe ob Debug- oder Release-APK existiert
+        def debugApk = file("${layout.buildDirectory.get()}/outputs/apk/debug/app-debug.apk")
+        def releaseApk = file("${layout.buildDirectory.get()}/outputs/apk/release/app-release.apk")
+        def apkFile = releaseApk.exists() ? releaseApk : debugApk
+
+        if (!apkFile.exists()) {
+            println("❌ APK nicht gefunden unter: ${apkFile.absolutePath}")
+            return
+        }
+
+        // versionName aus android block auslesen (z.B. "2.0.7")
+        def versionName = android.defaultConfig.versionName
+        println("🚀 Lade APK (v$versionName, ${apkFile.length() / (1024 * 1024)} MB) autonom auf Render & Ngrok hoch & setze targetVersion...")
+
+        try {
+            // Upload direkt zu Render
+            def url = new URL("https://albionmarketv2.onrender.com/api/admin/upload-apk?version=$versionName")
+            def conn = (HttpURLConnection) url.openConnection()
+            conn.setRequestMethod("POST")
+            conn.setDoOutput(true)
+            
+            def boundary = "----AndroidGradleBoundary" + System.currentTimeMillis()
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary)
+            conn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+            conn.setRequestProperty("X-Target-Version", versionName)
+            
+            conn.outputStream.withCloseable { os ->
+                os.write(("--" + boundary + "\r\n").getBytes("UTF-8"))
+                os.write(("Content-Disposition: form-data; name=\"apkFile\"; filename=\"AlbionDataPro.apk\"\r\n").getBytes("UTF-8"))
+                os.write(("Content-Type: application/vnd.android.package-archive\r\n\r\n").getBytes("UTF-8"))
+                
+                apkFile.bytes.eachChunk { chunk, len ->
+                    os.write(chunk, 0, len)
+                }
+                
+                os.write(("\r\n--" + boundary + "--\r\n").getBytes("UTF-8"))
+            }
+            
+            println("📡 Render Server Antwort Code: ${conn.responseCode}")
+
+            // Parallel auch über den Ngrok-Tunnel (falls aktiv)
+            try {
+                def ngrokUrl = new URL("https://speller-importer-captivate.ngrok-free.dev/api/admin/upload-apk?version=$versionName")
+                def ngrokConn = (HttpURLConnection) ngrokUrl.openConnection()
+                ngrokConn.setRequestMethod("POST")
+                ngrokConn.setDoOutput(true)
+                ngrokConn.setRequestProperty("Content-Type", "application/vnd.android.package-archive")
+                ngrokConn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+                ngrokConn.setRequestProperty("X-Target-Version", versionName)
+                ngrokConn.setConnectTimeout(3000)
+                ngrokConn.setReadTimeout(5000)
+                
+                ngrokConn.outputStream.withCloseable { os ->
+                    apkFile.bytes.eachChunk { chunk, len ->
+                        os.write(chunk, 0, len)
+                    }
+                }
+                println("📡 Ngrok Tunnel Antwort Code: ${ngrokConn.responseCode}")
+            } catch (Exception ngrokEx) {
+                println("ℹ️ Ngrok Tunnel aktuell nicht erreichbar (wird übersprungen): ${ngrokEx.message}")
+            }
+
+            if (conn.responseCode == 200) {
+                println("✅ APK & Target-Version v$versionName erfolgreich autonom auf Render & Ngrok bereitgestellt!")
+                
+                // Ältere Versionen auf Render bereinigen
+                try {
+                    def cleanupUrl = new URL("https://albionmarketv2.onrender.com/api/admin/cleanup-apks?keepVersion=$versionName")
+                    def cleanupConn = (HttpURLConnection) cleanupUrl.openConnection()
+                    cleanupConn.setRequestMethod("POST")
+                    cleanupConn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+                    cleanupConn.setConnectTimeout(3000)
+                    cleanupConn.setReadTimeout(5000)
+                    println("🧹 Bereinigung alter APKs auf Render - Status Code: ${cleanupConn.responseCode}")
+                } catch (Exception cleanupEx) {
+                    println("ℹ️ Konnte alte APKs nicht automatisch bereinigen: ${cleanupEx.message}")
+                }
+            } else {
+                println("⚠️ Upload-Antwort: ${conn.responseMessage}")
+            }
+        } catch (Exception e) {
+            println("❌ Fehler beim autonomen APK-Upload: ${e.message}")
+        }
     }
 }
 

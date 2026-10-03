@@ -125,20 +125,7 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-function getAppVersionFromGradle() {
-    try {
-        const buildGradlePath = path.join(__dirname, 'app', 'build.gradle');
-        if (fs.existsSync(buildGradlePath)) {
-            const content = fs.readFileSync(buildGradlePath, 'utf8');
-            const match = content.match(/versionName\s+['"]([^'"]+)['"]/);
-            if (match && match[1]) {
-                return match[1];
-            }
-        }
-    } catch (_) {}
-    return '1.3.21';
-}
-const CURRENT_SERVER_VERSION = getAppVersionFromGradle();
+const CURRENT_SERVER_VERSION = "2.0.8";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -189,12 +176,40 @@ const upload = multer({
 app.post('/api/admin/upload-apk', requireAdminAuth, upload.single('apkFile'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: 'Keine Datei hochgeladen' });
 
+    // Lösche alle eventuellen alten APK-Dateien im downloads Verzeichnis
+    try {
+        const files = fs.readdirSync(DOWNLOADS_DIR);
+        files.forEach(file => {
+            if (file.endsWith('.apk')) {
+                fs.unlinkSync(path.join(DOWNLOADS_DIR, file));
+            }
+        });
+    } catch (e) {
+        console.error('Fehler beim Bereinigen alter APKs:', e.message);
+    }
+
     const targetPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
-    if (fs.existsSync(targetPath)) fs.unlinkSync(targetPath);
     fs.renameSync(req.file.path, targetPath);
 
     triggerAutoOtaUpdateForAllDevices('Neue APK von Admin hochgeladen');
-    res.json({ status: 'success', message: 'APK erfolgreich hochgeladen und OTA-Update an alle gesendet!' });
+    res.json({ status: 'success', message: 'APK erfolgreich hochgeladen und alte Versionen bereinigt!' });
+});
+
+// Endpoint zum Bereinigen alter APKs
+app.post('/api/admin/cleanup-apks', requireAdminAuth, (req, res) => {
+    try {
+        const files = fs.readdirSync(DOWNLOADS_DIR);
+        let count = 0;
+        files.forEach(file => {
+            if (file !== 'AlbionDataPro.apk' && file.endsWith('.apk')) {
+                fs.unlinkSync(path.join(DOWNLOADS_DIR, file));
+                count++;
+            }
+        });
+        res.json({ status: 'success', deletedCount: count });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
 });
 
 function syncLatestApk() {
@@ -469,8 +484,13 @@ app.get(['/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/l
 
     const apkFile = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
     if (!fs.existsSync(apkFile)) {
-        // Fallback: If APK is not present on Render storage, redirect seamlessly to GitHub Releases latest APK
-        return res.redirect('https://github.com/DennisAlbion/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk');
+        return res.status(404).send(`
+            <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
+                <h2>⚠️ APK wird vorbereitet</h2>
+                <p>Die aktuelle APK-Datei wird gerade auf den Server geladen. Bitte versuche es in wenigen Sekunden noch einmal.</p>
+                <a href="/" style="color:#38bdf8;">Zurück zur Startseite</a>
+            </html>
+        `);
     }
 
     const stat = fs.statSync(apkFile);
