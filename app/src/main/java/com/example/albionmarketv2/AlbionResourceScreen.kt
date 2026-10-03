@@ -143,7 +143,7 @@ class NumberCommaTransformation : VisualTransformation {
         if (originalText.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
         
         val formatted = try {
-            val parsed = originalText.toLong()
+            val parsed = originalText.toLongOrNull() ?: return TransformedText(text, OffsetMapping.Identity)
             NumberFormat.getNumberInstance(Locale.GERMANY).format(parsed)
         } catch (_: Exception) {
             originalText
