@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.setViewTreeLifecycleOwner
@@ -1139,20 +1140,29 @@ fun BubbleOverlayContent(
                                 var editSilverText by remember { mutableStateOf(uiState.silverBudget.toString()) }
                                 var editCapacityText by remember { mutableStateOf(uiState.carryCapacityKg.toInt().toString()) }
 
-                                AlertDialog(
+                                Dialog(
                                     onDismissRequest = {
                                         showBudgetEditDialog = false
                                         onFocusModeChanged(false)
-                                    },
-                                    title = {
-                                        Text(
-                                            if (lang == "DE") "💰 Budget & Tragkraft anpassen" else "💰 Edit Budget & Capacity",
-                                            fontSize = 13.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    },
-                                    text = {
-                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    }
+                                ) {
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                        border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(16.dp),
+                                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(
+                                                if (lang == "DE") "💰 Budget & Tragkraft anpassen" else "💰 Edit Budget & Capacity",
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+
                                             // Schnell-Buttons für Silber
                                             Text(if (lang == "DE") "Schnellwahl Silber:" else "Quick Silver:", fontSize = 9.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
                                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1208,36 +1218,39 @@ fun BubbleOverlayContent(
                                                     .fillMaxWidth()
                                                     .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                                             )
-                                        }
-                                    },
-                                    confirmButton = {
-                                        Button(
-                                            onClick = {
-                                                val newSilver = editSilverText.toLongOrNull() ?: uiState.silverBudget
-                                                val newCap = editCapacityText.toDoubleOrNull() ?: uiState.carryCapacityKg
-                                                viewModel.onSilverBudgetChanged(newSilver)
-                                                viewModel.onCarryCapacityChanged(newCap)
-                                                showBudgetEditDialog = false
-                                                onFocusModeChanged(false)
-                                                onRefresh()
-                                            },
-                                            shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                            Text(if (lang == "DE") "Speichern" else "Save", fontSize = 11.sp)
-                                        }
-                                    },
-                                    dismissButton = {
-                                        OutlinedButton(
-                                            onClick = {
-                                                showBudgetEditDialog = false
-                                                onFocusModeChanged(false)
-                                            },
-                                            shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                            Text(if (lang == "DE") "Abbrechen" else "Cancel", fontSize = 11.sp)
+
+                                            Row(
+                                                horizontalArrangement = Arrangement.End,
+                                                modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                                            ) {
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        showBudgetEditDialog = false
+                                                        onFocusModeChanged(false)
+                                                    },
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.padding(end = 8.dp)
+                                                ) {
+                                                    Text(if (lang == "DE") "Abbrechen" else "Cancel", fontSize = 11.sp, color = Color.White)
+                                                }
+                                                Button(
+                                                    onClick = {
+                                                        val newSilver = editSilverText.toLongOrNull() ?: uiState.silverBudget
+                                                        val newCap = editCapacityText.toDoubleOrNull() ?: uiState.carryCapacityKg
+                                                        viewModel.onSilverBudgetChanged(newSilver)
+                                                        viewModel.onCarryCapacityChanged(newCap)
+                                                        showBudgetEditDialog = false
+                                                        onFocusModeChanged(false)
+                                                        onRefresh()
+                                                    },
+                                                    shape = RoundedCornerShape(8.dp)
+                                                ) {
+                                                    Text(if (lang == "DE") "Speichern" else "Save", fontSize = 11.sp, color = Color.White)
+                                                }
+                                            }
                                         }
                                     }
-                                )
+                                }
                             }
 
                             Text(
