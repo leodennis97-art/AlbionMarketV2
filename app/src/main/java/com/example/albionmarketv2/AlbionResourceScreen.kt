@@ -4526,13 +4526,13 @@ fun CraftingTabContent(
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
                             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = "• ${ing.amount}x ${if (uiState.appLanguage == "DE") ing.nameDe else ing.nameEn}",
+                                    text = "• ${ing.amount}x ${if (uiState.appLanguage == "DE") ing.nameDe else ing.nameEn} (Gesamt benötigt: ${ing.amount})",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "In $selectedCity: ${fmt.format(ingPrice)} S.",
+                                    text = "In $selectedCity: ${fmt.format(ingPrice * ing.amount)} S. (${fmt.format(ingPrice)}/Stk)",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.primary

@@ -2218,7 +2218,7 @@ fun BubbleIslandTab(
             border = BorderStroke(1.dp, Color(0xFF10B981)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(4.dp)) {
+            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
@@ -2229,24 +2229,68 @@ fun BubbleIslandTab(
                         Text("${activeTimers.size} Aktiv", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(2.dp))
 
                 if (activeTimers.isEmpty()) {
                     Text("Keine aktiven Ernte-Timer.", color = Color.LightGray, fontSize = 9.sp)
                 } else {
                     activeTimers.forEach { timer ->
-                        Column(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
+                            Column(modifier = Modifier.weight(1f)) {
                                 Text("• ${timer.nameDe}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                Text(timer.remainingFormatted(), color = if (timer.isReady()) Color(0xFF10B981) else Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                Text(timer.remainingFormatted() + " | ${timer.expectedHarvestDateFormatted()}", color = if (timer.isReady()) Color(0xFF10B981) else Color(0xFFFFB74D), fontSize = 8.sp)
                             }
-                            Text("Fertig am: ${timer.expectedHarvestDateFormatted()}", color = Color(0xFF94A3B8), fontSize = 8.sp)
+                            IconButton(
+                                onClick = {
+                                    IslandTimerManager.removeTimer(context, timer.id)
+                                    activeTimers = IslandTimerManager.getTimers(context)
+                                },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = Color(0xFFEF4444), modifier = Modifier.size(14.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+                Text("➕ Timer starten:", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                
+                // Schnellstart-Buttons für Ernte & Tiere in Bubble
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    items(IslandTimerManager.standardCropOptions) { (cropName, hours) ->
+                        Button(
+                            onClick = {
+                                IslandTimerManager.addTimer(context, cropName.substringBefore(" ("), TimerCategory.CROP, hours)
+                                activeTimers = IslandTimerManager.getTimers(context)
+                                Toast.makeText(context, "$cropName gestartet!", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                            shape = RoundedCornerShape(4.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text(cropName.substringBefore(" ("), fontSize = 8.sp, color = Color.White)
+                        }
+                    }
+                }
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    items(IslandTimerManager.standardAnimalOptions) { (animalName, hours) ->
+                        Button(
+                            onClick = {
+                                IslandTimerManager.addTimer(context, animalName.substringBefore(" ("), TimerCategory.ANIMAL, hours)
+                                activeTimers = IslandTimerManager.getTimers(context)
+                                Toast.makeText(context, "$animalName gestartet!", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
+                            shape = RoundedCornerShape(4.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(24.dp)
+                        ) {
+                            Text(animalName.substringBefore(" ("), fontSize = 8.sp, color = Color.White)
                         }
                     }
                 }
