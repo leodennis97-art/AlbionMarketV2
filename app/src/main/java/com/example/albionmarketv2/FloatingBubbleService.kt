@@ -1152,7 +1152,23 @@ fun BubbleOverlayContent(
                                         )
                                     },
                                     text = {
-                                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                            // Schnell-Buttons für Silber
+                                            Text(if (lang == "DE") "Schnellwahl Silber:" else "Quick Silver:", fontSize = 9.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                                listOf(1_000_000L to "1M", 5_000_000L to "5M", 10_000_000L to "10M", 50_000_000L to "50M").forEach { (amt, label) ->
+                                                    Button(
+                                                        onClick = { editSilverText = amt.toString() },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = if (editSilverText == amt.toString()) Color(0xFF3B82F6) else Color(0xFF334155)),
+                                                        shape = RoundedCornerShape(6.dp),
+                                                        modifier = Modifier.weight(1f).height(30.dp),
+                                                        contentPadding = PaddingValues(1.dp)
+                                                    ) {
+                                                        Text(label, fontSize = 9.sp, color = Color.White)
+                                                    }
+                                                }
+                                            }
+
                                             OutlinedTextField(
                                                 value = editSilverText,
                                                 onValueChange = { editSilverText = it.filter { ch -> ch.isDigit() } },
@@ -1163,6 +1179,25 @@ fun BubbleOverlayContent(
                                                     .fillMaxWidth()
                                                     .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                                             )
+
+                                            Spacer(modifier = Modifier.height(4.dp))
+
+                                            // Schnell-Buttons für Tragkraft
+                                            Text(if (lang == "DE") "Schnellwahl Tragkraft:" else "Quick Capacity:", fontSize = 9.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                                listOf(1000 to "1t", 2000 to "2t", 3000 to "3t", 5000 to "5t").forEach { (cap, label) ->
+                                                    Button(
+                                                        onClick = { editCapacityText = cap.toString() },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = if (editCapacityText == cap.toString()) Color(0xFF3B82F6) else Color(0xFF334155)),
+                                                        shape = RoundedCornerShape(6.dp),
+                                                        modifier = Modifier.weight(1f).height(30.dp),
+                                                        contentPadding = PaddingValues(1.dp)
+                                                    ) {
+                                                        Text(label, fontSize = 9.sp, color = Color.White)
+                                                    }
+                                                }
+                                            }
+
                                             OutlinedTextField(
                                                 value = editCapacityText,
                                                 onValueChange = { editCapacityText = it.filter { ch -> ch.isDigit() } },
