@@ -368,7 +368,7 @@ object TradeCalculator {
                 }
                 
                 val pricesByQuality = filteredPrices.groupBy { it.quality }
-                
+
                 for ((qual, qPrices) in pricesByQuality) {
                     val validBuyPrices = if (!standpunktCity.isNullOrBlank() && standpunktCity != "ALLE") {
                         qPrices.filter { citiesMatch(it.city, standpunktCity) && it.sellPriceMin > 0 }
@@ -377,11 +377,12 @@ object TradeCalculator {
                     }
                     if (validBuyPrices.isEmpty()) continue
 
+                    // Kleinsten Kaufpreis auf dem Markt wählen
                     val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
                     val buyPrice = bestBuy.sellPriceMin
                     if (buyPrice < 10) continue
 
-                    // Find best target sell city: choose city with highest net profit using the lowest competitive sell price in that city
+                    // In anderen Städten den kleinsten Verkaufspreis suchen für echte Marktlücken
                     val targetCityCandidates = qPrices
                         .filter { !citiesMatch(it.city, bestBuy.city) && it.sellPriceMin > buyPrice }
                         .groupBy { it.city }
@@ -395,11 +396,11 @@ object TradeCalculator {
                         if (hideBlackMarket && isBlackMarket(cityName)) continue
                         if (hideBrecilien && isBrecilien(cityName)) continue
 
-                        // In this target city, find lowest active sell order so our offer undercuts it
+                        // In der Zielstadt den kleinsten aktiven Verkaufspreis nehmen
                         val cheapestSellInCity = cityPrices.filter { it.sellPriceMin > buyPrice }.minByOrNull { it.sellPriceMin } ?: continue
                         val candSellPrice = cheapestSellInCity.sellPriceMin
 
-                        // Anomaly filter: ignore overpriced listings > 3.5x buy price
+                        // KI-Sicherheits-Schranke: Preise > 3.5x Einkaufswert aussortieren
                         if (candSellPrice > buyPrice * 3.5) continue
 
                         val tax = (candSellPrice * (marketTaxPercent / 100.0)).toLong()
