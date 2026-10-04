@@ -1624,13 +1624,13 @@ fun AiTradingBotPredictionsSection(
         )
     }
 
-    Surface(
-        shape = RoundedCornerShape(10.dp),
-        color = Color(0xFF0F172A),
-        border = BorderStroke(1.5.dp, Color(0xFFFFD700)),
-        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+    NeonGlowCard(
+        glowColors = listOf(Color(0xFFFFD700), Color(0xFF38BDF8), Color(0xFF8B5CF6)),
+        containerColor = Color(0xFF0F172A),
+        shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
     ) {
-        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
