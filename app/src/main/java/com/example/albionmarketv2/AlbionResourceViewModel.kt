@@ -1103,6 +1103,12 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             if (state.avoidDangerousZones) {
                 newCalculated = newCalculated.filter { !TradeCalculator.isDangerousCity(it.buyCity) && !TradeCalculator.isDangerousCity(it.sellCity) }
             }
+            if (state.hideBlackMarket) {
+                newCalculated = newCalculated.filter { !TradeCalculator.isBlackMarket(it.buyCity) && !TradeCalculator.isBlackMarket(it.sellCity) }
+            }
+            if (state.hideBrecilien) {
+                newCalculated = newCalculated.filter { !it.buyCity.contains("Brecilien", ignoreCase = true) && !it.sellCity.contains("Brecilien", ignoreCase = true) }
+            }
 
             if (state.filterHighPriorityOnly) {
                 val highPrio = newCalculated.filter { it.priorityScore in 90..100 }

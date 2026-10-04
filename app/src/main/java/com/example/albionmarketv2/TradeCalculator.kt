@@ -346,6 +346,12 @@ object TradeCalculator {
                 if (avoidDangerousZones && (isDangerousCity(bestBuy.city) || isDangerousCity(bestSell.city))) {
                     continue
                 }
+                if (hideBlackMarket && (isBlackMarket(bestBuy.city) || isBlackMarket(bestSell.city))) {
+                    continue
+                }
+                if (hideBrecilien && (bestBuy.city.contains("Brecilien", ignoreCase = true) || bestSell.city.contains("Brecilien", ignoreCase = true))) {
+                    continue
+                }
 
                 val buyPrice = bestBuy.sellPriceMin
                 val sellPrice = bestSell.sellPriceMin
