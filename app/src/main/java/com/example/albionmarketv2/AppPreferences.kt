@@ -481,7 +481,7 @@ class AppPreferences(private val context: Context) {
         set(value) = prefs.edit().putBoolean("global_compact_mode", value).apply()
 
     var hideAppOnBubbleActivate: Boolean
-        get() = prefs.getBoolean("hide_app_on_bubble_activate", true)
+        get() = prefs.getBoolean("hide_app_on_bubble_activate", false)
         set(value) = prefs.edit().putBoolean("hide_app_on_bubble_activate", value).apply()
 
     var craftingMasteryLevel: Int
