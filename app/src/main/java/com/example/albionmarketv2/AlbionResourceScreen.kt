@@ -776,7 +776,25 @@ fun OrdersAndStatsTabContent(
 
                         Text("Menge: ${numberFormat.format(order.plannedUnits)} Stk. | Angenommen: ${order.acceptedDate}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0F172A),
+                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.3f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                val aiBuyOrder = (order.buyPrice * 0.92).toInt().coerceAtLeast(1)
+                                val aiSellOrder = (order.sellPrice * 1.08).toInt()
+                                Text("🤖 KI-Bot Statistik (Max Gewinn):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFD700))
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text("🛒 Buy-Order: ${numberFormat.format(aiBuyOrder)} S.", fontSize = 9.5.sp, color = Color(0xFF81C784), fontWeight = FontWeight.Bold)
+                                    Text("🏷️ Sell-Order: ${numberFormat.format(aiSellOrder)} S.", fontSize = 9.5.sp, color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             Button(
@@ -1674,7 +1692,7 @@ fun AiTradingBotPredictionsSection(
                     }
                 }
             } else {
-                predictions.forEachIndexed { index, pred ->
+                predictions.forEach { pred ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF1E293B),
@@ -1688,7 +1706,7 @@ fun AiTradingBotPredictionsSection(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "${index + 1}. 🔥 ${pred.resourceNameDe}",
+                                    text = "🔥 ${pred.resourceNameDe}",
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 11.5.sp,
                                     color = Color.White
@@ -1831,7 +1849,7 @@ fun AiMarketAnalyzerFlipsSection(
 
             Text(aiResult.summaryTextDe, fontSize = 9.sp, color = Color(0xFFCBD5E1), fontWeight = FontWeight.Normal)
 
-            aiResult.bestFlips.take(5).forEachIndexed { index, flip ->
+            aiResult.bestFlips.take(5).forEach { flip ->
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = Color(0xFF1E293B),
@@ -1845,7 +1863,7 @@ fun AiMarketAnalyzerFlipsSection(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "${index + 1}. 🔥 ${flip.resourceNameDe}",
+                                text = "🔥 ${flip.resourceNameDe}",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 11.sp,
                                 color = Color.White
