@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "2.4.0"
+const val CURRENT_APP_VERSION = "3.0.0"
 
 data class AdminDevice(
     val hwId: String,
@@ -1104,6 +1104,17 @@ fun AdminKpiHeader(
                 icon = Icons.Default.Lock,
                 isSelected = activeTab == 2 && outdatedDevices > 0,
                 onClick = { onSelectTabAndFilter(2, if (outdatedDevices > 0) 2 else 0) }
+            )
+        }
+        item {
+            KpiStatCard(
+                title = "Telemetrie",
+                value = "Online",
+                subtitle = "API & Cloud Sync",
+                color = Color(0xFF4ADE80),
+                icon = Icons.Default.Refresh,
+                isSelected = false,
+                onClick = { }
             )
         }
     }

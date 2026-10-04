@@ -702,6 +702,8 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     ACTIVE_ORDER("Aufträge", "Orders", "📦"),
     COMPLETED_ORDERS("Historie", "History", "📜"),
     TOP_MARGIN("Handel & Marge", "Trade Margin", "🔥"),
+    SMUGGLER_RADAR("Schwarzmarkt-Radar", "Black Market Radar", "🏴‍☠️"),
+    INVENTORY_ROUTER("Volle-Taschen Route", "Inventory Route", "🎒"),
     CATALOG("Katalog", "Catalog", "📖"),
     CRAFTING("Handwerks-Guide", "Crafting Guide", "⚒️"),
     ISLAND("Insel-Guide", "Island Guide", "🏝️"),
@@ -2109,6 +2111,8 @@ fun BubbleOverlayContent(
                                 .padding(vertical = 4.dp)
                         ) {
                             when (selectedTab) {
+                                BubbleTab.SMUGGLER_RADAR -> BubbleSmugglerRadarTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.INVENTORY_ROUTER -> BubbleInventoryRouterTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.COMPLETED_ORDERS -> BubbleCompletedOrdersTab(context = context, onRefresh = onRefresh, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.CATALOG -> BubbleCatalogTab(
                                     uiState = uiState,
@@ -2130,6 +2134,130 @@ fun BubbleOverlayContent(
                                     }
                                 }
                                 else -> {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleSmugglerRadarTab(
+    viewModel: AlbionResourceViewModel,
+    uiState: ResourceUiState,
+    maxHeight: Dp
+) {
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+    
+    val smugglerOpps = remember(priceMap, uiState.silverBudget) {
+        TradeCalculator.calculateSmugglerOpportunities(AlbionResourceRepository.resources, priceMap, uiState.silverBudget).take(30)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+        Text("🏴‍☠️ Schwarzmarkt-Radar (Caerleon)", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFEF4444), modifier = Modifier.padding(bottom = 6.dp))
+        
+        if (smugglerOpps.isEmpty()) {
+            Text("Keine Schwarzmarkt-Deals gefunden. Prüfe Budget.", color = Color.Gray, fontSize = 10.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                itemsIndexed(smugglerOpps) { idx, opp ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    AsyncImage(model = opp.resource.imageUrl, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("${idx+1}. ${opp.resource.nameDe} (T${opp.resource.tier}${if (opp.resource.enchantment>0) ".${opp.resource.enchantment}" else ""})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                    Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("🛒 Kaufe in: ${LanguageManager.getCityTranslation(opp.buyCity, "DE")}", color = ZoneThemeColors.getCityZoneColor(opp.buyCity), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                Text("${fmt.format(opp.buyPrice)} S.", color = Color(0xFF81C784), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("🏴‍☠️ Verkaufe an: Schwarzmarkt", color = Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                Text("${fmt.format(opp.sellPrice)} S.", color = Color(0xFFFFB74D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("📊 Reingewinn: +${fmt.format(opp.totalNetProfit)} S. (${fmt.format(opp.tradeUnits)} Stk.)", color = Color(0xFF10B981), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleInventoryRouterTab(
+    viewModel: AlbionResourceViewModel,
+    uiState: ResourceUiState,
+    maxHeight: Dp
+) {
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+    
+    val routes = remember(priceMap, uiState.silverBudget, uiState.carryCapacityKg) {
+        val baseOpps = TradeCalculator.calculateOpportunities(
+            resources = AlbionResourceRepository.resources,
+            pricesByItem = priceMap,
+            silverBudget = uiState.silverBudget,
+            carryCapacityKg = uiState.carryCapacityKg,
+            marketTaxPercent = 4.0,
+            targetMarginPercent = 5.0,
+            avoidDangerousZones = false,
+            currentGoldPrice = 4250,
+            standpunktCity = null,
+            maxCityDistance = 99,
+            hideBrecilien = false,
+            hideBlackMarket = false
+        )
+        TradeCalculator.calculateInventoryRoutes(baseOpps, uiState.carryCapacityKg, uiState.silverBudget).take(15)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+        Text("🎒 Smart-Inventory Router (Volle-Taschen Route)", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFF59E0B), modifier = Modifier.padding(bottom = 6.dp))
+        
+        if (routes.isEmpty()) {
+            Text("Keine Routen gefunden. Prüfe Budget & Tragkraft.", color = Color.Gray, fontSize = 10.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                itemsIndexed(routes) { idx, route ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF0F172A),
+                        border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("🗺️ Route #${idx+1}: ${LanguageManager.getCityTranslation(route.buyCity, "DE")} ➜ ${LanguageManager.getCityTranslation(route.sellCity, "DE")}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
+                                    Text("${route.zonesWalked} Zonen", color = Color(0xFF81D4FA), fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("📊 Gesamt-Reingewinn: +${fmt.format(route.totalNetProfit)} S.", color = Color(0xFF4ADE80), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                            Text("⚖️ Gesamtgewicht: ${String.format(Locale.GERMANY, "%.1f", route.totalWeightKg)} kg | 💰 Invest: ${fmt.format(route.totalInvestment)} S.", color = Color.LightGray, fontSize = 9.sp)
+                            
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("🛒 Einkaufszettel (${route.itemsToBuy.size} Items):", color = Color(0xFF38BDF8), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.padding(start = 4.dp, top = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                route.itemsToBuy.forEach { item ->
+                                    Text("• ${item.tradeUnits}x ${item.resource.nameDe} (${fmt.format(item.buyPrice)} S./Stk)", color = Color.White, fontSize = 8.5.sp)
+                                }
                             }
                         }
                     }

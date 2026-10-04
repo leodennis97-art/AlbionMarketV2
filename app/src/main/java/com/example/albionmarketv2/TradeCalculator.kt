@@ -86,6 +86,16 @@ data class TradeOpportunity(
         }
 }
 
+data class InventoryRoute(
+    val buyCity: String,
+    val sellCity: String,
+    val totalInvestment: Long,
+    val totalNetProfit: Long,
+    val totalWeightKg: Double,
+    val zonesWalked: Int,
+    val itemsToBuy: List<TradeOpportunity>
+)
+
 object TradeCalculator {
 
     fun normalizeCityName(city: String): String {
@@ -589,6 +599,104 @@ object TradeCalculator {
             compareByDescending<TradeOpportunity> { it.totalNetProfit }
                 .thenByDescending { it.priorityScore }
         ).take(50)
+    }
+
+    // High-End Feature 1: Black Market Smuggler Radar
+    fun calculateSmugglerOpportunities(
+        resources: List<AlbionResource>,
+        pricesByItem: Map<String, List<MarketPrice>>,
+        silverBudget: Long
+    ): List<TradeOpportunity> {
+        val bmResources = resources.filter { res ->
+            res.category in listOf(
+                ResourceCategory.WEAPONS, ResourceCategory.ARMOR, ResourceCategory.HELMETS,
+                ResourceCategory.SHOES, ResourceCategory.BAG, ResourceCategory.CAPE, ResourceCategory.OFFHAND
+            )
+        }
+        val opps = calculateOpportunities(
+            resources = bmResources,
+            pricesByItem = pricesByItem,
+            silverBudget = silverBudget,
+            carryCapacityKg = 99999.0, // Ignore weight for raw finding
+            marketTaxPercent = 8.0,
+            targetMarginPercent = 10.0,
+            avoidDangerousZones = false,
+            currentGoldPrice = 4250,
+            standpunktCity = null,
+            maxCityDistance = 99,
+            hideBrecilien = false,
+            hideBlackMarket = false
+        )
+        return opps.filter { it.sellCity.equals("Black Market", ignoreCase = true) || it.sellCity.equals("BlackMarket", ignoreCase = true) }
+            .sortedByDescending { it.totalNetProfit }
+    }
+
+    // High-End Feature 2: Smart Inventory Router (Volle Taschen)
+    fun calculateInventoryRoutes(
+        opportunities: List<TradeOpportunity>,
+        carryCapacityKg: Double,
+        silverBudget: Long
+    ): List<InventoryRoute> {
+        val routes = mutableListOf<InventoryRoute>()
+        
+        // Group by Route (e.g. Lymhurst -> Fort Sterling)
+        val groupedByRoute = opportunities.groupBy { Pair(it.buyCity, it.sellCity) }
+
+        for ((routePair, oppsInRoute) in groupedByRoute) {
+            var currentWeight = 0.0
+            var currentCost = 0L
+            var currentNetProfit = 0L
+            val selectedItems = mutableListOf<TradeOpportunity>()
+
+            // Sort by highest ROI first to maximize profit per Kg/Silver
+            val sortedOpps = oppsInRoute.sortedByDescending { it.roiPercent }
+
+            for (opp in sortedOpps) {
+                // How many can we afford with remaining budget and weight?
+                val remSilver = silverBudget - currentCost
+                val remWeight = carryCapacityKg - currentWeight
+                
+                if (remSilver <= 0 || remWeight <= 0) break
+
+                val maxBySilver = if (opp.buyPrice > 0) (remSilver / opp.buyPrice).toInt() else 0
+                val maxByWeight = if (opp.unitWeightKg > 0) (remWeight / opp.unitWeightKg).toInt() else 0
+                val unitsToTake = minOf(maxBySilver, maxByWeight, opp.stockAvailable.coerceAtLeast(1))
+
+                if (unitsToTake > 0) {
+                    val actualCost = unitsToTake * opp.buyPrice.toLong()
+                    val actualProfit = unitsToTake * opp.unitNetProfit.toLong()
+                    val actualWeight = unitsToTake * opp.unitWeightKg
+                    
+                    currentCost += actualCost
+                    currentNetProfit += actualProfit
+                    currentWeight += actualWeight
+
+                    selectedItems.add(opp.copy(
+                        tradeUnits = unitsToTake,
+                        totalInvestment = actualCost,
+                        totalNetProfit = actualProfit,
+                        totalWeightKg = actualWeight,
+                        totalNetRevenue = actualProfit // simplified
+                    ))
+                }
+            }
+
+            if (selectedItems.isNotEmpty() && currentNetProfit > 0) {
+                routes.add(
+                    InventoryRoute(
+                        buyCity = routePair.first,
+                        sellCity = routePair.second,
+                        totalInvestment = currentCost,
+                        totalNetProfit = currentNetProfit,
+                        totalWeightKg = currentWeight,
+                        zonesWalked = selectedItems.first().zonesWalkedCount,
+                        itemsToBuy = selectedItems
+                    )
+                )
+            }
+        }
+
+        return routes.sortedByDescending { it.totalNetProfit }
     }
 
     fun parseIsoToEpochMs(dateStr: String): Long {

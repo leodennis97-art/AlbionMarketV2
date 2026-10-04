@@ -396,18 +396,54 @@ function getActiveTunnelUrl() {
 let recentSnapshots = [];
 let albion2dCache = { data: null, lastUpdated: null };
 
-// Scraper & Retriever for europe.albiononline2d.com Item Statistics & Data
+const AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2.1 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0'
+];
+
+// High-End Scraper & Retriever for europe.albiononline2d.com Item Statistics & Data
 async function fetchAlbion2DData() {
     try {
-        const res = await axios.get('https://europe.albiononline2d.com/en/item', { timeout: 10000 });
+        const randomAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+        const res = await axios.get('https://europe.albiononline2d.com/en/item', {
+            timeout: 15000,
+            headers: {
+                'User-Agent': randomAgent,
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Connection': 'keep-alive'
+            },
+            decompress: true // Auto-handle gzip/brotli
+        });
+
         if (res.data) {
             albion2dCache = {
                 dataHtmlLength: typeof res.data === 'string' ? res.data.length : 0,
                 lastUpdated: new Date().toISOString()
             };
-            console.log('[Albion 2D Sync] 🟢 europe.albiononline2d.com Daten erfolgreich geladen & in Cloud behalten!');
+            console.log(`[Albion 2D Sync] 🟢 High-End Fetch erfolgreich! (${albion2dCache.dataHtmlLength} Bytes)`);
         }
     } catch (e) {
+        console.log('[Albion 2D Sync] ⚠️ Warnung beim Fetch:', e.message);
+        // Fallback retry with longer timeout if failed
+        try {
+            console.log('[Albion 2D Sync] 🔄 Führe Fallback-Retry aus...');
+            const resRetry = await axios.get('https://europe.albiononline2d.com/en/item', { timeout: 25000 });
+            if (resRetry.data) {
+                albion2dCache = {
+                    dataHtmlLength: typeof resRetry.data === 'string' ? resRetry.data.length : 0,
+                    lastUpdated: new Date().toISOString()
+                };
+                console.log(`[Albion 2D Sync] 🟢 Retry erfolgreich! (${albion2dCache.dataHtmlLength} Bytes)`);
+            }
+        } catch (retryErr) {
+            console.log('[Albion 2D Sync] ❌ Retry fehlgeschlagen:', retryErr.message);
+        }
+    }
+}
         console.log('[Albion 2D Sync] ℹ️ Status:', e.message);
     }
 }
