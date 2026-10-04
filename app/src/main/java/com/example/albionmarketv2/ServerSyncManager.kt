@@ -62,7 +62,7 @@ object ServerSyncManager {
         }
         urls.add("https://speller-importer-captivate.ngrok-free.dev")
         urls.add("https://albionmarketv2-1.onrender.com")
-        urls.add("https://albionmarketv2.onrender.com")
+        urls.add("https://albionmarketv2-1.onrender.com")
         return urls.distinct()
     }
 

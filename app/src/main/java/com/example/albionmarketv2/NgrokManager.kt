@@ -12,7 +12,7 @@ object NgrokManager {
             Session.withAuthtokenFromEnv().connect().use { session ->
                 val forwarder = session.httpEndpoint()
                     .domain("speller-importer-captivate.ngrok-free.dev")
-                    .forward(URL("https://albionmarketv2.onrender.com"))
+                    .forward(URL("https://albionmarketv2-1.onrender.com"))
                 println("Connected to Render via Ngrok at: ${forwarder.url}")
             }
         } catch (e: Exception) {

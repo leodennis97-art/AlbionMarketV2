@@ -36,7 +36,7 @@ object ServerConfigManager {
                 if (!configFile.exists()) {
                     val defaultConfig = JSONObject().apply {
                         put("serverUrl", "https://speller-importer-captivate.ngrok-free.dev")
-                        put("fallbackUrl", "https://albionmarketv2.onrender.com")
+                        put("fallbackUrl", "https://albionmarketv2-1.onrender.com")
                         put("autoConnect", true)
                     }
                     configFile.writeText(defaultConfig.toString(4), Charsets.UTF_8)
@@ -65,12 +65,12 @@ object ServerConfigManager {
             } else {
                 urls.add("https://speller-importer-captivate.ngrok-free.dev")
                 urls.add("https://albionmarketv2-1.onrender.com")
-                urls.add("https://albionmarketv2.onrender.com")
+                urls.add("https://albionmarketv2-1.onrender.com")
             }
         } catch (_: Exception) {
             urls.add("https://speller-importer-captivate.ngrok-free.dev")
             urls.add("https://albionmarketv2-1.onrender.com")
-            urls.add("https://albionmarketv2.onrender.com")
+            urls.add("https://albionmarketv2-1.onrender.com")
         }
 
         try {

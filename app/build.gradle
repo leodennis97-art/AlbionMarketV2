@@ -61,7 +61,7 @@ tasks.register("uploadApkToRender") {
 
         try {
             // Upload direkt zu Render
-            def url = new URL("https://albionmarketv2.onrender.com/api/admin/upload-apk?version=$versionName")
+            def url = new URL("https://albionmarketv2-1.onrender.com/api/admin/upload-apk?version=$versionName")
             def conn = (HttpURLConnection) url.openConnection()
             conn.setRequestMethod("POST")
             conn.setDoOutput(true)
@@ -113,7 +113,7 @@ tasks.register("uploadApkToRender") {
                 
                 // Ältere Versionen auf Render bereinigen
                 try {
-                    def cleanupUrl = new URL("https://albionmarketv2.onrender.com/api/admin/cleanup-apks?keepVersion=$versionName")
+                    def cleanupUrl = new URL("https://albionmarketv2-1.onrender.com/api/admin/cleanup-apks?keepVersion=$versionName")
                     def cleanupConn = (HttpURLConnection) cleanupUrl.openConnection()
                     cleanupConn.setRequestMethod("POST")
                     cleanupConn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")

@@ -284,7 +284,7 @@ object OtaUpdateManager {
         } catch (e: Exception) {
             e.printStackTrace()
             try {
-                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
+                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(browserIntent)

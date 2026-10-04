@@ -202,7 +202,7 @@ object AdminControlManager {
     private const val ADMIN_API_KEY = "AlbionDataPro_Military_Admin_SuperSecret_2026#Key"
 
     private fun getBaseUrl(context: Context): String {
-        return ServerSyncManager.getServerBaseUrls(context).firstOrNull() ?: "https://albionmarketv2.onrender.com"
+        return ServerSyncManager.getServerBaseUrls(context).firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
     }
 
     private suspend fun postJson(baseUrl: String, endpoint: String, json: JSONObject): JSONObject? = withContext(Dispatchers.IO) {
