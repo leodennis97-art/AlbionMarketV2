@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "2.3.12"
+const val CURRENT_APP_VERSION = "2.3.13"
 
 data class AdminDevice(
     val hwId: String,

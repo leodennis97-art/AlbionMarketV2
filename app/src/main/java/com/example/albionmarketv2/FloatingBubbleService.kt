@@ -1729,10 +1729,11 @@ fun BubbleOverlayContent(
                             }
 
                             val sortedBubbleOpportunities = remember(topOpportunities, currentBubbleSort) {
+                                val (freshBotOpps, olderOpps) = topOpportunities.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
                                 when (currentBubbleSort) {
-                                    "NEWEST" -> topOpportunities.sortedByDescending { it.updatedTimestamp }
-                                    "FEWEST_STOCK" -> topOpportunities.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
-                                    else -> topOpportunities.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
+                                    "NEWEST" -> freshBotOpps.sortedByDescending { it.updatedTimestamp } + olderOpps.sortedByDescending { it.updatedTimestamp }
+                                    "FEWEST_STOCK" -> freshBotOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent }) + olderOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
+                                    else -> freshBotOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit }) + olderOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
                                 }
                             }
 
@@ -1991,20 +1992,35 @@ fun BubbleOverlayContent(
 
                                                     Spacer(modifier = Modifier.height(2.dp))
 
-                                                    // BOTTOM ROW: Total Profit + Bestand Badge + Zone Distance + Found Time
+                                                    val guaranteedPrice = if (opp.recommendedSellOrderPrice > 0) opp.recommendedSellOrderPrice else (opp.sellPrice * 0.98).toInt().coerceAtLeast(1)
+
+                                                    // BOTTOM ROW: Total Profit + Guaranteed Sell Price Badge + Bestand Badge + Zone Distance + Found Time
                                                     Row(
                                                         horizontalArrangement = Arrangement.SpaceBetween,
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         modifier = Modifier.fillMaxWidth()
                                                     ) {
                                                         Text(
-                                                            text = "📊 ${fmt.format(opp.totalNetRevenue)} S. (${fmt.format(opp.tradeUnits)} Stk.)",
+                                                            text = "📊 ${fmt.format(opp.totalNetProfit)} S. (${fmt.format(opp.tradeUnits)} Stk.)",
                                                             color = Color(0xFF10B981),
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 10.sp
                                                         )
 
-                                                        Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(3.dp),
+                                                            verticalAlignment = Alignment.CenterVertically
+                                                        ) {
+                                                            Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF0F172A)) {
+                                                                Text(
+                                                                    text = "🔥 ${fmt.format(guaranteedPrice)} S.",
+                                                                    color = Color(0xFFFFD700),
+                                                                    fontWeight = FontWeight.ExtraBold,
+                                                                    fontSize = 8.5.sp,
+                                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                                )
+                                                            }
+
                                                             Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF1E293B)) {
                                                                 Text(
                                                                     text = "📦 ${fmt.format(opp.stockAvailable)} Stk.",
