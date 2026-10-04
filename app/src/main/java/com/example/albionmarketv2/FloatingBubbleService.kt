@@ -751,7 +751,7 @@ fun BubbleOverlayContent(
                             )
                             Spacer(modifier = Modifier.width(if (isCompactMode) 4.dp else 6.dp))
                             RainbowBlinkingText(
-                                rainbowName = "AlbionDataPro",
+                                rainbowName = prefs.customAppName,
                                 fontSize = if (isCompactMode) 11.sp else 13.sp,
                                 fontWeight = FontWeight.Bold,
                             )

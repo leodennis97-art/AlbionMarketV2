@@ -179,7 +179,7 @@ class NumberCommaTransformation : VisualTransformation {
 }
 
 @Composable
-fun RainbowAlbionDataProTitle() {
+fun RainbowAlbionDataProTitle(titleName: String = "AlbionDataPro") {
     val infiniteTransition = rememberInfiniteTransition(label = "RainbowTitle")
     val hueOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -202,7 +202,7 @@ fun RainbowAlbionDataProTitle() {
     )
 
     Text(
-        text = "AlbionDataPro",
+        text = titleName,
         style = TextStyle(
             brush = Brush.horizontalGradient(rainbowColors),
             fontWeight = FontWeight.Black,
@@ -283,7 +283,7 @@ fun AlbionResourceScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                RainbowAlbionDataProTitle()
+                                RainbowAlbionDataProTitle(titleName = prefs.customAppName)
                                 Text(
                                     text = "Echtzeit-Analyse & Trade Alerts",
                                     fontSize = 11.sp,
@@ -5887,6 +5887,7 @@ fun AppSettingsDialog(
 
     val prefs = remember { AppPreferences(context) }
     var botNameInput by remember { mutableStateOf(prefs.aiBotName) }
+    var customAppNameInput by remember { mutableStateOf(prefs.customAppName) }
     var showAdminControlDialog by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -5899,6 +5900,17 @@ fun AppSettingsDialog(
             ) {
                 // Rainbow Animated Banner
                 RainbowMadeByDnnxText()
+
+                OutlinedTextField(
+                    value = customAppNameInput,
+                    onValueChange = {
+                        customAppNameInput = it
+                        prefs.customAppName = it
+                    },
+                    label = { Text("App & Overlay Name (Dynamisch)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
 
                 // Support Button directly under MadeByDnnx
                 Button(

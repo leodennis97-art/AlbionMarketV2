@@ -60,6 +60,10 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getString("ai_bot_name", "AlbionBot") ?: "AlbionBot"
         set(value) = prefs.edit().putString("ai_bot_name", value).apply()
 
+    var customAppName: String
+        get() = prefs.getString("custom_app_name", "AlbionDataPro") ?: "AlbionDataPro"
+        set(value) = prefs.edit().putString("custom_app_name", value).apply()
+
     var bubbleWidthPortrait: Int
         get() = prefs.getInt("bubble_width_portrait", 240)
         set(value) = prefs.edit().putInt("bubble_width_portrait", value.coerceIn(180, 500)).apply()
