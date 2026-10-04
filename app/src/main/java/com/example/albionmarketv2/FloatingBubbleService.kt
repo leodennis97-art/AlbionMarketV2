@@ -717,10 +717,11 @@ fun BubbleOverlayContent(
                 }
             }
         } else {
-            NeonGlowCard(
-                glowColors = listOf(Color(0xFF38BDF8), Color(0xFF8B5CF6), Color(0xFFFFD700)),
-                containerColor = Color(0xFF0E2532),
+            Card(
                 shape = RoundedCornerShape(if (isCompactMode) 12.dp else 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0E2532)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                border = BorderStroke(1.5.dp, Color(0xFF38BDF8).copy(alpha = 0.6f)),
                 modifier = Modifier
                     .width(cardWidth)
                     .graphicsLayer(alpha = effOpacity),
