@@ -132,6 +132,10 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getString("bubble_standpunkt_city", "ALLE") ?: "ALLE"
         set(value) = prefs.edit().putString("bubble_standpunkt_city", value).apply()
 
+    var realtimeLiveSyncEnabled: Boolean
+        get() = prefs.getBoolean("realtime_live_sync_enabled", true)
+        set(value) = prefs.edit().putBoolean("realtime_live_sync_enabled", value).apply()
+
     var bubbleCategory: String
         get() = prefs.getString("bubble_category", "ALL") ?: "ALL"
         set(value) = prefs.edit().putString("bubble_category", value).apply()

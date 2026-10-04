@@ -43,6 +43,7 @@ object ServerSyncManager {
     var latestTargetVersion by mutableStateOf<String?>(null)
     var dismissedOtaVersion: String? = null
     var isServerConnected by mutableStateOf(true)
+    var lastSuccessfulPingTime: Long = System.currentTimeMillis()
     var activePopupAlert by mutableStateOf<ServerPopupAlert?>(null)
     var lastSuccessfulUrl: String? = null
     var lastLoginErrorMessage by mutableStateOf<String?>(null)
@@ -54,12 +55,14 @@ object ServerSyncManager {
         }
     }
 
-    @Suppress("UNUSED_PARAMETER")
     fun getServerBaseUrls(context: Context? = null): List<String> {
-        // Render Cloud Server
-        return listOf(
-            "https://albionmarketv2.onrender.com"
-        )
+        val urls = mutableListOf<String>()
+        if (context != null) {
+            urls.addAll(ServerConfigManager.getCustomServerUrls(context))
+        }
+        urls.add("https://speller-importer-captivate.ngrok-free.dev")
+        urls.add("https://albionmarketv2.onrender.com")
+        return urls.distinct()
     }
 
     @Suppress("UNUSED_PARAMETER")
@@ -218,10 +221,13 @@ object ServerSyncManager {
                 val result = deferred.await()
                 if (result != null) {
                     isServerConnected = true
+                    lastSuccessfulPingTime = System.currentTimeMillis()
                     return@supervisorScope result
                 }
             }
-            isServerConnected = false
+            if (System.currentTimeMillis() - lastSuccessfulPingTime > 20000L) {
+                isServerConnected = false
+            }
             null
         }
     }
@@ -814,14 +820,15 @@ object ServerSyncManager {
                     }
                 }
             } catch (_: Exception) {
-                // Connection exception
+                // Connection exception / offline - do not log out user automatically
+                return@withContext true
             } finally {
                 connection?.disconnect()
             }
         }
 
-        // Strikte Cloud- und Lizenzprüfung: Kein automatischer Offline-Fallbacks!
-        return@withContext false
+        // Bei temporärem Verbindungsausfall (z.B. kein Internet / Server kurz nicht erreichbar) nicht automatisch ausloggen:
+        return@withContext true
     }
 
     suspend fun backupUserData(context: Context): Boolean = withContext(Dispatchers.IO) {

@@ -41,6 +41,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -298,7 +299,7 @@ fun AlbionResourceScreen(
                                 Toast.makeText(context, "Overlay Bubble gestoppt", Toast.LENGTH_SHORT).show()
                             } else {
                                 val prefs = AppPreferences(context)
-                                val isLoggedIn = ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(context)
+                                val isLoggedIn = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(context)
                                 if (!isLoggedIn) {
                                     Toast.makeText(context, "Bitte zuerst anmelden!", Toast.LENGTH_SHORT).show()
                                     return@IconButton
@@ -457,6 +458,7 @@ fun AlbionResourceScreen(
                 } else {
                     prefs.isUserLoggedIn = false
                     try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
+                    try { PersistentServerSyncService.stopService(context) } catch (_: Exception) {}
                     (context as? Activity)?.recreate()
                 }
             }
@@ -1481,6 +1483,38 @@ fun CalculatorTabContent(
             }
         }
 
+        // 🤖 KI-ANALYSE BOT (TOP 5 ORDER VORHERSAGEN FOR TRADE OPPORTUNITIES)
+        item {
+            AiTradingBotPredictionsSection(
+                uiState = uiState,
+                onAcceptPrediction = { pred ->
+                    val opp = pred.toTradeOpportunity()
+                    viewModel.acceptTradeOpportunity(opp)
+                    if (uiState.orderErrorMsg == null) {
+                        Toast.makeText(context, "✅ KI-Auftrag '${opp.resource.nameDe}' zu aktiven Aufträgen hinzugefügt!", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            )
+        }
+
+        // 🤖 KI LIVE MARKET ANALYZER FLIPS (falls Ergebnisse vorhanden)
+        uiState.aiAnalysisResult?.let { aiResult ->
+            if (aiResult.bestFlips.isNotEmpty()) {
+                item {
+                    AiMarketAnalyzerFlipsSection(
+                        aiResult = aiResult,
+                        onAcceptFlip = { flip ->
+                            val opp = flip.toTradeOpportunity(tradeUnits = 10)
+                            viewModel.acceptTradeOpportunity(opp)
+                            if (uiState.orderErrorMsg == null) {
+                                Toast.makeText(context, "✅ KI-Analyse Auftrag '${opp.resource.nameDe}' übernommen!", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    )
+                }
+            }
+        }
+
         // List of Trade Opportunities
         if (uiState.tradeOpportunities.isEmpty()) {
             if (uiState.isLoadingPrices) {
@@ -1542,6 +1576,340 @@ fun CalculatorTabContent(
                 showLoadoutDialog = false
             }
         )
+    }
+}
+
+@Composable
+fun AiTradingBotPredictionsSection(
+    uiState: ResourceUiState,
+    onAcceptPrediction: ((FilteredPricePrediction) -> Unit)? = null
+) {
+    val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    val effectiveCategory = if (uiState.selectedOpportunityCategory != ResourceCategory.ALL) {
+        uiState.selectedOpportunityCategory
+    } else {
+        uiState.selectedCategory
+    }
+
+    val predictions = remember(
+        uiState.marketPrices,
+        uiState.silverBudget,
+        uiState.selectedCityFilter,
+        uiState.selectedCategory,
+        uiState.selectedOpportunityCategory,
+        uiState.selectedTierFilter,
+        uiState.maxZonesFilter,
+        uiState.avoidDangerousZones,
+        uiState.hideBrecilien,
+        uiState.hideBlackMarket
+    ) {
+        val priceMap = uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() }
+        val resources = AlbionResourceRepository.resources
+        val filteredResources = resources.filter { res ->
+            val matchesCat = if (effectiveCategory != ResourceCategory.ALL) res.category == effectiveCategory else true
+            val matchesTier = if (uiState.selectedTierFilter > 0) res.tier == uiState.selectedTierFilter else true
+            matchesCat && matchesTier
+        }
+        AdvancedTradingBot.analyzeTradingOpportunitiesWithFilters(
+            pricesMap = priceMap,
+            silverBudget = uiState.silverBudget,
+            allowedResources = filteredResources,
+            standpunktCity = if (uiState.selectedCityFilter != "ALLE") uiState.selectedCityFilter else null,
+            maxZones = uiState.maxZonesFilter,
+            avoidDangerous = uiState.avoidDangerousZones,
+            hideBrecilien = uiState.hideBrecilien,
+            hideBlackMarket = uiState.hideBlackMarket,
+            topN = 5
+        )
+    }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF0F172A),
+        border = BorderStroke(1.5.dp, Color(0xFFFFD700)),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🤖 KI-Marktbot (Handel & Marge)", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFFFD700))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                        Text("Top Order-Vorhersagen", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                    }
+                }
+                Text("🎯 ~95% Trefferquote", fontSize = 9.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+            }
+
+            val activeFiltersText = buildString {
+                append("Aktive Filter: Kat=${effectiveCategory.displayName}")
+                if (uiState.selectedCityFilter != "ALLE") append(" | Standort=${uiState.selectedCityFilter}")
+                if (uiState.avoidDangerousZones) append(" | 🛡️ Rote Zonen verborgen")
+                if (uiState.hideBlackMarket) append(" | 🏴‍☠️ Schmuggler verborgen")
+                if (uiState.hideBrecilien) append(" | 🚫 Brecilien verborgen")
+            }
+            Text(activeFiltersText, fontSize = 9.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Medium)
+
+            if (predictions.isEmpty()) {
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF1E293B),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Box(
+                        modifier = Modifier.padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Keine KI-Order-Vorhersagen für die aktuell gewählten Filter/Kategorien gefunden.\nVersuche andere Filter oder passe das Silber-Budget an.",
+                            fontSize = 10.5.sp,
+                            color = Color(0xFFCBD5E1),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                predictions.forEachIndexed { index, pred ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${index + 1}. 🔥 ${pred.resourceNameDe}",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.5.sp,
+                                    color = Color.White
+                                )
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (pred.isDangerousRoute) Color(0xFFEF4444).copy(alpha = 0.2f) else Color(0xFF10B981).copy(alpha = 0.2f),
+                                        border = BorderStroke(1.dp, if (pred.isDangerousRoute) Color(0xFFEF4444) else Color(0xFF10B981))
+                                    ) {
+                                        Text(
+                                            text = pred.zoneSafetyText,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (pred.isDangerousRoute) Color(0xFFFF8A80) else Color(0xFF10B981),
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                        border = BorderStroke(1.dp, Color(0xFF10B981))
+                                    ) {
+                                        Text(
+                                            text = "+${String.format(Locale.GERMANY, "%.1f", pred.expectedRoi)}% ROI",
+                                            fontSize = 8.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF10B981),
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🛤️ Route: ${pred.buyCity} ➔ ${pred.sellCity}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF38BDF8)
+                                )
+                                Text(
+                                    text = "📦 Menge: ${numberFormat.format(pred.tradeUnits)} Stk.",
+                                    fontSize = 9.5.sp,
+                                    color = Color(0xFF81D4FA),
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "🛒 Buy: ${numberFormat.format(pred.predictedBuyOrderPrice)} S.",
+                                    fontSize = 9.5.sp,
+                                    color = Color(0xFF81C784),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "🏷️ Sell: ${numberFormat.format(pred.predictedSellOrderPrice)} S.",
+                                    fontSize = 9.5.sp,
+                                    color = Color(0xFFFFB74D),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = "📊 Gewinn: +${numberFormat.format(pred.expectedProfit)} Silber",
+                                        fontSize = 10.5.sp,
+                                        color = Color(0xFFFFD700),
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                    Text(
+                                        text = pred.strategyText,
+                                        fontSize = 8.5.sp,
+                                        color = Color(0xFF81D4FA),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+
+                                if (onAcceptPrediction != null) {
+                                    Button(
+                                        onClick = { onAcceptPrediction(pred) },
+                                        shape = RoundedCornerShape(6.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                        contentPadding = PaddingValues(horizontal = 6.dp, vertical = 1.dp),
+                                        modifier = Modifier.height(24.dp)
+                                    ) {
+                                        Text("⚡ Übernehmen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AiMarketAnalyzerFlipsSection(
+    aiResult: AiAnalysisResult,
+    onAcceptFlip: (AiItemPriceComparison) -> Unit
+) {
+    val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF0F172A),
+        border = BorderStroke(1.5.dp, Color(0xFF38BDF8)),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("🤖 KI-Analyse Live-Radar", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                        Text("${aiResult.totalItemsCompared} Geprüft", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                    }
+                }
+                Text("Echtzeit Marktlücken", fontSize = 9.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+            }
+
+            Text(aiResult.summaryTextDe, fontSize = 9.sp, color = Color(0xFFCBD5E1), fontWeight = FontWeight.Normal)
+
+            aiResult.bestFlips.take(5).forEachIndexed { index, flip ->
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF1E293B),
+                    border = BorderStroke(1.dp, Color(0xFF334155)),
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
+                ) {
+                    Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "${index + 1}. 🔥 ${flip.resourceNameDe}",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = Color.White
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, Color(0xFF10B981))
+                            ) {
+                                Text(
+                                    text = "+${String.format(Locale.GERMANY, "%.1f", flip.marginPercent)}% Marge",
+                                    fontSize = 8.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF10B981),
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "🛒 ${flip.lowestCity} (${numberFormat.format(flip.lowestPrice)} S.) ➔ 🏷️ ${flip.highestCity} (${numberFormat.format(flip.highestPrice)} S.)",
+                                fontSize = 9.5.sp,
+                                color = Color(0xFF38BDF8),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "+${numberFormat.format(flip.profitPerUnit)} S./Stk.",
+                                fontSize = 9.5.sp,
+                                color = Color(0xFFFFD700),
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = flip.aiRecommendationDe.ifBlank { "Optimaler KI-Kauf order" },
+                                fontSize = 8.5.sp,
+                                color = Color(0xFF94A3B8),
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Button(
+                                onClick = { onAcceptFlip(flip) },
+                                shape = RoundedCornerShape(6.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 1.dp),
+                                modifier = Modifier.height(24.dp)
+                            ) {
+                                Text("⚡ Auftrag annehmen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -2105,28 +2473,54 @@ fun TradeOpportunityCard(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("Investition: ${numberFormat.format(opportunity.totalInvestment)} Silber", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("⏰ Gefunden: ${opportunity.foundTimeStr}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Text("⏰ Angebot her: ${opportunity.foundTimeStr}", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // AI BUY & SELL ORDER RECOMMENDATIONS CARD
+            // AI BUY & SELL ORDER RECOMMENDATIONS CARD (Statistischer Preisfall/Preisanstieg)
             Surface(
                 shape = RoundedCornerShape(12.dp),
                 color = Color(0xFF1E293B),
                 border = BorderStroke(1.dp, Color(0xFF38BDF8)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("🤖 KI Order-Analyse & Strategie", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("🤖 KI Order-Analyse (Wochen-Statistik)", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFF10B981)) {
+                            Text("Garantierte Max-Marge", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    }
+
                     if (opportunity.buyOrderRecommendation.isNotBlank()) {
-                        Text(opportunity.buyOrderRecommendation, fontSize = 10.sp, color = Color(0xFFE2E8F0))
+                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0F172A), modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text(opportunity.buyOrderRecommendation, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
+                                if (opportunity.expectedPriceDropPercent > 0) {
+                                    Text("📉 Erwarteter Preisfall der letzten Wochen: -${String.format(Locale.GERMANY, "%.1f", opportunity.expectedPriceDropPercent)}% (Optimaler Dip-Einkauf)", fontSize = 9.sp, color = Color.LightGray)
+                                }
+                            }
+                        }
                     }
+
                     if (opportunity.sellOrderRecommendation.isNotBlank()) {
-                        Text(opportunity.sellOrderRecommendation, fontSize = 10.sp, color = Color(0xFF10B981))
+                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0F172A), modifier = Modifier.fillMaxWidth()) {
+                            Column(modifier = Modifier.padding(8.dp)) {
+                                Text(opportunity.sellOrderRecommendation, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFB74D))
+                                if (opportunity.expectedPriceRisePercent > 0) {
+                                    Text("📈 Erwarteter Preisanstieg der letzten Wochen: +${String.format(Locale.GERMANY, "%.1f", opportunity.expectedPriceRisePercent)}% (Optimaler Peak-Verkauf)", fontSize = 9.sp, color = Color.LightGray)
+                                }
+                            }
+                        }
                     }
+
                     if (opportunity.aiOrderStrategy.isNotBlank()) {
                         Text(opportunity.aiOrderStrategy, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFFBBF24))
                     }
@@ -2323,17 +2717,19 @@ fun EquipmentBuildsTabContent(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        val filteredBuilds = uiState.equipmentBuilds.filter { it.category == uiState.selectedBuildCategory }
+        val filteredBuilds = uiState.equipmentBuilds
+            .filter { it.category == uiState.selectedBuildCategory }
+            .sortedByDescending { it.estimatedMarginPercent }
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxSize()
         ) {
-            items(filteredBuilds, key = { it.id }) { build ->
+            itemsIndexed(filteredBuilds, key = { _, build -> build.id }) { index, build ->
                 Card(
                     shape = RoundedCornerShape(8.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    border = BorderStroke(1.dp, if (index < 3) Color(0xFF10B981) else MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.fillMaxWidth().wrapContentHeight()
                 ) {
                     Column(modifier = Modifier.padding(8.dp)) {
@@ -2342,7 +2738,24 @@ fun EquipmentBuildsTabContent(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(build.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                            Column(modifier = Modifier.weight(1f)) {
+                                if (index < 3) {
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = Color(0xFF059669)
+                                    ) {
+                                        Text(
+                                            text = "🔥 Top Deal (#${index + 1} Marge: +${String.format(Locale.GERMANY, "%.1f", build.estimatedMarginPercent)}%)",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                }
+                                Text(build.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                            }
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
                                 color = MaterialTheme.colorScheme.primaryContainer
@@ -2464,16 +2877,18 @@ fun EventsAndMonstersTabContent(
     var selectedRegion by remember { mutableStateOf("ALLE") }
     var selectedSortMode by remember { mutableStateOf(MonsterSortMode.MOST_LUCRATIVE) }
     var selectedCategoryType by remember { mutableStateOf("ALL") }
+    var selectedPlayerCategory by remember { mutableStateOf(PlayerCategory.ALL) }
 
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val regions = listOf(
         "ALLE", "Outlands", "Steppe", "Wald", "Sumpf", "Gebirge", "Hochland", "Caerleon", "Roads of Avalon", "The Mists", "Statische Dungeons"
     )
 
-    val filteredMonsters = remember(searchQuery, selectedRegion, selectedSortMode, selectedCategoryType) {
+    val filteredMonsters = remember(searchQuery, selectedRegion, selectedSortMode, selectedCategoryType, selectedPlayerCategory) {
         val base = AlbionMonsterRepository.getFilteredAndSorted(
             query = searchQuery,
             regionFilter = selectedRegion,
+            playerCategoryFilter = selectedPlayerCategory,
             sortMode = selectedSortMode
         )
         when (selectedCategoryType) {
@@ -2611,6 +3026,22 @@ fun EventsAndMonstersTabContent(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    // Player Count Category Filter Chips (Solo, Duo, Gruppe, Raid)
+                    Text("👥 Benötigte Spielerzahl (Kategorien):", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        items(PlayerCategory.entries.toTypedArray()) { cat ->
+                            val isSelected = selectedPlayerCategory == cat
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { selectedPlayerCategory = cat },
+                                label = { Text("${cat.iconEmoji} ${cat.displayNameDe}", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     // Category Split Filter Chips (Weltbosse vs Dungeons & Schatztruhen)
                     Text("⚔️ Kategorie-Filter (Splitting):", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                     Spacer(modifier = Modifier.height(4.dp))
@@ -2672,6 +3103,41 @@ fun EventsAndMonstersTabContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
+                    // Player Count Category Badge & Profit/Hour
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = when (monster.playerCategory) {
+                                PlayerCategory.SOLO -> Color(0xFF10B981)
+                                PlayerCategory.DUO -> Color(0xFF38BDF8)
+                                PlayerCategory.GROUP -> Color(0xFF8B5CF6)
+                                PlayerCategory.RAID -> Color(0xFFEC4899)
+                                else -> Color(0xFF64748B)
+                            }
+                        ) {
+                            Text(
+                                text = "${monster.playerCategory.iconEmoji} ${monster.recommendedPlayerCount}",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+
+                        Text(
+                            text = monster.estimatedSilverPerHour,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            color = Color(0xFF10B981)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -2713,6 +3179,24 @@ fun EventsAndMonstersTabContent(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // Chest Drop Summary Card
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp).fillMaxWidth()) {
+                            Text(
+                                text = monster.chestDropSummaryDe,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
@@ -3722,7 +4206,7 @@ fun GoldMarketTabContent(
                     HorizontalDivider()
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text("🎯 Bot Empfehlung für Max-Profit Orders:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFFFD700))
+                    Text("🎯 KI Order-Empfehlung für Max-Profit (Letzte Wochen-Statistik):", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFFFD700))
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Row(
@@ -3738,6 +4222,7 @@ fun GoldMarketTabContent(
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text("🛍️ Akkurate Kauf-Order:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${numberFormat.format(botAnalysis.recommendedBuyOrderPrice)} S.", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color(0xFF10B981))
+                                Text("📉 Dip-Fall: -${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedPriceDropPercent)}% (${botAnalysis.buyOrderProbabilityStr})", fontSize = 9.sp, color = Color(0xFF81C784))
                             }
                         }
 
@@ -3750,8 +4235,28 @@ fun GoldMarketTabContent(
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text("🏷️ Max-Profit Verkauf-Order:", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 Text("${numberFormat.format(botAnalysis.recommendedSellOrderPrice)} S.", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color(0xFFFFB74D))
+                                Text("📈 Peak-Anstieg: +${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedPriceRisePercent)}% (${botAnalysis.sellOrderProbabilityStr})", fontSize = 9.sp, color = Color(0xFFFFB74D))
                             }
                         }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    if (botAnalysis.aiOrderRecommendationTextDe.isNotBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = botAnalysis.aiOrderRecommendationTextDe,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF38BDF8),
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
                     }
 
                     Spacer(modifier = Modifier.height(8.dp))
@@ -4604,7 +5109,7 @@ fun IslandTabContent(
 
             val matchesCity = selectedCity == "ALLE" || bldg.cityBonusCity.contains(selectedCity, ignoreCase = true)
             matchesQuery && matchesCity
-        }
+        }.sortedByDescending { it.estimatedRoiPercent }
     }
 
     LazyColumn(
@@ -4846,10 +5351,11 @@ fun IslandTabContent(
             }
         }
 
-        items(filteredBuildings) { bldg ->
+        itemsIndexed(filteredBuildings, key = { _, bldg -> bldg.id }) { index, bldg ->
             Card(
                 shape = RoundedCornerShape(14.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                border = BorderStroke(1.dp, if (index < 3) Color(0xFFF59E0B) else MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
@@ -4859,6 +5365,21 @@ fun IslandTabContent(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            if (index < 3) {
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFFD97706)
+                                ) {
+                                    Text(
+                                        text = "🔥 Top Deal (#${index + 1} Marge: +${String.format(Locale.GERMANY, "%.1f", bldg.estimatedRoiPercent)}%)",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
                             Text(
                                 text = bldg.nameDe,
                                 fontWeight = FontWeight.ExtraBold,

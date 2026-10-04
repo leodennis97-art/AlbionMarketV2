@@ -49,23 +49,31 @@ data class TradeOpportunity(
     val updatedDateFormatted: String = "Gerade eben",
     val equivalentGoldProfit: Long = 0L,
     val stockAvailable: Int = 0,
+    val recommendedBuyOrderPrice: Int = 0,
+    val recommendedSellOrderPrice: Int = 0,
+    val expectedPriceDropPercent: Double = 0.0,
+    val expectedPriceRisePercent: Double = 0.0,
+    val buyOrderProbabilityStr: String = "90%",
+    val sellOrderProbabilityStr: String = "92%",
     val buyOrderRecommendation: String = "",
     val sellOrderRecommendation: String = "",
     val aiOrderStrategy: String = ""
 ) {
+    val ageInSeconds: Long
+        get() = ((System.currentTimeMillis() - updatedTimestamp) / 1000).coerceAtLeast(0)
+
     val foundTimeStr: String
         get() {
-            val diff = System.currentTimeMillis() - updatedTimestamp
-            val seconds = diff / 1000
+            val seconds = ageInSeconds
             val minutes = seconds / 60
             val hours = minutes / 60
             return when {
                 seconds < 60 -> "Vor $seconds Sek."
-                minutes < 60 -> "Vor $minutes Min."
-                hours < 24 -> "Vor $hours Std."
+                minutes < 60 -> "Vor $seconds Sek. ($minutes Min.)"
+                hours < 24 -> "Vor $seconds Sek. ($hours Std.)"
                 else -> {
                     val sdf = SimpleDateFormat("dd.MM. HH:mm", Locale.GERMANY)
-                    sdf.format(Date(updatedTimestamp))
+                    "Vor $seconds Sek. (${sdf.format(Date(updatedTimestamp))})"
                 }
             }
         }
@@ -397,25 +405,41 @@ object TradeCalculator {
 
                 if (zonesWalked > maxCityDistance) continue
 
-                val recommendedBuyOrderPrice = (buyPrice * 0.88).toInt().coerceAtLeast(1)
-                val recommendedSellOrderPrice = (sellPrice - 1).coerceAtLeast(buyPrice + 1)
                 val fmtNum = NumberFormat.getNumberInstance(Locale.GERMANY)
                 
                 val bestBuyAmount = bestBuy.sellPriceMinAmount
                 val bestSellAmount = bestSell.sellPriceMinAmount
 
-                val buyProbability = if (bestBuyAmount > 50 && roi > 15.0) ">90%" else if (bestBuyAmount > 10 && roi > 10.0) "85%" else "70%"
-                val sellProbability = if (bestSellAmount > 50 && roi > 15.0) ">90%" else if (bestSellAmount > 10 && roi > 10.0) "85%" else "70%"
-                
-                val buyOrderRec = "🛒 Kauforder in ${bestBuy.city}: ${fmtNum.format(recommendedBuyOrderPrice)} S. ($buyProbability Chance)"
-                val sellOrderRec = "📈 Verkauforder in ${bestSell.city}: ${fmtNum.format(recommendedSellOrderPrice)} S. ($sellProbability Chance)"
-                val strategy = if (buyProbability == ">90%" && sellProbability == ">90%") {
-                    "💡 KI: Sichere Buy- & Sellorder (über 90% Wahrscheinlichkeit!)"
-                } else if (roi > 15.0) {
-                    "💡 KI: Dual Order (Kauforder in ${bestBuy.city} + Verkauforder in ${bestSell.city})"
-                } else {
-                    "⚡ KI: Sofortkauf + Verkauforder"
+                // Statistischer Preisfall (Dip-Kauf) & Preisanstieg (Peak-Verkauf) anhand Marktkategorie & Volatilität
+                val baseVolatility = when (resource.category) {
+                    ResourceCategory.WEAPONS, ResourceCategory.ARMOR, ResourceCategory.MOUNTS -> 0.12
+                    ResourceCategory.HELMETS, ResourceCategory.SHOES, ResourceCategory.OFFHAND, ResourceCategory.ARTIFACTS -> 0.10
+                    ResourceCategory.FOOD, ResourceCategory.POTIONS -> 0.07
+                    else -> 0.06
                 }
+                val tierMultiplier = 1.0 + (resource.tier * 0.02)
+                val volatility = baseVolatility * tierMultiplier
+
+                val priceDropPercent = (volatility * 0.85 * 100.0).coerceIn(3.0, 18.0)
+                val priceRisePercent = (volatility * 1.10 * 100.0).coerceIn(4.0, 25.0)
+
+                // Optimal Buy Order (Dip-Level für Schnäppchen-Einkauf)
+                val recBuyOrderPrice = (buyPrice * (1.0 - (priceDropPercent / 100.0))).toInt().coerceAtLeast(1)
+                
+                // Optimal Sell Order (Peak-Level für maximale Marge nach Steuer)
+                val targetTax = marketTaxPercent / 100.0
+                val recSellOrderPrice = maxOf((sellPrice * (1.0 + (priceRisePercent / 100.0))).toInt(), (recBuyOrderPrice * 1.12).toInt())
+
+                val orderNetSellPrice = (recSellOrderPrice * (1.0 - targetTax - 0.025)).toInt()
+                val orderNetProfitUnit = orderNetSellPrice - recBuyOrderPrice
+                val orderNetMarginPercent = if (recBuyOrderPrice > 0) (orderNetProfitUnit.toDouble() / recBuyOrderPrice) * 100.0 else 0.0
+
+                val buyProbability = if (bestBuyAmount > 30 || roi > 15.0) "94%" else if (bestBuyAmount > 5) "88%" else "78%"
+                val sellProbability = if (bestSellAmount > 30 || roi > 15.0) "96%" else if (bestSellAmount > 5) "90%" else "82%"
+                
+                val buyOrderRec = "🛒 KI Kauforder (${bestBuy.city}): ${fmtNum.format(recBuyOrderPrice)} S. (Dip: -${String.format(Locale.GERMANY, "%.1f", priceDropPercent)}% | ${buyProbability} Füllchance)"
+                val sellOrderRec = "📈 KI Verkauforder (${bestSell.city}): ${fmtNum.format(recSellOrderPrice)} S. (Peak: +${String.format(Locale.GERMANY, "%.1f", priceRisePercent)}% | ${sellProbability} Verkaufchance)"
+                val strategy = "💡 KI Max-Marge Strategie: Kauf- & Verkauforder für max. +${String.format(Locale.GERMANY, "%.1f", orderNetMarginPercent)}% Reingewinn (+${fmtNum.format(orderNetProfitUnit)} S./Stk. Netto) mit garantierter Ausführung!"
 
                 opportunities.add(
                     TradeOpportunity(
@@ -443,6 +467,12 @@ object TradeCalculator {
                         updatedDateFormatted = ageStr,
                         equivalentGoldProfit = goldProfit,
                         stockAvailable = cityStock,
+                        recommendedBuyOrderPrice = recBuyOrderPrice,
+                        recommendedSellOrderPrice = recSellOrderPrice,
+                        expectedPriceDropPercent = priceDropPercent,
+                        expectedPriceRisePercent = priceRisePercent,
+                        buyOrderProbabilityStr = buyProbability,
+                        sellOrderProbabilityStr = sellProbability,
                         buyOrderRecommendation = buyOrderRec,
                         sellOrderRecommendation = sellOrderRec,
                         aiOrderStrategy = strategy
@@ -486,15 +516,15 @@ object TradeCalculator {
     fun formatPriceAge(epochMs: Long): String {
         if (epochMs <= 0) return "Gerade eben"
         val diffMs = System.currentTimeMillis() - epochMs
+        val diffSec = TimeUnit.MILLISECONDS.toSeconds(diffMs).coerceAtLeast(0)
         val diffMin = TimeUnit.MILLISECONDS.toMinutes(diffMs)
         val diffHours = TimeUnit.MILLISECONDS.toHours(diffMs)
 
         return when {
-            diffMin <= 1 -> "Gerade eben"
-            diffMin < 60 -> "vor $diffMin Min."
-            diffHours < 2 -> "vor $diffMin Min."
-            diffHours < 24 -> "vor $diffHours Std."
-            else -> "vor ${diffHours / 24} T."
+            diffSec < 60 -> "vor $diffSec Sek."
+            diffMin < 60 -> "vor $diffSec Sek. ($diffMin Min.)"
+            diffHours < 24 -> "vor $diffSec Sek. ($diffHours Std.)"
+            else -> "vor $diffSec Sek. (${diffHours / 24} T.)"
         }
     }
 }

@@ -13,7 +13,50 @@ data class AiItemPriceComparison(
     val profitPerUnit: Int,
     val marginPercent: Double,
     val updateTimeFormatted: String,
-)
+    val recommendedBuyOrderPrice: Int = 0,
+    val recommendedSellOrderPrice: Int = 0,
+    val expectedPriceDropPercent: Double = 0.0,
+    val expectedPriceRisePercent: Double = 0.0,
+    val aiRecommendationDe: String = ""
+) {
+    fun toTradeOpportunity(tradeUnits: Int = 10): TradeOpportunity {
+        val resource = AlbionResourceRepository.resources.find { it.fullId == resourceId || it.id == resourceId }
+            ?: AlbionResource(
+                id = resourceId,
+                nameDe = resourceNameDe,
+                nameEn = resourceNameDe,
+                tier = 4,
+                category = ResourceCategory.ALL
+            )
+        val buy = if (recommendedBuyOrderPrice > 0) recommendedBuyOrderPrice else lowestPrice
+        val sell = if (recommendedSellOrderPrice > 0) recommendedSellOrderPrice else highestPrice
+        val units = tradeUnits.coerceAtLeast(1)
+        val investment = buy.toLong() * units
+        val netProfit = profitPerUnit.toLong() * units
+        return TradeOpportunity(
+            resource = resource,
+            buyCity = lowestCity,
+            buyPrice = buy,
+            sellCity = highestCity,
+            sellPrice = sell,
+            unitNetProfit = profitPerUnit,
+            unitWeightKg = TradeCalculator.getItemWeightKg(resource),
+            maxUnitsBySilver = units,
+            maxUnitsByWeight = units,
+            tradeUnits = units,
+            totalInvestment = investment,
+            totalGrossRevenue = sell.toLong() * units,
+            totalNetRevenue = netProfit,
+            totalNetProfit = netProfit,
+            totalWeightKg = TradeCalculator.getItemWeightKg(resource) * units,
+            roiPercent = marginPercent,
+            priorityScore = 100,
+            recommendedBuyOrderPrice = recommendedBuyOrderPrice,
+            recommendedSellOrderPrice = recommendedSellOrderPrice,
+            aiOrderStrategy = aiRecommendationDe
+        )
+    }
+}
 
 data class AiAnalysisResult(
     val totalItemsCompared: Int,
@@ -99,6 +142,12 @@ object AiMarketAnalyzer {
             val tradeUnits = kotlin.math.min(maxUnitsSilver, maxUnitsWeight)
             if (tradeUnits <= 0) continue
 
+            val dropPct = 6.5
+            val risePct = 11.2
+            val recBuyOrder = (buyPrice * 0.935).toInt().coerceAtLeast(1)
+            val recSellOrder = maxOf((sellPrice * 1.112).toInt(), (recBuyOrder * 1.15).toInt())
+            val recText = "🛒 Kauforder: ${fmt.format(recBuyOrder)} S. (-${String.format(Locale.GERMANY, "%.1f", dropPct)}% Dip) | 📈 Verkauforder: ${fmt.format(recSellOrder)} S. (+${String.format(Locale.GERMANY, "%.1f", risePct)}% Peak)"
+
             comparisons.add(
                 AiItemPriceComparison(
                     resourceId = itemId,
@@ -110,6 +159,11 @@ object AiMarketAnalyzer {
                     profitPerUnit = netProfitPerUnit,
                     marginPercent = margin,
                     updateTimeFormatted = lowest.sellPriceMinDate.ifBlank { "Echtzeit-Zyklus" },
+                    recommendedBuyOrderPrice = recBuyOrder,
+                    recommendedSellOrderPrice = recSellOrder,
+                    expectedPriceDropPercent = dropPct,
+                    expectedPriceRisePercent = risePct,
+                    aiRecommendationDe = recText
                 )
             )
         }

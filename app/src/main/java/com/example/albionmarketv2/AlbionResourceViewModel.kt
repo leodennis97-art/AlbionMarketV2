@@ -243,11 +243,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             while (true) {
                 val nowStr = sdf.format(Date())
 
-                // 1. Live-Sekunden Uhrzeit aktualisieren
-                _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
-
-                // 2. Marktdaten & Server-Sync Zyklus (alle 3 Sekunden)
+                // 1. Marktdaten & Server-Sync Zyklus (alle 15 Sekunden bei 5s Haupttakt)
                 if ((cycleTick % 3L) == 0L) {
+                    _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
                     fetchMarketPricesInternal()
                     reloadOrdersFromPrefs()
                     val serverStats = ServerSyncManager.pingServer(getApplication(), _uiState.value.activeOrders.size)
@@ -259,19 +257,19 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     }
                 }
 
-                // 3. Goldmarkt-Kurs Zyklus (alle 30 Sekunden)
-                if ((cycleTick % 30L) == 0L && cycleTick > 0L) {
+                // 2. Goldmarkt-Kurs Zyklus (alle 60 Sekunden)
+                if ((cycleTick % 12L) == 0L && cycleTick > 0L) {
                     fetchGoldPricesInternal()
                 }
 
-                // 4. Live Events Zyklus (alle 10 Minuten)
-                if ((cycleTick % 600L) == 0L && cycleTick > 0L) {
+                // 3. Live Events Zyklus (alle 10 Minuten)
+                if ((cycleTick % 120L) == 0L && cycleTick > 0L) {
                     val freshEvents = AlbionWorldData.generateLiveEvents()
                     _uiState.value = _uiState.value.copy(liveEventsList = freshEvents)
                 }
 
                 cycleTick++
-                delay(1.seconds) // Synchronisierter 1-Sekunden-Haupttakt
+                delay(5.seconds) // Optimierter 5-Sekunden-Haupttakt zur Reduzierung von UI Re-Compositions
             }
         }
     }
@@ -335,6 +333,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         prefs.silverBudget = budget
         val current = _uiState.value
         val updated = current.copy(silverBudget = budget)
+        _uiState.value = updated
         recalculateOpportunities(updated)
     }
 
@@ -367,6 +366,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         prefs.carryCapacityKg = capacity
         val current = _uiState.value
         val updated = current.copy(carryCapacityKg = capacity)
+        _uiState.value = updated
         recalculateOpportunities(updated)
     }
 
@@ -1199,9 +1199,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             while (true) {
                 try {
                     saveAllScannedItems()
-                    delay(5.seconds)
+                    delay(30.seconds)
                 } catch (_: Exception) {
-                    delay(5.seconds)
+                    delay(30.seconds)
                 }
             }
         }

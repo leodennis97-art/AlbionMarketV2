@@ -48,7 +48,7 @@ fun ShimmerLoadingCard(modifier: Modifier = Modifier, height: Dp = 90.dp) {
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1200, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 2400, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "ShimmerTranslate"
@@ -89,7 +89,7 @@ fun RainbowBlinkingText(
         initialValue = 0f,
         targetValue = 360f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = LinearEasing),
+            animation = tween(durationMillis = 4500, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "RainbowHue"
@@ -99,13 +99,13 @@ fun RainbowBlinkingText(
         initialValue = 1.0f,
         targetValue = 0.35f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 750, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "BlinkAlpha"
     )
 
-    val rainbowColor = Color.hsv(hueAnim, 0.85f, 1.0f).copy(alpha = blinkAlpha)
+    val rainbowColor = Color.hsv(hueAnim, 0.85f, 1.0f)
 
     Text(
         text = buildAnnotatedString {
@@ -116,7 +116,9 @@ fun RainbowBlinkingText(
         fontSize = fontSize,
         fontWeight = fontWeight,
         color = rainbowColor,
-        modifier = modifier
+        modifier = modifier.graphicsLayer {
+            alpha = blinkAlpha
+        }
     )
 }
 
@@ -133,7 +135,7 @@ fun NeonGlowCard(
         initialValue = 0f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 3000, easing = LinearEasing),
+            animation = tween(durationMillis = 6000, easing = LinearEasing),
             repeatMode = RepeatMode.Restart
         ),
         label = "GlowPhase"

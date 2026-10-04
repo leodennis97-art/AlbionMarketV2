@@ -230,7 +230,7 @@ class MainActivity : ComponentActivity() {
                     )
                 }
 
-                // Real-Time Background Server Authentication & Data Sync (Immediate + every 5s to avoid thread starvation)
+                // Real-Time Background Server Authentication & Data Sync (Low-Frequency Background Check)
                 LaunchedEffect(Unit) {
                     while (isActive) {
                         try {
@@ -238,7 +238,7 @@ class MainActivity : ComponentActivity() {
                                 ServerSyncManager.pingServer(context)
                             }
                         } catch (_: Exception) {}
-                        delay(5000.milliseconds)
+                        delay(30000.milliseconds)
                     }
                 }
 
@@ -347,7 +347,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 } catch (_: Exception) {}
-                                delay(3000.milliseconds)
+                                delay(15000.milliseconds)
                             }
                         }
 
@@ -801,6 +801,9 @@ class MainActivity : ComponentActivity() {
                             try {
                                 FloatingBubbleService.stopService(this@MainActivity)
                             } catch (_: Exception) {}
+                            try {
+                                PersistentServerSyncService.stopService(this@MainActivity)
+                            } catch (_: Exception) {}
                             Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
                         }
 
@@ -895,7 +898,7 @@ class MainActivity : ComponentActivity() {
         if (Settings.canDrawOverlays(this)) {
             try {
                 val prefs = AppPreferences(this)
-                val isLoggedIn = ((prefs.savedUsername.isNotBlank() && prefs.savedPassword.isNotBlank()) || prefs.isUserLoggedIn) && LicenseManager.isLicenseValid(this)
+                val isLoggedIn = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(this)
                 if (isLoggedIn) {
                     if (!FloatingBubbleService.isServiceRunning()) {
                         FloatingBubbleService.startService(this)
@@ -923,7 +926,7 @@ fun UnlockedLockscreenContent(
         while (isActive) {
             isBubbleRunning = FloatingBubbleService.isServiceRunning()
             hasOverlayPermission = Settings.canDrawOverlays(context)
-            delay(1000.milliseconds)
+            delay(5000.milliseconds)
         }
     }
 

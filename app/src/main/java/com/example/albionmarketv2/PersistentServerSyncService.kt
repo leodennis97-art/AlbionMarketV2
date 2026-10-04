@@ -71,16 +71,13 @@ class PersistentServerSyncService : LifecycleService() {
         super.onCreate()
         try {
             val powerManager = getSystemService(POWER_SERVICE) as? PowerManager
-            wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlbionMarketV2::ServerSyncWakeLock")?.apply {
-                acquire(10 * 60 * 1000L)
-            }
+            wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AlbionMarketV2::ServerSyncWakeLock")
         } catch (e: Exception) {
             e.printStackTrace()
         }
         isRunning = true
         startForegroundNotification()
         startContinuousServerLoop()
-        start25SecondUpdateCheckLoop()
         start5MinuteBackgroundCheckLoop()
         startHourlyOtaDownloadLoop()
         start30MinGoldStatusLoop()
@@ -166,6 +163,9 @@ class PersistentServerSyncService : LifecycleService() {
             while (isRunning) {
                 var isConnected = false
                 try {
+                    // Brief WakeLock acquire during sync to prevent CPU sleep during network roundtrip
+                    wakeLock?.acquire(5000L)
+
                     // Strict internet dependency check
                     NetworkDependencyManager.checkInternetOrCrash(this@PersistentServerSyncService)
 
@@ -195,28 +195,15 @@ class PersistentServerSyncService : LifecycleService() {
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
+                } finally {
+                    try {
+                        if (wakeLock?.isHeld == true) {
+                            wakeLock?.release()
+                        }
+                    } catch (_: Exception) {}
                 }
-                // Optimized background connection loop: 8s pulse when connected, 3s retry when offline
-                delay(if (isConnected) 8000L else 3000L)
-            }
-        }
-    }
-
-    private fun start25SecondUpdateCheckLoop() {
-        serviceScope.launch {
-            while (isRunning) {
-                try {
-                    // 1. Strict internet dependency check
-                    NetworkDependencyManager.checkInternetOrCrash(this@PersistentServerSyncService)
-
-                    // 2. Ping Localhost and check for 25s update signals / patches
-                    val prefs = AppPreferences(this@PersistentServerSyncService)
-                    val activeOrdersCount = prefs.getTradeOrders().count { it.status == OrderStatus.ACTIVE }
-                    ServerSyncManager.pingServer(this@PersistentServerSyncService, activeOrdersCount)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-                delay(25.seconds) // 25-second update loop
+                // Battery-optimized background sync interval: 5 minutes when connected, 1 minute retry when offline
+                delay(if (isConnected) 5.minutes else 1.minutes)
             }
         }
     }

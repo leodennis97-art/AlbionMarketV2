@@ -3,10 +3,12 @@ package com.example.albionmarketv2
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.Build
 import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.Toast
 import androidx.core.content.edit
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearEasing
@@ -33,7 +35,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -76,6 +77,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -86,12 +88,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -126,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-    const val CURRENT_APP_VERSION = "2.1.8"
+const val CURRENT_APP_VERSION = "2.2.0"
 
 data class AdminDevice(
     val hwId: String,
@@ -257,9 +261,7 @@ object AdminControlManager {
                             if (v is JSONArray) return@withContext v
                         }
                     }
-                    val keys = jsonObj.keys()
-                    while (keys.hasNext()) {
-                        val key = keys.next()
+                    for (key in jsonObj.keys()) {
                         val v = jsonObj.opt(key)
                         if (v is JSONArray) return@withContext v
                     }
@@ -280,18 +282,16 @@ object AdminControlManager {
             val obj = arr.optJSONObject(i) ?: continue
             list.add(
                 AdminUser(
-                    username = obj.optString("username", "Unbekannt"),
-                    password = obj.optString("password", "••••••••"),
+                    username = obj.optString("username", "Unbekannt") ?: "Unbekannt",
+                    password = obj.optString("password", "••••••••") ?: "••••••••",
                     isAdmin = obj.optBoolean("isAdmin", false),
                     isLicensed = obj.optBoolean("isLicensed", true),
-                    licenseExpiresAt = obj.optString("licenseExpiresAt", ""),
+                    licenseExpiresAt = obj.optString("licenseExpiresAt", "") ?: "",
                 )
             )
         }
         return AdminApiResult.Success(list)
     }
-
-
 
     suspend fun fetchLicensesWithStatus(context: Context): AdminApiResult<List<AdminLicense>> {
         val base = getBaseUrl(context)
@@ -302,18 +302,16 @@ object AdminControlManager {
             val obj = arr.optJSONObject(i) ?: continue
             list.add(
                 AdminLicense(
-                    key = obj.optString("key", ""),
-                    tier = obj.optString("tier", "1m"),
-                    price = obj.optString("price", "15 €"),
-                    created = obj.optString("created", ""),
-                    note = obj.optString("note", "")
+                    key = obj.optString("key", "") ?: "",
+                    tier = obj.optString("tier", "1m") ?: "1m",
+                    price = obj.optString("price", "15 €") ?: "15 €",
+                    created = obj.optString("created", "") ?: "",
+                    note = obj.optString("note", "") ?: ""
                 )
             )
         }
         return AdminApiResult.Success(list)
     }
-
-
 
     suspend fun fetchDevicesWithStatus(context: Context): AdminApiResult<List<AdminDevice>> {
         val base = getBaseUrl(context)
@@ -322,19 +320,19 @@ object AdminControlManager {
         val list = mutableListOf<AdminDevice>()
         for (i in 0 until arr.length()) {
             val obj = arr.optJSONObject(i) ?: continue
-            val bannedUntil = obj.optString("bannedUntil", "")
+            val bannedUntil = obj.optString("bannedUntil", "") ?: ""
             val unbanned = obj.optBoolean("unbanned", false)
             val serverIsBanned = obj.optBoolean("isBanned", false)
-            val isBanned = serverIsBanned || (!bannedUntil.isNullOrBlank() && !unbanned)
-            val banReason = obj.optString("banReason", "")
+            val isBanned = serverIsBanned || (bannedUntil.isNotBlank() && !unbanned)
+            val banReason = obj.optString("banReason", "") ?: ""
             list.add(
                 AdminDevice(
-                    hwId = obj.optString("hwId", ""),
-                    deviceName = obj.optString("deviceName", "Android Device"),
-                    appVersion = obj.optString("appVersion", CURRENT_APP_VERSION),
-                    username = obj.optString("username", "Unbekannt"),
-                    lastSeen = obj.optString("lastSeen", ""),
-                    licenseExpiresAt = obj.optString("licenseExpiresAt", ""),
+                    hwId = obj.optString("hwId", "") ?: "",
+                    deviceName = obj.optString("deviceName", "Android Device") ?: "Android Device",
+                    appVersion = obj.optString("appVersion", CURRENT_APP_VERSION) ?: CURRENT_APP_VERSION,
+                    username = obj.optString("username", "Unbekannt") ?: "Unbekannt",
+                    lastSeen = obj.optString("lastSeen", "") ?: "",
+                    licenseExpiresAt = obj.optString("licenseExpiresAt", "") ?: "",
                     isBanned = isBanned,
                     banReason = banReason,
                     unbanned = unbanned
@@ -347,12 +345,25 @@ object AdminControlManager {
 
 
     suspend fun createUserWithStatus(context: Context, user: String, pass: String): AdminApiResult<Unit> = withContext(Dispatchers.IO) {
-        try {
-            val base = getBaseUrl(context)
-            val json = JSONObject().apply {
-                put("username", user)
-                put("password", pass)
+        val base = getBaseUrl(context)
+        val json = JSONObject().apply {
+            put("username", user)
+            put("password", pass)
+        }
+        val res = postJson(base, "/api/admin/user/create", json)
+        if (res != null) {
+            val status = res.optString("status")
+            val error = res.optString("error")
+            if (status == "success" || res.has("message") || res.has("user")) {
+                AdminAuditLogManager.logAction(context, "👤 Benutzer '$user' angelegt")
+                return@withContext AdminApiResult.Success(Unit)
+            } else if (error.isNotBlank()) {
+                return@withContext AdminApiResult.Error(error, -1)
             }
+        }
+        
+        // Fallback direct connection check if postJson returned null due to non-2xx or exception
+        try {
             val url = URL("$base/api/admin/user/create")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "POST"
@@ -623,7 +634,9 @@ private fun copyToClipboardWithHaptics(context: Context, view: View, label: Stri
     if (clipboard != null) {
         val clip = ClipData.newPlainText(label, text)
         clipboard.setPrimaryClip(clip)
-        Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Toast.makeText(context, successMessage, Toast.LENGTH_SHORT).show()
+        }
     }
 }
 
@@ -668,6 +681,7 @@ fun AdminSimpleView(
     users: List<AdminUser>,
     licenses: List<AdminLicense>,
     devices: List<AdminDevice>,
+    onFocusModeChanged: (Boolean) -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val view = LocalView.current
@@ -678,7 +692,8 @@ fun AdminSimpleView(
         "💎 Lizenzen" to Color(0xFF8B5CF6),
         "📱 Geräte" to Color(0xFF10B981),
         "🎛️ Server" to Color(0xFF0EA5E9),
-        "📊 Statistik" to Color(0xFFF59E0B)
+        "📊 Statistik" to Color(0xFFF59E0B),
+        "🤖 Merge-Bot" to Color(0xFFEC4899)
     )
 
     Column(
@@ -712,34 +727,39 @@ fun AdminSimpleView(
             }
         }
 
-        // Remaining screen space display area for the selected category
+        // Remaining screen space display area for the selected category with scrolling enabled everywhere
         Card(
             shape = RoundedCornerShape(10.dp),
             colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-            border = BorderStroke(1.dp, categories[selectedTab].second),
-            modifier = Modifier.fillMaxWidth().heightIn(min = 440.dp, max = 620.dp)
+            border = BorderStroke(1.dp, categories[selectedTab.coerceIn(0, categories.lastIndex)].second),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(10.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
                 when (selectedTab) {
                     0 -> {
                         Text("Kategorie: Benutzer & Konten", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
                         Text("Subkategorie: Verwaltung & Registrierung", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                        AdminUsersTab(users = users, devices = devices, onRefresh = onRefresh)
+                        AdminUsersTab(users = users, devices = devices, onFocusModeChanged = onFocusModeChanged, onRefresh = onRefresh)
                     }
                     1 -> {
                         Text("Kategorie: Lizenzen & Tarife", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
                         Text("Subkategorie: Generator & Schlüssel", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                        AdminLicensesTab(licenses = licenses, onRefresh = onRefresh)
+                        AdminLicensesTab(licenses = licenses, onFocusModeChanged = onFocusModeChanged, onRefresh = onRefresh)
                     }
                     2 -> {
                         Text("Kategorie: Geräte & Sicherheit", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
                         Text("Subkategorie: Verbundene Hardware & Massen-Aktionen", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                        AdminDevicesTab(devices = devices, initialFilterOverride = 0, onRefresh = onRefresh)
+                        AdminDevicesTab(devices = devices, initialFilterOverride = 0, onFocusModeChanged = onFocusModeChanged, onRefresh = onRefresh)
                     }
                     3 -> {
                         Text("Kategorie: Server & Konfiguration", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF0EA5E9))
                         Text("Subkategorie: Netzwerk, Feature Flags & OTA", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                        AdminRemoteConfigTab(viewModel = viewModel)
+                        AdminRemoteConfigTab(viewModel = viewModel, onFocusModeChanged = onFocusModeChanged)
                     }
                     4 -> {
                         Text("Kategorie: Statistik & Diagnostik", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFF59E0B))
@@ -747,6 +767,11 @@ fun AdminSimpleView(
                         AdminAnalyticsTab(licenses = licenses)
                         Spacer(modifier = Modifier.height(6.dp))
                         AdminAuditAndDiagnosticsTab(users = users, licenses = licenses, devices = devices, onRefresh = onRefresh)
+                    }
+                    5 -> {
+                        Text("Kategorie: Merge-Bot & KI Arbitrage", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFEC4899))
+                        Text("Subkategorie: 100% Statistische Verzauberung & Top Trade Order Vorhersagen", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                        AdminMergeBotTab(viewModel = viewModel, onFocusModeChanged = onFocusModeChanged)
                     }
                 }
             }
@@ -790,32 +815,38 @@ fun AdminControlDialog(
         errorMessage = null
         val startTime = System.currentTimeMillis()
         coroutineScope.launch {
-            coroutineScope {
-                val usersDef = async { AdminControlManager.fetchUsersWithStatus(context) }
-                val licensesDef = async { AdminControlManager.fetchLicensesWithStatus(context) }
-                val devicesDef = async { AdminControlManager.fetchDevicesWithStatus(context) }
+            try {
+                coroutineScope {
+                    val usersDef = async { AdminControlManager.fetchUsersWithStatus(context) }
+                    val licensesDef = async { AdminControlManager.fetchLicensesWithStatus(context) }
+                    val devicesDef = async { AdminControlManager.fetchDevicesWithStatus(context) }
 
-                val usersRes = usersDef.await()
-                val licensesRes = licensesDef.await()
-                val devicesRes = devicesDef.await()
+                    val usersRes = usersDef.await()
+                    val licensesRes = licensesDef.await()
+                    val devicesRes = devicesDef.await()
 
-                lastPingMs = System.currentTimeMillis() - startTime
+                    lastPingMs = System.currentTimeMillis() - startTime
 
-                if (usersRes is AdminApiResult.Success) users = usersRes.data
-                if (licensesRes is AdminApiResult.Success) licenses = licensesRes.data
-                if (devicesRes is AdminApiResult.Success) devices = devicesRes.data
+                    if (usersRes is AdminApiResult.Success) users = usersRes.data
+                    if (licensesRes is AdminApiResult.Success) licenses = licensesRes.data
+                    if (devicesRes is AdminApiResult.Success) devices = devicesRes.data
 
-                val errors = listOfNotNull(
-                    (usersRes as? AdminApiResult.Error)?.message,
-                    (licensesRes as? AdminApiResult.Error)?.message,
-                    (devicesRes as? AdminApiResult.Error)?.message
-                )
+                    val errors = listOfNotNull(
+                        (usersRes as? AdminApiResult.Error)?.message,
+                        (licensesRes as? AdminApiResult.Error)?.message,
+                        (devicesRes as? AdminApiResult.Error)?.message
+                    )
 
-                if (errors.isNotEmpty()) {
-                    errorMessage = errors.first()
+                    if (errors.isNotEmpty()) {
+                        errorMessage = errors.first()
+                    }
                 }
+            } catch (e: Throwable) {
+                e.printStackTrace()
+                errorMessage = "Netzwerkfehler: ${e.localizedMessage ?: "Verbindung fehlgeschlagen"}"
+            } finally {
+                isLoading = false
             }
-            isLoading = false
         }
     }
 
@@ -826,7 +857,7 @@ fun AdminControlDialog(
     // Dashboard Statistics Metrics
     val totalAdmins = remember(users) { users.count { it.isAdmin } }
     val totalBannedDevices = remember(devices) { devices.count { it.isBanned } }
-    val totalOutdatedDevices = remember(devices) { devices.count { OtaUpdateManager.compareVersionStrings(it.appVersion, CURRENT_APP_VERSION) < 0 } }
+    val totalOutdatedDevices = remember(devices) { devices.count { OtaUpdateManager.compareVersionStrings(it.appVersion ?: CURRENT_APP_VERSION, CURRENT_APP_VERSION) < 0 } }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -878,7 +909,7 @@ fun AdminControlDialog(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(max = 840.dp)
+                    .heightIn(max = 600.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -1086,7 +1117,8 @@ private fun KpiStatCard(
 fun AdminSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    placeholder: String = "Suchen..."
+    placeholder: String = "Suchen...",
+    onFocusModeChanged: (Boolean) -> Unit = {}
 ) {
     OutlinedTextField(
         value = query,
@@ -1113,6 +1145,7 @@ fun AdminSearchBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(44.dp)
+            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
     )
 }
 
@@ -1178,6 +1211,7 @@ fun ConfirmDeleteDialog(
 @Composable
 fun AdminLicensesTab(
     licenses: List<AdminLicense>,
+    onFocusModeChanged: (Boolean) -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1322,7 +1356,9 @@ fun AdminLicensesTab(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                         focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                 )
 
                 Button(
@@ -1425,11 +1461,12 @@ fun AdminLicensesTab(
         AdminSearchBar(
             query = searchQuery,
             onQueryChange = { searchQuery = it },
-            placeholder = "🔍 Schlüssel, Paket oder Notiz suchen..."
+            placeholder = "🔍 Schlüssel, Paket oder Notiz suchen...",
+            onFocusModeChanged = onFocusModeChanged
         )
 
         if (filteredLicenses.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                 Text(
                     if (searchQuery.isNotBlank()) "Keine Lizenzen für '$searchQuery' gefunden." else "Keine Lizenzschlüssel vorhanden.",
                     fontSize = 11.sp,
@@ -1437,8 +1474,8 @@ fun AdminLicensesTab(
                 )
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-                items(filteredLicenses, key = { it.key }) { lic ->
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                filteredLicenses.forEach { lic ->
                     Card(
                         shape = RoundedCornerShape(8.dp),
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
@@ -1479,6 +1516,7 @@ fun AdminLicensesTab(
 fun AdminUsersTab(
     users: List<AdminUser>,
     devices: List<AdminDevice>,
+    onFocusModeChanged: (Boolean) -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
@@ -1523,6 +1561,7 @@ fun AdminUsersTab(
             targetUser = alertTargetUser,
             targetHwId = alertTargetHwId,
             onDismiss = { showSendAlertDialog = false },
+            onFocusModeChanged = onFocusModeChanged,
             onSend = { message, playAlarm ->
                 coroutineScope.launch {
                     val ok = AdminControlManager.sendAlertMessage(
@@ -1600,7 +1639,9 @@ fun AdminUsersTab(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                         focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                 )
 
                 Row(
@@ -1618,7 +1659,9 @@ fun AdminUsersTab(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                             focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                         ),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                     )
 
                     OutlinedButton(
@@ -1671,7 +1714,8 @@ fun AdminUsersTab(
         AdminSearchBar(
             query = searchQuery,
             onQueryChange = { searchQuery = it },
-            placeholder = "🔍 Benutzername oder HWID suchen..."
+            placeholder = "🔍 Benutzername oder HWID suchen...",
+            onFocusModeChanged = onFocusModeChanged
         )
 
         Text("👥 Registrierte Benutzer (${filteredUsers.size}/${users.size})", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
@@ -1683,9 +1727,7 @@ fun AdminUsersTab(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 filteredUsers.forEach { usr ->
-                    val userDevices = remember(devices, usr) {
-                        devices.filter { it.username.trim().equals(usr.username.trim(), ignoreCase = true) }
-                    }
+                    val userDevices = devices.filter { it.username.trim().equals(usr.username.trim(), ignoreCase = true) }
                     val isPasswordRevealed = revealedPasswordsMap[usr.username] == true
 
                     Card(
@@ -1923,6 +1965,7 @@ fun SendAlertDialog(
     targetUser: String?,
     targetHwId: String?,
     onDismiss: () -> Unit,
+    onFocusModeChanged: (Boolean) -> Unit = {},
     onSend: (message: String, playAlarm: Boolean) -> Unit
 ) {
     var messageInput by remember { mutableStateOf("") }
@@ -1957,7 +2000,10 @@ fun SendAlertDialog(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                         focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                     ),
-                    modifier = Modifier.fillMaxWidth().height(100.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                 )
 
                 Text("Schnellauswahl Vorlagen:", fontSize = 10.sp, color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold)
@@ -1967,8 +2013,9 @@ fun SendAlertDialog(
                             shape = RoundedCornerShape(6.dp),
                             color = Color(0xFF0F172A),
                             border = BorderStroke(1.dp, Color(0xFF334155)),
-                            onClick = { messageInput = preset },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { messageInput = preset }
                         ) {
                             Text(
                                 preset,
@@ -2022,6 +2069,7 @@ fun BanDeviceDialog(
     deviceName: String,
     hwId: String,
     onDismiss: () -> Unit,
+    onFocusModeChanged: (Boolean) -> Unit = {},
     onConfirmBan: (reason: String) -> Unit
 ) {
     var reasonText by remember { mutableStateOf("Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)") }
@@ -2056,7 +2104,9 @@ fun BanDeviceDialog(
                     ),
                     singleLine = false,
                     maxLines = 3,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                 )
 
                 Text("Schnellauswahl:", fontSize = 10.sp, color = Color(0xFF94A3B8))
@@ -2065,8 +2115,9 @@ fun BanDeviceDialog(
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = Color(0xFF0F172A),
-                            onClick = { reasonText = preset },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { reasonText = preset }
                         ) {
                             Text(
                                 "• $preset",
@@ -2233,7 +2284,265 @@ fun AdminAnalyticsTab(
 }
 
 @Composable
-fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
+fun AdminMergeBotTab(
+    viewModel: AlbionResourceViewModel,
+    onFocusModeChanged: (Boolean) -> Unit = {}
+) {
+    val context = LocalContext.current
+    val view = LocalView.current
+    var selectedBudgetMio by remember { mutableLongStateOf(20L) }
+    var safeRoutesOnly by remember { mutableStateOf(true) }
+    var selectedCategoryFilter by remember { mutableStateOf("ALLE") }
+
+    val uiState by viewModel.uiState.collectAsState()
+
+    val predictions = remember(uiState.marketPrices, selectedBudgetMio, safeRoutesOnly, selectedCategoryFilter) {
+        AdvancedTradingBot.calculateAdminMergeAndTradeOpportunities(
+            pricesMap = uiState.marketPrices,
+            silverBudget = selectedBudgetMio * 1_000_000L,
+            selectedCategoryName = selectedCategoryFilter,
+            avoidDangerousZones = safeRoutesOnly,
+            enableMergeBot = true,
+            topN = 10
+        )
+    }
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        // Budget & Parameter Card
+        Card(
+            shape = RoundedCornerShape(10.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            border = BorderStroke(1.dp, Color(0xFFEC4899).copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "🤖 Merge-Bot & KI Arbitrage Radar",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = Color(0xFFEC4899)
+                    )
+                    Button(
+                        onClick = {
+                            try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                            viewModel.forceRefreshMarketData()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEC4899)),
+                        shape = RoundedCornerShape(6.dp),
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                        modifier = Modifier.height(28.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Preise Scannen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+
+                Text("Silber-Budget:", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF94A3B8))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf(5L to "5M", 10L to "10M", 20L to "20M", 50L to "50M").forEach { (budget, label) ->
+                        DeviceFilterChipButton(
+                            text = label,
+                            selected = selectedBudgetMio == budget,
+                            onClick = { selectedBudgetMio = budget },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().clickable { safeRoutesOnly = !safeRoutesOnly }
+                ) {
+                    Switch(
+                        checked = safeRoutesOnly,
+                        onCheckedChange = { safeRoutesOnly = it }
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Nur sichere Routen (keine Rot/Schwarz-Zonen)", fontSize = 10.sp, color = Color.White, fontWeight = FontWeight.Medium)
+                }
+            }
+        }
+
+        Text(
+            "⚡ Top Vorhersagen (${predictions.size} Chancen)",
+            fontWeight = FontWeight.Bold,
+            fontSize = 12.sp,
+            color = Color.White
+        )
+
+        if (predictions.isEmpty()) {
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text("Keine aktiven Merge-Chancen für die gewählten Kriterien gefunden.", fontSize = 11.sp, color = Color(0xFF94A3B8))
+                    Text("Tipp: Drücke 'Preise Scannen' oder passe das Silber-Budget an.", fontSize = 10.sp, color = Color(0xFF64748B))
+                }
+            }
+        } else {
+            predictions.forEach { pred ->
+                val cardBorderColor = if (pred.isMergeOpportunity) Color(0xFFEC4899) else Color(0xFF38BDF8)
+                val badgeText = if (pred.isMergeOpportunity) "⚡ MERGE-BOT CHANCE" else "📊 ARBITRAGE CHANCE"
+                val badgeColor = if (pred.isMergeOpportunity) Color(0xFFEC4899) else Color(0xFF38BDF8)
+
+                Card(
+                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    border = BorderStroke(1.dp, cardBorderColor),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = badgeColor.copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, badgeColor)
+                            ) {
+                                Text(
+                                    badgeText,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = badgeColor,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, Color(0xFF10B981))
+                            ) {
+                                Text(
+                                    "+${String.format(Locale.US, "%.1f", pred.maxMarginPercent)}% Marge",
+                                    fontSize = 9.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF10B981),
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = pred.resourceNameDe,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp,
+                            color = Color.White
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Kauf: ${pred.buyCity}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                Text("Order: ${String.format(Locale.GERMANY, "%,d", pred.predictedBuyOrderPrice)} Silber", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                            }
+                            Text("➔", fontSize = 14.sp, color = Color(0xFF94A3B8))
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Verkauf: ${pred.sellCity}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                Text("Order: ${String.format(Locale.GERMANY, "%,d", pred.predictedSellOrderPrice)} Silber", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                            }
+                        }
+
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF1E293B),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(8.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Erwarteter Gesamtgewinn:", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                Text(
+                                    "+${String.format(Locale.GERMANY, "%,d", pred.totalExpectedProfit)} Silber",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = pred.strategyRecommendationDe,
+                            fontSize = 10.sp,
+                            color = Color(0xFFCBD5E1),
+                            fontStyle = FontStyle.Italic
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = pred.zoneSafetyText,
+                                    fontSize = 9.sp,
+                                    color = Color(0xFF10B981),
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "🛡️ ${pred.statisticalGuaranteeLabel}",
+                                    fontSize = 8.sp,
+                                    color = Color(0xFF38BDF8)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Button(
+                                onClick = {
+                                    try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
+                                    val opp = pred.toTradeOpportunity(selectedBudgetMio * 1_000_000L)
+                                    viewModel.acceptTradeOpportunity(opp)
+                                    Toast.makeText(context, "✅ KI-Auftrag '${pred.resourceNameDe}' zu aktiven Aufträgen hinzugefügt!", Toast.LENGTH_SHORT).show()
+                                },
+                                shape = RoundedCornerShape(6.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(28.dp)
+                            ) {
+                                Text("⚡ Auftrag annehmen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AdminRemoteConfigTab(
+    viewModel: AlbionResourceViewModel,
+    onFocusModeChanged: (Boolean) -> Unit = {}
+) {
     val context = LocalContext.current
     val view = LocalView.current
     val coroutineScope = rememberCoroutineScope()
@@ -2267,7 +2576,9 @@ fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                         focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -2280,7 +2591,9 @@ fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                             focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                         ),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                     )
 
                     OutlinedTextField(
@@ -2292,7 +2605,9 @@ fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                             focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                         ),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                     )
                 }
 
@@ -2330,7 +2645,9 @@ fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
                         focusedBorderColor = Color(0xFF38BDF8), unfocusedBorderColor = Color(0xFF334155)
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -2345,7 +2662,7 @@ fun AdminRemoteConfigTab(viewModel: AlbionResourceViewModel) {
                 Button(
                     onClick = {
                         try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
-                        val margin = minMarginInput.toDoubleOrNull() ?: 12.0
+                        val margin = minMarginInput.replace(',', '.').toDoubleOrNull() ?: 12.0
                         coroutineScope.launch {
                             val ok = AdminControlManager.updateRemoteConfig(context, margin, maintenanceMode)
                             if (ok) {
@@ -2632,6 +2949,7 @@ fun AdminAuditAndDiagnosticsTab(
 fun AdminDevicesTab(
     devices: List<AdminDevice>,
     initialFilterOverride: Int = 0,
+    onFocusModeChanged: (Boolean) -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val context = LocalContext.current
@@ -2712,6 +3030,7 @@ fun AdminDevicesTab(
             deviceName = banTargetDeviceName,
             hwId = banTargetHwId,
             onDismiss = { showBanDialog = false },
+            onFocusModeChanged = onFocusModeChanged,
             onConfirmBan = { reason ->
                 showBanDialog = false
                 coroutineScope.launch {
@@ -2799,7 +3118,8 @@ fun AdminDevicesTab(
         AdminSearchBar(
             query = searchQuery,
             onQueryChange = { searchQuery = it },
-            placeholder = "🔍 Gerätename, Benutzer oder HWID suchen..."
+            placeholder = "🔍 Gerätename, Benutzer oder HWID suchen...",
+            onFocusModeChanged = onFocusModeChanged
         )
 
         // Filter Buttons Row
@@ -2846,7 +3166,7 @@ fun AdminDevicesTab(
         }
 
         if (filteredDevices.isEmpty()) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp), contentAlignment = Alignment.Center) {
                 Text(
                     when {
                         searchQuery.isNotBlank() -> "Keine Geräte für '$searchQuery' gefunden."
@@ -2860,9 +3180,9 @@ fun AdminDevicesTab(
                 )
             }
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.weight(1f)) {
-                items(filteredDevices, key = { it.hwId }) { dev ->
-                    val isUpToDate = OtaUpdateManager.compareVersionStrings(dev.appVersion, CURRENT_APP_VERSION) >= 0
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                filteredDevices.forEach { dev ->
+                    val isUpToDate = OtaUpdateManager.compareVersionStrings(dev.appVersion ?: CURRENT_APP_VERSION, CURRENT_APP_VERSION) >= 0
 
                     Card(
                         shape = RoundedCornerShape(8.dp),
@@ -2985,8 +3305,9 @@ fun AdminDevicesTab(
     }
 }
 
-private fun getRemainingDaysForUser(expiresAtStr: String, isAdmin: Boolean): String {
+private fun getRemainingDaysForUser(expiresAtStr: String?, isAdmin: Boolean): String {
     if (isAdmin) return "👑 Unbegrenzt (Admin)"
+    if (expiresAtStr.isNullOrBlank()) return "Keine Lizenz-Info"
     if (expiresAtStr.isBlank()) return "Keine Lizenz-Info"
     val formats = listOf("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", "yyyy-MM-dd'T'HH:mm:ss'Z'", "yyyy-MM-dd", "dd.MM.yyyy")
     var dateMs = 0L

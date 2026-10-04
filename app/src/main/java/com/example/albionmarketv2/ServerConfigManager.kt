@@ -18,9 +18,10 @@ object ServerConfigManager {
             val configFile = File(albionFolder, "server_config.json")
             if (!configFile.exists()) {
                 val defaultConfig = JSONObject().apply {
-                    put("serverUrl", "https://albionmarketv2.onrender.com")
+                    put("serverUrl", "https://speller-importer-captivate.ngrok-free.dev")
+                    put("fallbackUrl", "https://albionmarketv2.onrender.com")
                     put("autoConnect", true)
-                    put("note", "24/7 Central Render Cloud Server")
+                    put("note", "Central Live Cloud Server & Ngrok Tunnel")
                 }
                 configFile.writeText(defaultConfig.toString(4), Charsets.UTF_8)
             }
@@ -34,7 +35,8 @@ object ServerConfigManager {
                 val configFile = File(altFolder, "server_config.json")
                 if (!configFile.exists()) {
                     val defaultConfig = JSONObject().apply {
-                        put("serverUrl", "https://albionmarketv2.onrender.com")
+                        put("serverUrl", "https://speller-importer-captivate.ngrok-free.dev")
+                        put("fallbackUrl", "https://albionmarketv2.onrender.com")
                         put("autoConnect", true)
                     }
                     configFile.writeText(defaultConfig.toString(4), Charsets.UTF_8)
@@ -56,12 +58,16 @@ object ServerConfigManager {
             val file = File(File(docsDir, "AlbionDataPro"), "server_config.json")
             if (file.exists()) {
                 val json = JSONObject(file.readText(Charsets.UTF_8))
-                val customUrl = json.optString("serverUrl", "").ifBlank { "https://albionmarketv2.onrender.com" }
+                val customUrl = json.optString("serverUrl", "").ifBlank { "https://speller-importer-captivate.ngrok-free.dev" }
                 if (customUrl.isNotBlank()) urls.add(customUrl.trimEnd('/'))
+                val fallbackUrl = json.optString("fallbackUrl", "")
+                if (fallbackUrl.isNotBlank()) urls.add(fallbackUrl.trimEnd('/'))
             } else {
+                urls.add("https://speller-importer-captivate.ngrok-free.dev")
                 urls.add("https://albionmarketv2.onrender.com")
             }
         } catch (_: Exception) {
+            urls.add("https://speller-importer-captivate.ngrok-free.dev")
             urls.add("https://albionmarketv2.onrender.com")
         }
 
