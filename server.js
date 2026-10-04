@@ -1442,16 +1442,36 @@ app.post('/api/admin/license/delete', requireAdminAuth, (req, res) => {
     res.json({ status: 'success', generatedLicenses });
 });
 
-// KI-AntiCheat Integrity & Anomaly Verification Endpoint
+// KI-AntiCheat Integrity & Anomaly Verification Endpoint (V3.0 Threat-Scoring)
 app.post('/api/anticheat/verify', (req, res) => {
-    const { hwId, packageName, isRooted, isDebuggerAttached, isHookDetected, signatureHash } = req.body;
+    const { hwId, packageName, isRooted, isDebuggerAttached, isEmulator, isVpnActive, isHookDetected, maliciousAppCount, signatureHash } = req.body;
     if (!hwId) return res.status(400).json({ status: 'error', message: 'Missing hwId' });
 
     const cleanHwId = hwId.trim().toLowerCase();
     let device = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
 
-    // Relaxed violation check: prevent false-positive auto-bans for standard devices/debuggers
-    const isViolation = (isHookDetected === true && isDebuggerAttached === true) || (signatureHash && signatureHash !== "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED");
+    // CRITICAL RULE: If device was explicitly unbanned by Admin, NEVER auto-ban!
+    if (device && device.unbanned === true) {
+        return res.json({ status: 'clean', isBanned: false, message: 'Gerät manuell entbannt (KI Auto-Bann geschützt)' });
+    }
+
+    // Threat Scoring System (0-100)
+    // Avoids false positives from standard users/custom ROMs
+    let threatScore = 0;
+
+    if (isHookDetected === true) threatScore += 100; // Frida/Xposed = Immediate Ban
+    if (maliciousAppCount > 0) threatScore += 50 * maliciousAppCount; // LuckyPatcher, GameGuardian = High Threat
+    if (isDebuggerAttached === true) threatScore += 20; // Debugger alone might be dev option
+    if (isEmulator === true) threatScore += 30; // Emulator alone is suspicious, but combined with VPN/Root it's dangerous
+    if (isVpnActive === true) threatScore += 10;
+    if (isRooted === true) threatScore += 10;
+
+    // Invalid signature directly flags as modded APK
+    if (signatureHash !== "ALBION-SECURE-V3" && signatureHash !== "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED") {
+        threatScore += 100;
+    }
+
+    const isViolation = threatScore >= 100;
 
     if (isViolation) {
         if (!device) {
@@ -1467,15 +1487,17 @@ app.post('/api/anticheat/verify', (req, res) => {
             registeredDevices.push(device);
         }
 
-        // CRITICAL RULE: If device was explicitly unbanned by Admin, NEVER auto-ban!
-        if (device.unbanned === true) {
-            return res.json({ status: 'clean', isBanned: false, message: 'Gerät manuell entbannt (KI Auto-Bann geschützt)' });
-        }
-
         const banExp = new Date();
         banExp.setDate(banExp.getDate() + 3650);
         device.bannedUntil = banExp.toISOString();
-        device.banReason = "🤖 KI-AntiCheat Bann: Debugger / Memory-Hooking / Cheat-Tool entdeckt";
+
+        let reasonParts = [];
+        if (isHookDetected) reasonParts.push("Memory Hooking");
+        if (maliciousAppCount > 0) reasonParts.push("Cheat Apps");
+        if (signatureHash !== "ALBION-SECURE-V3" && signatureHash !== "ALBION-HMAC-SHA256-MILITARY-GRADE-VERIFIED") reasonParts.push("Modded APK");
+        if (isEmulator && isDebuggerAttached) reasonParts.push("Emulator Debugging");
+
+        device.banReason = `🤖 KI-AntiCheat: Score ${threatScore} (${reasonParts.join(', ')})`;
         device.unbanned = false;
         saveDevices();
 
