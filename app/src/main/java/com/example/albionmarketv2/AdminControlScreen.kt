@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "2.3.8"
+const val CURRENT_APP_VERSION = "2.3.9"
 
 data class AdminDevice(
     val hwId: String,
@@ -202,73 +202,75 @@ object AdminControlManager {
     private const val ADMIN_API_KEY = "AlbionDataPro_Military_Admin_SuperSecret_2026#Key"
 
     private fun getBaseUrl(context: Context): String {
-        return ServerSyncManager.getServerBaseUrls(context).firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+        return "https://albionmarketv2-1.onrender.com"
     }
 
     private suspend fun postJson(baseUrl: String, endpoint: String, json: JSONObject): JSONObject? = withContext(Dispatchers.IO) {
-        try {
-            val url = URL("$baseUrl$endpoint")
-            val conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "POST"
-            conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
-            conn.setRequestProperty("Accept", "application/json")
-            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
-            conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
-            conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
-            conn.connectTimeout = 12000
-            conn.readTimeout = 12000
-            conn.doOutput = true
+        val urlsToTry = listOf("https://albionmarketv2-1.onrender.com", baseUrl).distinct()
+        for (base in urlsToTry) {
+            try {
+                val url = URL("$base$endpoint")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
+                conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
+                conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
+                conn.doOutput = true
 
-            conn.outputStream.use { os ->
-                os.write(json.toString().toByteArray(Charsets.UTF_8))
-            }
+                conn.outputStream.use { os ->
+                    os.write(json.toString().toByteArray(Charsets.UTF_8))
+                }
 
-            if (conn.responseCode in 200..299) {
-                val resStr = conn.inputStream.bufferedReader().use { it.readText() }
-                return@withContext JSONObject(resStr)
+                if (conn.responseCode in 200..299) {
+                    val resStr = conn.inputStream.bufferedReader().use { it.readText() }
+                    return@withContext JSONObject(resStr)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
         null
     }
 
     private suspend fun getJsonArray(baseUrl: String, endpoint: String, jsonKey: String = ""): JSONArray? = withContext(Dispatchers.IO) {
-        try {
-            val url = URL("$baseUrl$endpoint")
-            val conn = url.openConnection() as HttpURLConnection
-            conn.requestMethod = "GET"
-            conn.setRequestProperty("Accept", "application/json")
-            conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
-            conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
-            conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
-            conn.connectTimeout = 12000
-            conn.readTimeout = 12000
+        val urlsToTry = listOf("https://albionmarketv2-1.onrender.com", baseUrl).distinct()
+        for (base in urlsToTry) {
+            try {
+                val url = URL("$base$endpoint")
+                val conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("User-Agent", "AlbionDataPro-AdminApp/$CURRENT_APP_VERSION")
+                conn.setRequestProperty("Authorization", "Bearer $ADMIN_API_KEY")
+                conn.setRequestProperty("X-Admin-Key", ADMIN_API_KEY)
+                conn.connectTimeout = 8000
+                conn.readTimeout = 8000
 
-            if (conn.responseCode in 200..299) {
-                val resStr = conn.inputStream.bufferedReader().use { it.readText() }.trim()
-                if (resStr.startsWith("[")) {
-                    return@withContext JSONArray(resStr)
-                } else if (resStr.startsWith("{")) {
-                    val jsonObj = JSONObject(resStr)
-                    if (jsonKey.isNotBlank() && jsonObj.has(jsonKey)) {
-                        val v = jsonObj.opt(jsonKey)
-                        if (v is JSONArray) return@withContext v
-                    }
-                    for (k in listOf("users", "licenses", "devices", "data", "list", "items", "result")) {
-                        if (jsonObj.has(k)) {
-                            val v = jsonObj.opt(k)
+                if (conn.responseCode in 200..299) {
+                    val resStr = conn.inputStream.bufferedReader().use { it.readText() }.trim()
+                    if (resStr.startsWith("[")) {
+                        return@withContext JSONArray(resStr)
+                    } else if (resStr.startsWith("{")) {
+                        val jsonObj = JSONObject(resStr)
+                        if (jsonKey.isNotBlank() && jsonObj.has(jsonKey)) {
+                            val v = jsonObj.opt(jsonKey)
                             if (v is JSONArray) return@withContext v
                         }
-                    }
-                    for (key in jsonObj.keys()) {
-                        val v = jsonObj.opt(key)
-                        if (v is JSONArray) return@withContext v
+                        for (k in listOf("users", "licenses", "devices", "data", "list", "items", "result")) {
+                            if (jsonObj.has(k)) {
+                                val v = jsonObj.opt(k)
+                                if (v is JSONArray) return@withContext v
+                            }
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
         null
     }
@@ -2858,6 +2860,46 @@ fun AdminAuditAndDiagnosticsTab(
         ) {
             Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("⚡ Speed-Dial / Massen-Aktionen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF10B981))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                val ok = AdminControlManager.triggerOtaUpdate(context, isGlobal = true)
+                                if (ok) {
+                                    Toast.makeText(context, "🚀 Aggressiver Massen-OTA Push an alle Geräte gesendet!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "❌ OTA Push fehlgeschlagen.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = PaddingValues(1.dp)
+                    ) {
+                        Text("🚀 Massen-OTA Push", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+
+                    Button(
+                        onClick = {
+                            coroutineScope.launch {
+                                val ok = AdminControlManager.sendAlertMessage(context, targetUsername = null, hwId = null, message = "🚨 SICHERHEITS-ALARM: Wichtige Systemnachricht vom Administrator!", playAlarm = true)
+                                if (ok) {
+                                    Toast.makeText(context, "📢 Massen-Alarm an alle Geräte gesendet!", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "❌ Alarm-Senden fehlgeschlagen.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
+                        shape = RoundedCornerShape(6.dp),
+                        modifier = Modifier.weight(1f).height(32.dp),
+                        contentPadding = PaddingValues(1.dp)
+                    ) {
+                        Text("📢 Massen-Alarm", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                     Button(

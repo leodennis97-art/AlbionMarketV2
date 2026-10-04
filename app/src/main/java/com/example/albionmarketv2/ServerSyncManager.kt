@@ -57,12 +57,10 @@ object ServerSyncManager {
 
     fun getServerBaseUrls(context: Context? = null): List<String> {
         val urls = mutableListOf<String>()
+        urls.add("https://albionmarketv2-1.onrender.com")
         if (context != null) {
             urls.addAll(ServerConfigManager.getCustomServerUrls(context))
         }
-        urls.add("https://speller-importer-captivate.ngrok-free.dev")
-        urls.add("https://albionmarketv2-1.onrender.com")
-        urls.add("https://albionmarketv2-1.onrender.com")
         return urls.distinct()
     }
 
