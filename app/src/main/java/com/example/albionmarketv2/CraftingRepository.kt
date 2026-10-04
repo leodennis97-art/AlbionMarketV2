@@ -1,5 +1,8 @@
 package com.example.albionmarketv2
 
+import java.text.NumberFormat
+import java.util.Locale
+
 data class CraftingIngredient(
     val resourceId: String,
     val nameDe: String,
@@ -14,6 +17,21 @@ data class CraftingRecipe(
     val tier: Int,
     val category: ResourceCategory,
     val ingredients: List<CraftingIngredient>
+)
+
+data class CraftingOpportunityDetails(
+    val resource: AlbionResource,
+    val recipe: CraftingRecipe,
+    val cheapestBuyCity: String,
+    val totalIngredientCost: Long,
+    val ingredientSummary: String,
+    val highestSellCity: String,
+    val finishedItemSellPrice: Int,
+    val netProfit: Long,
+    val roiPercent: Double,
+    val recBuyOrderCost: Long,
+    val recSellOrderPrice: Int,
+    val maxOrderProfit: Long
 )
 
 object CraftingRepository {
@@ -95,11 +113,89 @@ object CraftingRepository {
         )
     }
 
+    fun calculateCraftingOpportunities(
+        priceMap: Map<String, List<MarketPrice>>,
+        hasPremium: Boolean = true
+    ): List<CraftingOpportunityDetails> {
+        val list = mutableListOf<CraftingOpportunityDetails>()
+        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+        val taxRate = if (hasPremium) 0.04 else 0.08
+
+        for (res in AlbionResourceRepository.resources) {
+            val recipe = getRecipeFor(res)
+
+            var totalCost = 0L
+            val ingredientSummaryParts = mutableListOf<String>()
+            val buyCitiesCount = mutableMapOf<String, Int>()
+
+            for (ing in recipe.ingredients) {
+                val ingPrices = priceMap[ing.resourceId] ?: emptyList()
+                val validIngPrices = ingPrices.filter { it.sellPriceMin > 0 }
+
+                val bestIngPrice = if (validIngPrices.isNotEmpty()) {
+                    validIngPrices.minByOrNull { it.sellPriceMin }
+                } else null
+
+                val ingCity = bestIngPrice?.city ?: "Lymhurst"
+                val unitPrice = bestIngPrice?.sellPriceMin ?: getPriceInCity(ing.resourceId, ingCity, priceMap)
+                val costForIng = ing.amount.toLong() * unitPrice.toLong()
+
+                totalCost += costForIng
+                buyCitiesCount[ingCity] = (buyCitiesCount[ingCity] ?: 0) + 1
+                ingredientSummaryParts.add("${ing.amount}x ${ing.nameDe} in $ingCity (${fmt.format(unitPrice)} S.)")
+            }
+
+            val cheapestBuyCity = buyCitiesCount.maxByOrNull { it.value }?.key ?: "Lymhurst"
+
+            // Find highest sell price for finished crafted item
+            val itemPrices = priceMap[res.fullId] ?: emptyList()
+            val validItemPrices = itemPrices.filter { it.sellPriceMin > 0 }
+            val bestSellItem = if (validItemPrices.isNotEmpty()) {
+                validItemPrices.maxByOrNull { it.sellPriceMin }
+            } else null
+
+            val highestSellCity = bestSellItem?.city ?: "Caerleon"
+            val itemSellPrice = bestSellItem?.sellPriceMin ?: getPriceInCity(res.fullId, highestSellCity, priceMap)
+
+            val netRevenue = (itemSellPrice * (1.0 - taxRate - 0.025)).toLong()
+            val netProfit = netRevenue - totalCost
+
+            val roi = if (totalCost > 0) (netProfit.toDouble() / totalCost) * 100.0 else 0.0
+
+            // 100% Success Chance & Max Margin Orders
+            val recBuyOrderCost = (totalCost * 0.88).toLong().coerceAtLeast(1L)
+            val recSellOrderPrice = (itemSellPrice * 1.08).toInt().coerceAtLeast(1)
+            val recNetRevenue = (recSellOrderPrice * (1.0 - taxRate - 0.025)).toLong()
+            val maxOrderProfit = recNetRevenue - recBuyOrderCost
+
+            if (netProfit > 0) {
+                list.add(
+                    CraftingOpportunityDetails(
+                        resource = res,
+                        recipe = recipe,
+                        cheapestBuyCity = cheapestBuyCity,
+                        totalIngredientCost = totalCost,
+                        ingredientSummary = ingredientSummaryParts.joinToString(" + "),
+                        highestSellCity = highestSellCity,
+                        finishedItemSellPrice = itemSellPrice,
+                        netProfit = netProfit,
+                        roiPercent = roi,
+                        recBuyOrderCost = recBuyOrderCost,
+                        recSellOrderPrice = recSellOrderPrice,
+                        maxOrderProfit = maxOrderProfit
+                    )
+                )
+            }
+        }
+
+        return list.sortedByDescending { it.roiPercent }
+    }
+
     fun getCheapestMarketDetails(resourceId: String, pricesMap: Map<String, List<MarketPrice>>): String {
         val prices = pricesMap[resourceId] ?: emptyList()
         val validPrices = prices.filter { it.sellPriceMin > 0 }
-        val fmt = java.text.NumberFormat.getNumberInstance(java.util.Locale.GERMANY)
-        
+        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+
         if (validPrices.isEmpty()) {
             return "Martlock / Lymhurst (Geschätzt)"
         }
@@ -112,7 +208,7 @@ object CraftingRepository {
     fun getHighestSellMarketDetails(resourceId: String, pricesMap: Map<String, List<MarketPrice>>): String {
         val prices = pricesMap[resourceId] ?: emptyList()
         val validPrices = prices.filter { it.sellPriceMin > 0 }
-        val fmt = java.text.NumberFormat.getNumberInstance(java.util.Locale.GERMANY)
+        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
 
         if (validPrices.isEmpty()) {
             return "Caerleon / Brecilien (Geschätzt)"

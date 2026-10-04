@@ -34,6 +34,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -2346,84 +2349,142 @@ fun BubbleCraftingTab(
 ) {
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
-    val topItems = remember(priceMap) {
-        AlbionResourceRepository.resources.asSequence().map { res ->
-            val recipe = CraftingRepository.getRecipeFor(res)
-            val itemSellPrice = CraftingRepository.getPriceInCity(res.fullId, "Martlock", priceMap)
-            val totalCost = recipe.ingredients.sumOf { ing ->
-                ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, "Martlock", priceMap).toLong()
-            }
-            val profit = itemSellPrice.toLong() - totalCost
-            Triple(res, totalCost, profit)
-        }.filter { it.third > 0 }.sortedByDescending { it.third }.take(15).toList()
+    val fmtDec = remember { DecimalFormat("0.0", DecimalFormatSymbols(Locale.GERMANY)) }
+
+    val craftingOpps = remember(priceMap) {
+        CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true).take(15)
     }
 
     LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = maxHeight),
     ) {
-        items(topItems, key = { "${it.first.fullId}_${it.second}_${it.third}" }) { (res, cost, profit) ->
+        itemsIndexed(craftingOpps, key = { index, opp -> "${opp.resource.fullId}_${index}" }) { index, opp ->
+            val rankBadge = when (index) {
+                0 -> "🏆 #1 Beste Marge"
+                1 -> "🥈 #2 Top Marge"
+                2 -> "🥉 #3 Top Marge"
+                else -> "#${index + 1}"
+            }
+            val rankColor = when (index) {
+                0 -> Color(0xFFFFD700)
+                1 -> Color(0xFFC0C0C0)
+                2 -> Color(0xFFCD7F32)
+                else -> Color(0xFF38BDF8)
+            }
+
             Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color(0xFF1E3A4C),
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF1E293B),
+                border = BorderStroke(1.5.dp, if (index < 3) rankColor else Color(0xFF334155)),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.padding(6.dp)
-                ) {
-                    AsyncImage(
-                        model = res.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = res.nameDe,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 10.sp,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = "Kosten: ${fmt.format(cost)} S. | Gewinn: +${fmt.format(profit)} S.",
-                            color = Color(0xFF81C784),
-                            fontSize = 9.sp
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            viewModel.acceptTradeOpportunity(
-                                TradeOpportunity(
-                                    resource = res,
-                                    buyCity = "Martlock",
-                                    buyPrice = cost.coerceIn(1L, Int.MAX_VALUE.toLong()).toInt(),
-                                    sellCity = "Martlock",
-                                    sellPrice = (cost + profit).toInt(),
-                                    unitNetProfit = profit.toInt(),
-                                    unitWeightKg = 1.0,
-                                    maxUnitsBySilver = 10,
-                                    maxUnitsByWeight = 10,
-                                    tradeUnits = 1,
-                                    totalInvestment = cost,
-                                    totalGrossRevenue = cost + profit,
-                                    totalNetRevenue = cost + profit,
-                                    totalNetProfit = profit,
-                                    totalWeightKg = 1.0,
-                                    roiPercent = if (cost > 0) (profit.toDouble() / cost) * 100.0 else 0.0,
-                                    priorityScore = 100
-                                )
-                            )
-                            Toast.makeText(viewModel.getApplication(), "${res.nameDe} als Auftrag hinzugefügt!", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier.size(24.dp)
+                Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    // Header Row: Rank Badge + Item Image + Name + ROI Badge + Accept Button
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = "Hinzufügen", tint = Color(0xFF10B981))
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            AsyncImage(
+                                model = opp.resource.imageUrl,
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Surface(shape = RoundedCornerShape(4.dp), color = rankColor) {
+                                Text(rankBadge, color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${opp.resource.nameDe} (T${opp.resource.tier})",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF10B981)) {
+                            Text("+${fmtDec.format(opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.5.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                        }
+
+                        Spacer(modifier = Modifier.width(4.dp))
+
+                        IconButton(
+                            onClick = {
+                                viewModel.acceptTradeOpportunity(
+                                    TradeOpportunity(
+                                        resource = opp.resource,
+                                        buyCity = opp.cheapestBuyCity,
+                                        buyPrice = opp.totalIngredientCost.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                                        sellCity = opp.highestSellCity,
+                                        sellPrice = opp.finishedItemSellPrice,
+                                        unitNetProfit = opp.netProfit.toInt(),
+                                        unitWeightKg = 1.0,
+                                        maxUnitsBySilver = 10,
+                                        maxUnitsByWeight = 10,
+                                        tradeUnits = 1,
+                                        totalInvestment = opp.totalIngredientCost,
+                                        totalGrossRevenue = opp.finishedItemSellPrice.toLong(),
+                                        totalNetRevenue = opp.finishedItemSellPrice.toLong(),
+                                        totalNetProfit = opp.netProfit,
+                                        totalWeightKg = 1.0,
+                                        roiPercent = opp.roiPercent,
+                                        priorityScore = 100,
+                                        recommendedBuyOrderPrice = opp.recBuyOrderCost.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
+                                        recommendedSellOrderPrice = opp.recSellOrderPrice
+                                    )
+                                )
+                                Toast.makeText(viewModel.getApplication(), "✅ Handwerks-Auftrag ${opp.resource.nameDe} angenommen!", Toast.LENGTH_SHORT).show()
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(Icons.Default.Add, contentDescription = "Auftrag annehmen", tint = Color(0xFF10B981))
+                        }
+                    }
+
+                    // Recipe & Ingredients info:
+                    Text(
+                        text = "🛒 Zutaten einkaufen in ${opp.cheapestBuyCity}: ${fmt.format(opp.totalIngredientCost)} S.",
+                        color = Color(0xFF38BDF8),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp
+                    )
+                    Text(
+                        text = "  • ${opp.ingredientSummary}",
+                        color = Color.LightGray,
+                        fontSize = 8.5.sp
+                    )
+
+                    Text(
+                        text = "🏷️ Endprodukt verkaufen in ${opp.highestSellCity}: ${fmt.format(opp.finishedItemSellPrice)} S.",
+                        color = Color(0xFFFFB74D),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp
+                    )
+
+                    // 100% Success Chance Buy / Sell Orders & Max Margin Box:
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF0F172A),
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("🛒 KI Kauforder (Zutaten): ${fmt.format(opp.recBuyOrderCost)} S.", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
+                                Text("100% Kaufchance", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                            }
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("📈 KI Verkauforder (Endprodukt): ${fmt.format(opp.recSellOrderPrice)} S.", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
+                                Text("100% Verkaufchance", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                            }
+                            Text("💡 KI Max-Marge Reingewinn: +${fmt.format(opp.maxOrderProfit)} S. Netto", color = Color(0xFF4ADE80), fontWeight = FontWeight.ExtraBold, fontSize = 8.5.sp)
+                        }
                     }
                 }
             }
