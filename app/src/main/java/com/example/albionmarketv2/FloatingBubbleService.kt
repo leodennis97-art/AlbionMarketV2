@@ -453,7 +453,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 sellPriceMinDate = "",
                 buyPriceMax = s.buyPriceMax,
                 buyPriceMaxDate = "",
-                sellPriceMinAmount = s.sellPriceMinAmount
+                sellPriceMinAmount = s.sellPriceMinAmount,
             )
         }
 
@@ -465,7 +465,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val aiVerifiedPrices = rawCombined.filter { p ->
             val isNotZero = p.sellPriceMin > 0
             val isNotUnrealistic = !AlbionMarketApi.isUnrealisticPrice(p.itemId, p.sellPriceMin)
-            val isWithinBounds = p.sellPriceMin in 5..500_000_000
+            val isWithinBounds = (p.sellPriceMin in 5..500_000_000)
             val isBuyOrderValid = p.buyPriceMax == 0 || p.buyPriceMax < (p.sellPriceMin * 3)
 
             isNotZero && isNotUnrealistic && isWithinBounds && isBuyOrderValid
@@ -1346,6 +1346,8 @@ fun BubbleOverlayContent(
                                                 editSilverText = clean
                                                 val valLong = clean.toLongOrNull() ?: 0L
                                                 viewModel.onSilverBudgetChanged(valLong)
+                                                prefsForCity.silverBudget = valLong
+                                                onRefresh()
                                             },
                                             label = { Text("💰 Silber Budget", fontSize = 8.sp, color = Color.LightGray) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1363,6 +1365,8 @@ fun BubbleOverlayContent(
                                                 editCapText = clean
                                                 val valDbl = clean.toDoubleOrNull() ?: 0.0
                                                 viewModel.onCarryCapacityChanged(valDbl)
+                                                prefsForCity.carryCapacityKg = valDbl
+                                                onRefresh()
                                             },
                                             label = { Text("⚖️ Tragkraft (kg)", fontSize = 8.sp, color = Color.LightGray) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -2107,7 +2111,7 @@ fun BubbleOverlayContent(
                                 BubbleTab.GOLD_MARKET -> BubbleGoldTab(viewModel = viewModel, uiState = uiState, onFocusModeChanged = onFocusModeChanged, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.BUILDS -> BubbleBuildsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.WORLD_MAP -> BubbleMapTab(viewModel = viewModel, maxHeight = maxBubbleHeightTab)
-                                BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab, onRefresh = onRefresh)
                                 BubbleTab.ADMIN -> {
                                     if (prefs.isAdmin) {
                                         BubbleAdminTab(context = context, maxHeight = maxBubbleHeightTab, onFocusModeChanged = onFocusModeChanged)
@@ -2339,7 +2343,7 @@ fun BubbleCraftingTab(
             .fillMaxWidth()
             .heightIn(max = maxHeight),
     ) {
-        itemsIndexed(craftingOpps, key = { index, opp -> "${opp.resource.fullId}_${index}" }) { index, opp ->
+        itemsIndexed(craftingOpps, key = { index, opp -> "${opp.resource.fullId}_$index" }) { index, opp ->
             val rankBadge = when (index) {
                 0 -> "🏆 #1 Beste Marge"
                 1 -> "🥈 #2 Top Marge"
@@ -3473,6 +3477,7 @@ fun BubbleMapTab(
 fun BubbleSettingsTab(
     context: Context,
     maxHeight: Dp,
+    onRefresh: () -> Unit = {},
 ) {
     val prefs = remember { AppPreferences(context) }
     val lang = prefs.appLanguage
@@ -3577,7 +3582,14 @@ fun BubbleSettingsTab(
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Switch(checked = hasPremium, onCheckedChange = { hasPremium = it; prefs.hasPremium = it })
+            Switch(
+                checked = hasPremium,
+                onCheckedChange = {
+                    hasPremium = it
+                    prefs.hasPremium = it
+                    onRefresh()
+                }
+            )
             Spacer(modifier = Modifier.width(8.dp))
             Text("Aktives Albion Premium (4% Steuer)", fontSize = 10.sp, color = Color.White)
         }
@@ -3787,6 +3799,3 @@ fun BubbleAdminTab(
         )
     }
 }
-
-
-
