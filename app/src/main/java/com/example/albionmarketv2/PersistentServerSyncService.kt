@@ -86,7 +86,7 @@ class PersistentServerSyncService : LifecycleService() {
     private fun start30MinGoldStatusLoop() {
         serviceScope.launch {
             while (isRunning) {
-                delay(30.minutes)
+                delay(60.minutes)
                 try {
                     val prefs = AppPreferences(this@PersistentServerSyncService)
                     if (prefs.systemNotificationsEnabled) {
@@ -202,8 +202,8 @@ class PersistentServerSyncService : LifecycleService() {
                         }
                     } catch (_: Exception) {}
                 }
-                // Battery-optimized background sync interval: 5 minutes when connected, 1 minute retry when offline
-                delay(if (isConnected) 5.minutes else 1.minutes)
+                // Battery-optimized background sync interval: 10 minutes when connected, 2 minutes retry when offline
+                delay(if (isConnected) 10.minutes else 2.minutes)
             }
         }
     }
@@ -217,7 +217,7 @@ class PersistentServerSyncService : LifecycleService() {
                 try {
                     val prefs = AppPreferences(this@PersistentServerSyncService)
                     if (!prefs.systemNotificationsEnabled) {
-                        delay(5.minutes)
+                        delay(15.minutes)
                         continue
                     }
 
@@ -271,16 +271,23 @@ class PersistentServerSyncService : LifecycleService() {
                     )
 
                     val bubbleCategory = prefs.bubbleCategory
-                    val filteredOpps = if (bubbleCategory != "ALL") {
-                        opps.filter { opp ->
+                    val bubbleTier = prefs.bubbleTier
+                    val filteredOpps = opps.filter { opp ->
+                        val matchesCat = if (bubbleCategory != "ALL") {
                             try {
-                                opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) || opp.resource.category.name == bubbleCategory
+                                opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) || 
+                                opp.resource.category.name == bubbleCategory ||
+                                opp.resource.category.displayName.contains(bubbleCategory, ignoreCase = true)
                             } catch (_: Exception) {
                                 true
                             }
-                        }
-                    } else {
-                        opps
+                        } else true
+
+                        val matchesTier = if (bubbleTier > 0) {
+                            opp.resource.tier == bubbleTier
+                        } else true
+
+                        matchesCat && matchesTier
                     }
 
                     val topOpp = filteredOpps.firstOrNull()
@@ -299,7 +306,7 @@ class PersistentServerSyncService : LifecycleService() {
                     e.printStackTrace()
                 }
 
-                delay(5.minutes) // 5-minute background pulse
+                delay(15.minutes) // 15-minute background pulse
             }
         }
     }
@@ -318,7 +325,7 @@ class PersistentServerSyncService : LifecycleService() {
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-                delay(15.minutes)
+                delay(30.minutes)
             }
         }
     }

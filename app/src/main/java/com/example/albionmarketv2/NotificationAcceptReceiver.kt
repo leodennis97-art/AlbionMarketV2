@@ -54,7 +54,9 @@ class NotificationAcceptReceiver : BroadcastReceiver() {
                     targetNetProfit = targetNetProfit,
                     targetInvestment = targetInvestment,
                     acceptedDate = dateStr,
-                    status = OrderStatus.ACTIVE
+                    status = OrderStatus.ACTIVE,
+                    recommendedBuyOrderPrice = (buyPrice * 0.88).toInt().coerceAtLeast(1),
+                    recommendedSellOrderPrice = (sellPrice * 1.08).toInt().coerceAtLeast(1)
                 )
 
                 val updatedList = currentOrders + newOrder

@@ -31,6 +31,76 @@ data class ChestDrop(
     val dropChancePercent: Double
 )
 
+data class AiPlayerAdvice(
+    val playerCategory: PlayerCategory,
+    val aiRecommendationDe: String,
+    val aiRecommendationEn: String,
+    val recommendedActivities: List<String>,
+    val estimatedProfitScore: String,
+    val riskLevelDe: String
+)
+
+object AiEventAndBossAdvisor {
+    fun getAdviceForCategory(category: PlayerCategory): AiPlayerAdvice {
+        return when (category) {
+            PlayerCategory.SOLO -> AiPlayerAdvice(
+                playerCategory = category,
+                aiRecommendationDe = "🤖 KI-Entscheidung (Solo): Konzentriere dich auf T8 Solo-Dungeons, Korrumpierte Dungeons (Slayer 1v1) und Die Nebel (The Mists) für maximalen Solo-Gewinn.",
+                aiRecommendationEn = "🤖 AI Decision (Solo): Focus on T8 Solo Dungeons, Corrupted Dungeons (Slayer 1v1), and The Mists for maximum solo profit.",
+                recommendedActivities = listOf("T8 Solo Dungeon (Schwarze Zone)", "Korrumpierte Dungeons (Slayer 1v1)", "The Mists / Feen-Drache", "Solo Expeditions"),
+                estimatedProfitScore = "~1.250.000 - 3.200.000 S. / Std.",
+                riskLevelDe = "Mittel bis Hoch (Full-Loot in Outlands)"
+            )
+            PlayerCategory.DUO -> AiPlayerAdvice(
+                playerCategory = category,
+                aiRecommendationDe = "🤖 KI-Entscheidung (Duo): 2v2 Höllentore (Lethal) und Straßen von Avalon (Roads Duo Chests) bieten den höchsten Duo-Profit.",
+                aiRecommendationEn = "🤖 AI Decision (Duo): 2v2 Lethal Hellgates and Roads of Avalon Duo Chests offer the highest duo profit.",
+                recommendedActivities = listOf("2v2 Höllentore (Lethal)", "Roads of Avalon Duo Chests", "Kristallspinne (Roaming Boss)", "Duo Nebel-Camps"),
+                estimatedProfitScore = "~1.900.000 - 4.500.000 S. / Std.",
+                riskLevelDe = "Sehr Hoch (Full-Loot PvPvE)"
+            )
+            PlayerCategory.GROUP -> AiPlayerAdvice(
+                playerCategory = category,
+                aiRecommendationDe = "🤖 KI-Entscheidung (Gruppe): T8 Statische Gruppen-Dungeons (Static) und HCE Stufe 18 (Hardcore Expeditions) sind die Meta für Fame & Silber.",
+                aiRecommendationEn = "🤖 AI Decision (Group): T8 Static Group Dungeons and HCE Level 18 are the meta for Fame & Silver.",
+                recommendedActivities = listOf("T8 Statische Gruppen-Dungeons", "Hardcore Expedition Level 18 (HCE)", "5v5 Höllentore", "Fraktionskrieg Vorposten-Sturm"),
+                estimatedProfitScore = "~3.000.000 - 6.500.000 S. / Std.",
+                riskLevelDe = "Sicher (HCE) bis Sehr Hoch (Statics)"
+            )
+            PlayerCategory.RAID -> AiPlayerAdvice(
+                playerCategory = category,
+                aiRecommendationDe = "🤖 KI-Entscheidung (Raid & Gilde): Avalonien 20-Spieler Gold-Raids, Weltbosse (Erdmutter & Mammut) und Schloss-Eroberungen (ZvZ) maximieren Gilden-Einnahmen.",
+                aiRecommendationEn = "🤖 AI Decision (Raid & Guild): Avalonian 20-player gold raids, World Bosses and Castle ZvZ sieges maximize guild revenue.",
+                recommendedActivities = listOf("T8.4 Avalonien Gold-Raid (20 Spieler)", "Uraltes Weißes Mammut (Old White)", "Hüter-Erdmutter World Boss", "Outlands Schloss-Eroberung (ZvZ)"),
+                estimatedProfitScore = "~4.000.000 - 15.000.000+ S. / Std.",
+                riskLevelDe = "Extrem (ZvZ & Großgilden PvP)"
+            )
+            PlayerCategory.ALL -> AiPlayerAdvice(
+                playerCategory = category,
+                aiRecommendationDe = "🤖 KI-Gesamtübersicht: Alle Albion Online Aktivitäten, Events, Dungeons und Boss-Loot basierend auf Echtzeit-Markt und Meta.",
+                aiRecommendationEn = "🤖 AI Overview: All Albion Online activities, events, dungeons, and boss loot based on real-time market and meta.",
+                recommendedActivities = listOf("Live Events (Fraktionen & Höllentore)", "Weltbosse & Raids", "Random Dungeons & Static", "Expeditions & HCE"),
+                estimatedProfitScore = "Variabel (~1.000.000 - 15.000.000 S. / Std.)",
+                riskLevelDe = "Variabel (Sicher bis Full-Loot)"
+            )
+        }
+    }
+
+    fun getFilteredEventsForCategory(events: List<LiveEventItem>, category: PlayerCategory): List<LiveEventItem> {
+        if (category == PlayerCategory.ALL) return events
+        val filtered = events.filter { event ->
+            when (category) {
+                PlayerCategory.SOLO -> event.title.contains("Nebel", ignoreCase = true) || event.category.contains("Solo", ignoreCase = true) || event.description.contains("Solo", ignoreCase = true)
+                PlayerCategory.DUO -> event.title.contains("Höllentor", ignoreCase = true) || event.category.contains("Duo", ignoreCase = true) || event.description.contains("Duo", ignoreCase = true)
+                PlayerCategory.GROUP -> event.title.contains("Fraktion", ignoreCase = true) || event.title.contains("Gruppe", ignoreCase = true) || event.title.contains("Höllentor", ignoreCase = true)
+                PlayerCategory.RAID -> event.title.contains("Schloss", ignoreCase = true) || event.title.contains("Eroberung", ignoreCase = true) || event.title.contains("Raid", ignoreCase = true) || event.category.contains("Gilden", ignoreCase = true)
+                else -> true
+            }
+        }
+        return filtered.ifEmpty { events }
+    }
+}
+
 data class BossLootBoss(
     val id: String,
     val name: String,

@@ -22,6 +22,9 @@ data class TradeOrder(
     val acceptedDate: String,
     val status: OrderStatus = OrderStatus.ACTIVE,
 
+    val recommendedBuyOrderPrice: Int = 0,
+    val recommendedSellOrderPrice: Int = 0,
+
     // Realized Trade Results when completed
     val actualSilverSpent: Long? = null,
     val actualSilverEarned: Long? = null,

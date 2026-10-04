@@ -243,8 +243,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             while (true) {
                 val nowStr = sdf.format(Date())
 
-                // 1. Marktdaten & Server-Sync Zyklus (alle 15 Sekunden bei 5s Haupttakt)
-                if ((cycleTick % 3L) == 0L) {
+                // 1. Marktdaten & Server-Sync Zyklus (alle 2 Minuten bei 30s Haupttakt)
+                if ((cycleTick % 4L) == 0L) {
                     _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
                     fetchMarketPricesInternal()
                     reloadOrdersFromPrefs()
@@ -257,19 +257,19 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     }
                 }
 
-                // 2. Goldmarkt-Kurs Zyklus (alle 60 Sekunden)
-                if ((cycleTick % 12L) == 0L && cycleTick > 0L) {
+                // 2. Goldmarkt-Kurs Zyklus (alle 5 Minuten)
+                if ((cycleTick % 10L) == 0L && cycleTick > 0L) {
                     fetchGoldPricesInternal()
                 }
 
-                // 3. Live Events Zyklus (alle 10 Minuten)
-                if ((cycleTick % 120L) == 0L && cycleTick > 0L) {
+                // 3. Live Events Zyklus (alle 15 Minuten)
+                if ((cycleTick % 30L) == 0L && cycleTick > 0L) {
                     val freshEvents = AlbionWorldData.generateLiveEvents()
                     _uiState.value = _uiState.value.copy(liveEventsList = freshEvents)
                 }
 
                 cycleTick++
-                delay(5.seconds) // Optimierter 5-Sekunden-Haupttakt zur Reduzierung von UI Re-Compositions
+                delay(30.seconds) // Optimierter 30-Sekunden-Haupttakt zur Reduzierung von CPU-Auslastung und Überhitzung
             }
         }
     }
@@ -526,7 +526,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             targetNetProfit = opp.totalNetProfit,
             targetInvestment = opp.totalInvestment,
             acceptedDate = dateStr,
-            status = OrderStatus.ACTIVE
+            status = OrderStatus.ACTIVE,
+            recommendedBuyOrderPrice = if (opp.recommendedBuyOrderPrice > 0) opp.recommendedBuyOrderPrice else (opp.buyPrice * 0.88).toInt().coerceAtLeast(1),
+            recommendedSellOrderPrice = if (opp.recommendedSellOrderPrice > 0) opp.recommendedSellOrderPrice else (opp.sellPrice * 1.08).toInt().coerceAtLeast(1)
         )
 
         val updatedOrders = _uiState.value.tradeOrders + newOrder
@@ -573,7 +575,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             targetNetProfit = targetProfit,
             targetInvestment = investment,
             acceptedDate = dateStr,
-            status = OrderStatus.ACTIVE
+            status = OrderStatus.ACTIVE,
+            recommendedBuyOrderPrice = (buyPrice * 0.88).toInt().coerceAtLeast(1),
+            recommendedSellOrderPrice = (sellPrice * 1.08).toInt().coerceAtLeast(1)
         )
 
         val updatedOrders = _uiState.value.tradeOrders + newOrder

@@ -774,6 +774,14 @@ fun OrdersAndStatsTabContent(
                             Text("Verkaufspreis: ${numberFormat.format(order.sellPrice)} Silber", fontSize = 12.sp, color = Color(0xFF66BB6A), fontWeight = FontWeight.SemiBold)
                         }
 
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        ) {
+                            Text("🤖 Kauforder (KI): ${numberFormat.format(if (order.recommendedBuyOrderPrice > 0) order.recommendedBuyOrderPrice else (order.buyPrice * 0.88).toInt())} S.", fontSize = 11.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                            Text("🤖 Verkauforder (KI): ${numberFormat.format(if (order.recommendedSellOrderPrice > 0) order.recommendedSellOrderPrice else (order.sellPrice * 1.08).toInt())} S.", fontSize = 11.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                        }
+
                         Text("Menge: ${numberFormat.format(order.plannedUnits)} Stk. | Angenommen: ${order.acceptedDate}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -3072,6 +3080,33 @@ fun EventsAndMonstersTabContent(
                                 selected = isSelected,
                                 onClick = { selectedPlayerCategory = cat },
                                 label = { Text("${cat.iconEmoji} ${cat.displayNameDe}", fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) }
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // AI Decision & Recommendation Card for Events and Boss Loot
+                    val aiAdvice = remember(selectedPlayerCategory) {
+                        AiEventAndBossAdvisor.getAdviceForCategory(selectedPlayerCategory)
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Text(
+                                text = aiAdvice.aiRecommendationDe,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "💎 Erwarteter Gewinn: ${aiAdvice.estimatedProfitScore} | Risiko: ${aiAdvice.riskLevelDe}",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.9f)
                             )
                         }
                     }

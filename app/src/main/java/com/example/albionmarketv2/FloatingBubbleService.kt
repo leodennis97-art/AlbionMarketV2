@@ -262,8 +262,6 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                             activeOrder = activeOrder,
                             topOpportunities = topOpportunities,
                             isLoadingOpps = isLoadingOpps,
-                            aiPriceStatus = aiPriceStatus,
-                            lastAiPriceCheckTime = lastAiPriceCheckTime,
                             onRefresh = { loadData(forceRefreshPrices = true) },
                             onAcceptOpportunity = { opp -> acceptOpportunity(opp) },
                             onDrag = { dx, dy ->
@@ -351,12 +349,13 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 }
                 loadActiveOrder()
                 val intervalMins = prefs.bubbleIntervalMinutes.coerceAtLeast(1)
-                val ticksNeeded = (intervalMins * 60) / 10 // loop runs every 10 seconds (battery optimized)
+                val ticksNeeded = (intervalMins * 60) / 30 // loop runs every 30 seconds (battery optimized)
                 if ((loopCount % ticksNeeded) == 0) {
-                    loadTopOpportunities(forceRefresh = true)
+                    // Use existing cache / old information instead of permanently re-loading all network data
+                    loadTopOpportunities(forceRefresh = false)
                 }
                 loopCount++
-                delay(10.seconds)
+                delay(30.seconds)
             }
         }
     }
@@ -579,6 +578,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 targetInvestment = opp.totalInvestment,
                 acceptedDate = dateStr,
                 status = OrderStatus.ACTIVE,
+                recommendedBuyOrderPrice = if (opp.recommendedBuyOrderPrice > 0) opp.recommendedBuyOrderPrice else (opp.buyPrice * 0.88).toInt().coerceAtLeast(1),
+                recommendedSellOrderPrice = if (opp.recommendedSellOrderPrice > 0) opp.recommendedSellOrderPrice else (opp.sellPrice * 1.08).toInt().coerceAtLeast(1)
             )
 
             val updatedOrders = currentOrders + newOrder
@@ -638,8 +639,6 @@ fun BubbleOverlayContent(
     activeOrder: TradeOrder?,
     topOpportunities: List<TradeOpportunity>,
     isLoadingOpps: Boolean,
-    aiPriceStatus: String = "🤖 KI-Preisschutz: Aktiv • 100% verifiziert",
-    lastAiPriceCheckTime: String = "",
     onRefresh: () -> Unit,
     onAcceptOpportunity: (TradeOpportunity) -> Unit,
     onDrag: (Float, Float) -> Unit,
@@ -906,49 +905,7 @@ fun BubbleOverlayContent(
                         Spacer(modifier = Modifier.height(2.dp))
                     }
 
-                    // 🤖 KI-Preisschutz & Live-Monitoring Banner im Bubble Overlay
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Color(0xFF0F2942),
-                        border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.6f)),
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(7.dp)
-                                        .background(Color(0xFF10B981), CircleShape)
-                                )
-                                Text(
-                                    text = if (lastAiPriceCheckTime.isNotBlank()) "🤖 KI-Preisschutz: 100% verifiziert ($lastAiPriceCheckTime)" else aiPriceStatus,
-                                    color = Color(0xFF10B981),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 8.5.sp
-                                )
-                            }
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = Color(0xFF10B981).copy(alpha = 0.2f),
-                                modifier = Modifier.clickable {
-                                    onRefresh()
-                                    Toast.makeText(context, "🤖 KI-Preisscan wird ausgeführt...", Toast.LENGTH_SHORT).show()
-                                }
-                            ) {
-                                Text(
-                                    text = "↻ KI-Scan",
-                                    color = Color(0xFF81D4FA),
-                                    fontSize = 8.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                )
-                            }
-                        }
-                    }
+
 
                     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
@@ -1010,9 +967,21 @@ fun BubbleOverlayContent(
                                                 fontSize = 10.sp,
                                             )
                                             Text(
+                                                text = "🤖 Kauforder (KI): ${fmt.format(if (activeOrder.recommendedBuyOrderPrice > 0) activeOrder.recommendedBuyOrderPrice else (activeOrder.buyPrice * 0.88).toInt())} S.",
+                                                color = Color(0xFF38BDF8),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                            Text(
                                                 text = "${LanguageManager.getString("sell_in", lang)}: $sellCityTrans ($sellPriceStr S.)",
                                                 color = Color(0xFF81C784),
                                                 fontSize = 10.sp,
+                                            )
+                                            Text(
+                                                text = "🤖 Verkauforder (KI): ${fmt.format(if (activeOrder.recommendedSellOrderPrice > 0) activeOrder.recommendedSellOrderPrice else (activeOrder.sellPrice * 1.08).toInt())} S.",
+                                                color = Color(0xFFFFD700),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold
                                             )
                                         }
 
@@ -2618,29 +2587,9 @@ fun BubbleEventsTab(
             .heightIn(max = maxHeight)
             .verticalScroll(rememberScrollState()),
     ) {
-        // Player Count Category Chips for Floating Bubble
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
-            items(PlayerCategory.entries.toTypedArray()) { cat ->
-                val isSelected = selectedPlayerCategory == cat
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
-                    modifier = Modifier.clickable { selectedPlayerCategory = cat }
-                ) {
-                    Text(
-                        text = "${cat.iconEmoji} ${cat.displayNameDe}",
-                        color = Color.White,
-                        fontSize = 8.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                    )
-                }
-            }
-        }
-
-        // Live Events Section Header
+        // 1. Live Events Always at the First Position (Top)
         if (liveEvents.isNotEmpty()) {
-            Text("🎆 Live Events (Alle 10 Min)", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+            Text("🎆 Live Events & Aktivitäten (Top)", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 9.sp)
             liveEvents.forEach { event ->
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2677,6 +2626,53 @@ fun BubbleEventsTab(
                         )
                     }
                 }
+            }
+            Spacer(modifier = Modifier.height(2.dp))
+        }
+
+        // 2. Player Count Category Chips for Floating Bubble
+        Text("👥 Spieler-Kategorie wählen:", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 8.sp)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
+            items(PlayerCategory.entries.toTypedArray()) { cat ->
+                val isSelected = selectedPlayerCategory == cat
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable { selectedPlayerCategory = cat }
+                ) {
+                    Text(
+                        text = "${cat.iconEmoji} ${cat.displayNameDe}",
+                        color = Color.White,
+                        fontSize = 8.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        // 3. AI Decision & Advice Card
+        val aiAdvice = remember(selectedPlayerCategory) {
+            AiEventAndBossAdvisor.getAdviceForCategory(selectedPlayerCategory)
+        }
+        Surface(
+            shape = RoundedCornerShape(6.dp),
+            color = Color(0xFF0E2532),
+            border = BorderStroke(1.dp, Color(0xFF10B981)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(5.dp)) {
+                Text(
+                    text = aiAdvice.aiRecommendationDe,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 8.sp
+                )
+                Text(
+                    text = "💎 ${aiAdvice.estimatedProfitScore} | ${aiAdvice.riskLevelDe}",
+                    color = Color(0xFF10B981),
+                    fontSize = 8.sp
+                )
             }
         }
 
@@ -2792,70 +2788,63 @@ fun BubbleGoldTab(
             }
         }
 
-        // 🤖 KI Gold-Handelsbot Empfehlung in Floating Bubble
+        // 🤖 KI Gold-Handelsbot Empfehlung in Floating Bubble (Kompakt & Platzsparend)
         val botAnalysis = remember(uiState.goldPrices, uiState.currentGoldPrice) {
             GoldBotCalculator.analyzeGoldMarket(uiState.goldPrices, uiState.currentGoldPrice)
         }
 
         Surface(
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(8.dp),
             color = Color(0xFF1E3A4C),
-            border = BorderStroke(1.dp, Color(0xFFFFD700)),
+            border = BorderStroke(1.dp, Color(0xFFFFD700).copy(alpha = 0.7f)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(6.dp)) {
+            Column(modifier = Modifier.padding(5.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "🤖 KI Gold-Handelsbot (Statistische Max-Marge)",
+                        text = "🤖 KI Gold-Bot (Max-Marge)",
                         color = Color(0xFFFFD700),
                         fontWeight = FontWeight.Bold,
-                        fontSize = 10.sp
+                        fontSize = 9.5.sp
                     )
-                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                    Surface(shape = RoundedCornerShape(3.dp), color = Color(0xFF10B981)) {
                         Text(
-                            text = "Garantierte Marge",
+                            text = "Aktiv",
                             color = Color.Black,
-                            fontSize = 8.sp,
+                            fontSize = 7.5.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            modifier = Modifier.padding(horizontal = 3.dp, vertical = 0.5.dp)
                         )
                     }
                 }
-                Spacer(modifier = Modifier.height(3.dp))
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column {
-                        Text("🛍️ Kauf-Order (Dip):", color = Color.LightGray, fontSize = 9.sp)
-                        Text("${fmt.format(botAnalysis.recommendedBuyOrderPrice)} S.", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        Text("📉 Preisfall (Wochen): -${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedPriceDropPercent)}% (${botAnalysis.buyOrderProbabilityStr})", color = Color(0xFF81C784), fontSize = 8.sp)
-                    }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text("🏷️ Verkauf-Order (Peak):", color = Color.LightGray, fontSize = 9.sp)
-                        Text("${fmt.format(botAnalysis.recommendedSellOrderPrice)} S.", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        Text("📈 Preisanstieg (Wochen): +${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedPriceRisePercent)}% (${botAnalysis.sellOrderProbabilityStr})", color = Color(0xFFFFB74D), fontSize = 8.sp)
-                    }
-                }
-                Spacer(modifier = Modifier.height(3.dp))
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = Color(0xFF0F172A),
-                    border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
-                ) {
                     Text(
-                        text = botAnalysis.aiOrderRecommendationTextDe,
-                        color = Color(0xFF38BDF8),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 8.sp,
-                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 3.dp)
+                        text = "🛍️ Kauf: ${fmt.format(botAnalysis.recommendedBuyOrderPrice)} S. (-${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedPriceDropPercent)}%)",
+                        color = Color(0xFF81C784),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "🏷️ Verkauf: ${fmt.format(botAnalysis.recommendedSellOrderPrice)} S. (+${String.format(Locale.GERMANY, "%.1f", botAnalysis.expectedPriceRisePercent)}%)",
+                        color = Color(0xFFFFB74D),
+                        fontSize = 8.5.sp,
+                        fontWeight = FontWeight.Bold
                     )
                 }
+                Text(
+                    text = botAnalysis.aiOrderRecommendationTextDe,
+                    color = Color(0xFF38BDF8),
+                    fontSize = 8.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
 

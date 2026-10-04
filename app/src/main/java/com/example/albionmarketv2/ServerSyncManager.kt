@@ -61,6 +61,7 @@ object ServerSyncManager {
             urls.addAll(ServerConfigManager.getCustomServerUrls(context))
         }
         urls.add("https://speller-importer-captivate.ngrok-free.dev")
+        urls.add("https://albionmarketv2-1.onrender.com")
         urls.add("https://albionmarketv2.onrender.com")
         return urls.distinct()
     }
@@ -80,7 +81,7 @@ object ServerSyncManager {
 
         // Quick fast warm-up for Render Pro / Free Tier (Extended timeout for Cold Start)
         try {
-            val warmUpUrl = URL("https://albionmarketv2.onrender.com/api/health")
+            val warmUpUrl = URL("https://albionmarketv2-1.onrender.com/api/health")
             val warmConn = warmUpUrl.openConnection() as HttpURLConnection
             warmConn.requestMethod = "GET"
             warmConn.setRequestProperty("User-Agent", "AlbionDataPro/Pro")

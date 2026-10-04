@@ -453,7 +453,7 @@ class MainActivity : ComponentActivity() {
                                             Button(
                                                 onClick = {
                                                     try {
-                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2.onrender.com".toUri()).apply {
+                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri()).apply {
                                                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                                                         }
                                                         context.startActivity(webIntent)
