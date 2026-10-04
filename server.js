@@ -539,84 +539,153 @@ app.get(['/', '/get', '/app'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro - Premium Market & Trading Tool</title>
+    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - Ultimate Market & Trading Tool for Albion Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .gradient-text { background: linear-gradient(135deg, #38bdf8, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(135deg, #38bdf8, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
 
     <!-- Navbar -->
-    <nav class="w-full p-6 flex justify-between items-center max-w-6xl mx-auto">
-        <div class="text-2xl font-bold tracking-tighter flex items-center gap-2">
-            <i class="fa-solid fa-shield-halved text-blue-500"></i> AlbionDataPro
+    <nav class="w-full p-6 flex justify-between items-center max-w-7xl mx-auto border-b border-slate-800">
+        <div class="text-2xl font-extrabold tracking-tighter flex items-center gap-3">
+            <div class="bg-blue-600/20 p-2 rounded-xl border border-blue-500/30">
+                <i class="fa-solid fa-chart-line text-blue-400"></i>
+            </div>
+            <span>AlbionDataPro <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">v${CURRENT_SERVER_VERSION}</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="https://t.me/dnnx" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                <i class="fa-brands fa-telegram"></i> Telegram Kontakt
+            </a>
         </div>
     </nav>
 
     <!-- Hero Section -->
-    <main class="flex-grow flex flex-col items-center justify-center px-4 py-12 text-center max-w-5xl mx-auto">
-        <h1 class="text-5xl md:text-7xl font-extrabold mb-6 leading-tight">
-            Dominiere den Markt mit <br><span class="gradient-text">Echtzeit-Daten</span>
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-16 text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-sky-400 mb-8 shadow-inner">
+            <i class="fa-solid fa-bolt text-amber-400"></i> Offizieller Release v${CURRENT_SERVER_VERSION} — 24/7 Cloud-Sync & In-Game Overlay
+        </div>
+
+        <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight tracking-tight">
+            Dominiere den Albion Markt mit <br><span class="gradient-text">Echtzeit-Arbitrage & KI</span>
         </h1>
-        <p class="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl leading-relaxed">
-            Maximiere deinen Silber-Gewinn durch unser permanentes In-Game Overlay. KI-gesteuerte Marktüberwachung und Profitrechner direkt auf deinem Bildschirm - ohne die App zu wechseln.
+        <p class="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
+            Das professionelle Handels- und Analysetool für Albion Online. Mit permanentem In-Game Overlay, 100% statistischem KI-Bot für Buy/Sell Orders und sekundengenauer Marktüberwachung.
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-4 mb-16">
-            <a href="https://t.me/dnnx" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-4 px-8 rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-lg">
-                <i class="fa-brands fa-telegram text-xl"></i> Lizenz kaufen (15€/Monat)
+        <!-- Download & Telegram CTA -->
+        <div class="flex flex-col sm:flex-row gap-5 justify-center mb-20">
+            <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-emerald-400/30">
+                <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
             </a>
-            <a href="/download/AlbionDataPro.apk" class="glass-panel hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-xl transition-all flex items-center justify-center gap-3 text-lg border border-slate-600 hover:border-slate-500">
-                <i class="fa-solid fa-download"></i> App Herunterladen (v${CURRENT_SERVER_VERSION} APK)
+            <a href="https://t.me/dnnx" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-blue-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-blue-400/30">
+                <i class="fa-brands fa-telegram text-2xl"></i> Lizenz erwerben (15€/Monat)
             </a>
         </div>
 
-        <!-- Features Grid -->
-        <div class="grid md:grid-cols-3 gap-6 w-full text-left">
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="bg-blue-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-blue-500/30">
-                    <i class="fa-solid fa-layer-group text-blue-400 text-xl"></i>
-                </div>
-                <h3 class="text-xl font-bold mb-2">In-Game Overlay</h3>
-                <p class="text-slate-400 text-sm">Alle Marktchancen und Arbitrage-Routen direkt im Spiel sehen. Kein lästiges Wechseln der Apps mehr nötig.</p>
+        <!-- App Features & Categories Explanation -->
+        <div class="mb-16 text-left">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-3">App Funktionen & Hauptkategorien</h2>
+                <p class="text-slate-400">Entdecke alle Module, mit denen du deinen Silber-Gewinn in Albion Online maximierst.</p>
             </div>
 
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="bg-purple-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-purple-500/30">
-                    <i class="fa-solid fa-robot text-purple-400 text-xl"></i>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 1. Floating Bubble Overlay -->
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-blue-500">
+                    <div class="bg-blue-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 text-blue-400 text-xl font-bold">
+                        <i class="fa-solid fa-layer-group"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">In-Game Overlay (Bubble)</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile. Sie zeigt dir Handelschancen, Routen und Live-Preise in Echtzeit an, ohne dass du das Spiel minimieren musst.
+                    </p>
                 </div>
-                <h3 class="text-xl font-bold mb-2">KI Profitrechner</h3>
-                <p class="text-slate-400 text-sm">Detaillierte Berechnung von Herstellungskosten und Reingewinn inkl. 4% Premium-Steuern in Echtzeit.</p>
-            </div>
 
-            <div class="glass-panel p-6 rounded-2xl">
-                <div class="bg-emerald-500/20 w-12 h-12 rounded-lg flex items-center justify-center mb-4 border border-emerald-500/30">
-                    <i class="fa-solid fa-shield-halved text-emerald-400 text-xl"></i>
+                <!-- 2. Markt-Arbitrage & Routen -->
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-sky-500">
+                    <div class="bg-sky-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-sky-500/30 text-sky-400 text-xl font-bold">
+                        <i class="fa-solid fa-route"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Markt-Arbitrage & Routen</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Vergleicht alle Hauptstädte (Caerleon, Brecilien, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford) und den Schwarzmarkt. Berechnet den exakten ROI, Transportgewicht und Reingewinn.
+                    </p>
                 </div>
-                <h3 class="text-xl font-bold mb-2">100% Bannsicher</h3>
-                <p class="text-slate-400 text-sm">Reine Datenanalyse über die offizielle API. Manipuliert nicht das Spiel und ist komplett sicher vor Bans.</p>
+
+                <!-- 3. 100% Statistik KI-Bot -->
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-pink-500">
+                    <div class="bg-pink-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-pink-500/30 text-pink-400 text-xl font-bold">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">100% Statistik KI-Bot</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Berechnet anhand historischer 7-Tage-Preisschwankungen die perfekten Buy-Orders und Sell-Orders für maximale Margen mit einer statistischen Verifizierungsgarantie.
+                    </p>
+                </div>
+
+                <!-- 4. Crafting & Refining Rechner -->
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-purple-500">
+                    <div class="bg-purple-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-purple-500/30 text-purple-400 text-xl font-bold">
+                        <i class="fa-solid fa-hammer"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Crafting & Refining Rechner</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Ermittelt Rohstoffkosten, Stadt-Rückgabe-Raten (Return Rates), Stationsgebühren und den tatsächlichen Gewinn beim Veredeln und Herstellen von Rüstungen und Waffen.
+                    </p>
+                </div>
+
+                <!-- 5. Insel-Timer & Tierzucht -->
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-amber-500">
+                    <div class="bg-amber-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-amber-500/30 text-amber-400 text-xl font-bold">
+                        <i class="fa-solid fa-seedling"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">Insel-Timer & Tierzucht</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Verwalte Ernte-Timer für Pflanzen, Kräuter und Tierzucht auf deiner Spielerinsel mit automatischer Benachrichtigung, sobald die Ernte bereit ist.
+                    </p>
+                </div>
+
+                <!-- 6. Cloud-Sync & Admin-Zentrale -->
+                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-emerald-500">
+                    <div class="bg-emerald-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/30 text-emerald-400 text-xl font-bold">
+                        <i class="fa-solid fa-cloud"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2">24/7 Cloud-Sync & OTA</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Sichere deine Trade-Orders und Favoriten in der Cloud. Das integrierte OTA-Update-System hält deine App vollautomatisch immer auf der neusten Version.
+                    </p>
+                </div>
             </div>
         </div>
 
-        <!-- Installation Notice -->
-        <div class="mt-16 glass-panel p-6 rounded-2xl border-l-4 border-l-yellow-500 text-left max-w-3xl mx-auto flex gap-4 items-start">
-            <i class="fa-solid fa-circle-info text-yellow-500 text-2xl mt-1"></i>
+        <!-- Installation Guide -->
+        <div class="glass-panel p-8 rounded-2xl border-l-4 border-l-yellow-500 text-left max-w-4xl mx-auto flex flex-col md:flex-row gap-6 items-start">
+            <div class="bg-yellow-500/20 p-4 rounded-xl text-yellow-400 text-3xl">
+                <i class="fa-solid fa-mobile-screen-button"></i>
+            </div>
             <div>
-                <h4 class="font-bold text-lg mb-1">Hinweis zur Installation</h4>
-                <p class="text-slate-400 text-sm">Da AlbionDataPro als mächtiges Overlay im Hintergrund arbeitet, muss es als APK installiert werden. Bitte erlaube bei der Installation "Unbekannte Quellen" in deinen Android-Einstellungen.</p>
+                <h4 class="font-bold text-xl mb-2">Installations-Anleitung für Android</h4>
+                <ol class="list-decimal list-inside text-slate-300 text-sm space-y-2">
+                    <li>Klicke oben auf den grünen Button <strong class="text-white">"APK Herunterladen (v${CURRENT_SERVER_VERSION})"</strong>.</li>
+                    <li>Öffne die heruntergeladene <code class="bg-slate-800 px-2 py-0.5 rounded text-sky-400">AlbionDataPro.apk</code> Datei auf deinem Android-Gerät.</li>
+                    <li>Erlaube bei der Installation die Option <strong class="text-white">"Aus diesen Quellen zulassen" (Unbekannte Quellen)</strong>.</li>
+                    <li>Öffne die App, logge dich mit deiner Telegram-Lizenz ein und starte das In-Game Overlay!</li>
+                </ol>
             </div>
         </div>
 
     </main>
 
     <!-- Footer -->
-    <footer class="w-full text-center p-6 text-slate-500 text-sm border-t border-slate-800 mt-auto">
-        <p>&copy; 2026 AlbionDataPro. Gehostet auf sicherer Cloud-Infrastruktur.</p>
-        <p class="text-xs mt-2">Nicht offiziell mit Sandbox Interactive GmbH (Albion Online) verbunden.</p>
+    <footer class="w-full text-center p-8 text-slate-500 text-sm border-t border-slate-800 mt-auto">
+        <p>&copy; 2026 AlbionDataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.</p>
+        <p class="text-xs mt-2 text-slate-600">Dieses Tool ist ein unabhängiges Analyse-Hilfsmittel für Albion Online und nicht mit Sandbox Interactive liiert.</p>
     </footer>
 
 </body>

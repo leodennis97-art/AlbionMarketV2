@@ -5541,6 +5541,50 @@ fun WorldMapTabContent(
     var selectedRegionName by remember { mutableStateOf("Bridgewatch") }
     val regions = AlbionWorldData.worldRegions
     val activeRegion = regions.find { it.name == selectedRegionName } ?: regions.first()
+    val uiState by viewModel.uiState.collectAsState()
+
+    val cityName = activeRegion.name.split(" ")[0]
+    val refinedRes = remember(uiState.marketPrices) {
+        AlbionResourceRepository.resources.filter { it.category == ResourceCategory.REFINED }
+    }
+    val matchingRes = remember(refinedRes, activeRegion.name) {
+        refinedRes.filter { res ->
+            when {
+                activeRegion.name.contains("Bridgewatch") -> res.id.contains("LEATHER")
+                activeRegion.name.contains("Fort Sterling") -> res.id.contains("METALBAR")
+                activeRegion.name.contains("Lymhurst") -> res.id.contains("PLANKS")
+                activeRegion.name.contains("Martlock") -> res.id.contains("STONEBLOCK")
+                activeRegion.name.contains("Thetford") -> res.id.contains("CLOTH")
+                else -> true
+            }
+        }.take(10)
+    }
+
+    val avgCost = remember(matchingRes, cityName, uiState.marketPrices) {
+        if (matchingRes.isNotEmpty()) {
+            matchingRes.map { res ->
+                val recipe = CraftingRepository.getRecipeFor(res)
+                recipe.ingredients.sumOf { ing ->
+                    ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
+                }
+            }.average().toLong()
+        } else 0L
+    }
+
+    val avgNetProfit = remember(matchingRes, cityName, uiState.marketPrices) {
+        if (matchingRes.isNotEmpty()) {
+            matchingRes.map { res ->
+                val recipe = CraftingRepository.getRecipeFor(res)
+                val cost = recipe.ingredients.sumOf { ing ->
+                    ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
+                }
+                val sell = CraftingRepository.getPriceInCity(res.fullId, cityName, uiState.marketPrices)
+                val netEarn = (sell * 0.96).toLong() // 4% market tax
+                netEarn - cost
+            }.average().toLong()
+        } else 0L
+    }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
@@ -5652,6 +5696,26 @@ fun WorldMapTabContent(
                         else -> "⭐ Standard Veredelung"
                     }
                     Text(refiningBonusText, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+                        border = BorderStroke(1.dp, Color(0xFF10B981)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text("💰 Veredelungskosten & Netto-Gewinn in $cityName:", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("Ø Veredelungskosten (Rohstoffe):", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text("${fmt.format(avgCost)} Silber", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Text("Ø Netto-Gewinn (nach Steuern):", color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp)
+                                Text("${if (avgNetProfit >= 0) "+" else ""}${fmt.format(avgNetProfit)} Silber", color = if (avgNetProfit >= 0) Color(0xFF10B981) else Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
 
