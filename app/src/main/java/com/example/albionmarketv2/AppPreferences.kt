@@ -52,10 +52,6 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getBoolean("has_premium", true)
         set(value) = prefs.edit().putBoolean("has_premium", value).apply()
 
-    var avoidDangerousZones: Boolean
-        get() = prefs.getBoolean("avoid_dangerous_zones", false)
-        set(value) = prefs.edit().putBoolean("avoid_dangerous_zones", value).apply()
-
     var aiBotName: String
         get() = prefs.getString("ai_bot_name", "AlbionBot") ?: "AlbionBot"
         set(value) = prefs.edit().putString("ai_bot_name", value).apply()
@@ -144,13 +140,21 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getInt("bubble_tier", 0)
         set(value) = prefs.edit().putInt("bubble_tier", value).apply()
 
+    var bubbleEnchantment: Int
+        get() = prefs.getInt("bubble_enchantment", -1) // -1 = ALLE
+        set(value) = prefs.edit().putInt("bubble_enchantment", value).apply()
+
+    var avoidDangerousZones: Boolean
+        get() = prefs.getBoolean("avoid_dangerous_zones", prefs.getBoolean("bubble_avoid_dangerous", false))
+        set(value) = prefs.edit().putBoolean("avoid_dangerous_zones", value).putBoolean("bubble_avoid_dangerous", value).apply()
+
     var hideBrecilien: Boolean
-        get() = prefs.getBoolean("hide_brecilien", false)
-        set(value) = prefs.edit().putBoolean("hide_brecilien", value).apply()
+        get() = prefs.getBoolean("hide_brecilien", prefs.getBoolean("bubble_hide_brecilien", false))
+        set(value) = prefs.edit().putBoolean("hide_brecilien", value).putBoolean("bubble_hide_brecilien", value).apply()
 
     var hideBlackMarket: Boolean
-        get() = prefs.getBoolean("hide_black_market", false)
-        set(value) = prefs.edit().putBoolean("hide_black_market", value).apply()
+        get() = prefs.getBoolean("hide_black_market", prefs.getBoolean("bubble_hide_black_market", false))
+        set(value) = prefs.edit().putBoolean("hide_black_market", value).putBoolean("bubble_hide_black_market", value).apply()
 
     var bubbleMinMarginPercent: Double
         get() = prefs.getFloat("bubble_min_margin", 5.0f).toDouble()
@@ -165,16 +169,16 @@ class AppPreferences(private val context: Context) {
         set(value) = prefs.edit().putInt("bubble_max_stock", value).apply()
 
     var bubbleAvoidDangerousZones: Boolean
-        get() = prefs.getBoolean("bubble_avoid_dangerous", false)
-        set(value) = prefs.edit().putBoolean("bubble_avoid_dangerous", value).apply()
+        get() = prefs.getBoolean("bubble_avoid_dangerous", prefs.getBoolean("avoid_dangerous_zones", false))
+        set(value) = prefs.edit().putBoolean("bubble_avoid_dangerous", value).putBoolean("avoid_dangerous_zones", value).apply()
 
     var bubbleHideBrecilien: Boolean
-        get() = prefs.getBoolean("bubble_hide_brecilien", false)
-        set(value) = prefs.edit().putBoolean("bubble_hide_brecilien", value).apply()
+        get() = prefs.getBoolean("bubble_hide_brecilien", prefs.getBoolean("hide_brecilien", false))
+        set(value) = prefs.edit().putBoolean("bubble_hide_brecilien", value).putBoolean("hide_brecilien", value).apply()
 
     var bubbleHideBlackMarket: Boolean
-        get() = prefs.getBoolean("bubble_hide_black_market", false)
-        set(value) = prefs.edit().putBoolean("bubble_hide_black_market", value).apply()
+        get() = prefs.getBoolean("bubble_hide_black_market", prefs.getBoolean("hide_black_market", false))
+        set(value) = prefs.edit().putBoolean("bubble_hide_black_market", value).putBoolean("hide_black_market", value).apply()
 
     var bubbleIntervalMinutes: Int
         get() = prefs.getInt("bubble_interval_minutes", 3)

@@ -404,6 +404,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     fun onHideBlackMarketToggled(hide: Boolean) {
         prefs.hideBlackMarket = hide
+        prefs.bubbleHideBlackMarket = hide
         val current = _uiState.value
         val updated = current.copy(hideBlackMarket = hide)
         updateState(updated)
@@ -427,13 +428,16 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         prefs.hasPremium = hasPremium
         val current = _uiState.value
         val updated = current.copy(hasPremium = hasPremium)
+        updateState(updated)
         recalculateOpportunities(updated)
     }
 
     fun onAvoidDangerousZonesToggled(avoid: Boolean) {
         prefs.avoidDangerousZones = avoid
+        prefs.bubbleAvoidDangerousZones = avoid
         val current = _uiState.value
         val updated = current.copy(avoidDangerousZones = avoid)
+        updateState(updated)
         recalculateOpportunities(updated)
     }
 
@@ -910,7 +914,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     fun triggerAiMarketAnalysis() {
         val current = _uiState.value
-        val result = AiMarketAnalyzer.analyzeMarketPrices(current.marketPrices, current.aiMinMarginPercent, avoidDangerousZones = current.avoidDangerousZones, silverBudget = current.silverBudget, carryCapacityKg = current.carryCapacityKg, includeBrecilien = !current.hideBrecilien, hideBlackMarket = current.hideBlackMarket)
+        val result = AiMarketAnalyzer.analyzeMarketPrices(current.marketPrices, current.aiMinMarginPercent, avoidDangerousZones = current.avoidDangerousZones, silverBudget = current.silverBudget, carryCapacityKg = current.carryCapacityKg, hideBrecilien = current.hideBrecilien, hideBlackMarket = current.hideBlackMarket)
         _uiState.value = current.copy(aiAnalysisResult = result)
     }
 
@@ -1043,7 +1047,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 )
 
                 if (_uiState.value.aiAnalyzerEnabled) {
-                    val aiResult = AiMarketAnalyzer.analyzeMarketPrices(priceMap, _uiState.value.aiMinMarginPercent, avoidDangerousZones = stateWithPrices.avoidDangerousZones, silverBudget = stateWithPrices.silverBudget, carryCapacityKg = stateWithPrices.carryCapacityKg, includeBrecilien = !stateWithPrices.hideBrecilien, hideBlackMarket = stateWithPrices.hideBlackMarket)
+                    val aiResult = AiMarketAnalyzer.analyzeMarketPrices(priceMap, _uiState.value.aiMinMarginPercent, avoidDangerousZones = stateWithPrices.avoidDangerousZones, silverBudget = stateWithPrices.silverBudget, carryCapacityKg = stateWithPrices.carryCapacityKg, hideBrecilien = stateWithPrices.hideBrecilien, hideBlackMarket = stateWithPrices.hideBlackMarket)
                     _uiState.value = stateWithPrices.copy(aiAnalysisResult = aiResult)
                 } else {
                     _uiState.value = stateWithPrices

@@ -276,27 +276,52 @@ object TradeCalculator {
     }
 
     fun isDangerousCity(city: String): Boolean {
-        val c = city.lowercase().replace(" ", "").replace("'", "")
-        return c.contains("caerleon") || 
+        if (city.isBlank()) return false
+        val c = city.lowercase().replace(" ", "").replace("'", "").replace("-", "").replace("_", "")
+        val norm = normalizeCityName(city)
+        return norm == "caerleon" || 
+               norm == "blackmarket" || 
+               norm == "arthursrest" || 
+               norm == "merlynsrest" || 
+               norm == "morganasrest" || 
+               c.contains("caerleon") || 
                c.contains("blackmarket") || 
+               c.contains("schwarzmarkt") || 
+               c.contains("schmuggler") || 
+               c.contains("schmuggellager") || 
                c.contains("arthursrest") || 
                c.contains("merlynsrest") || 
                c.contains("morganasrest") || 
-               c.contains("cairndrain") ||
-               c.contains("redzone") ||
-               c.contains("rotzone")
+               c.contains("cairndrain") || 
+               c.contains("redzone") || 
+               c.contains("rotzone") || 
+               c == "cl" || 
+               c == "bm"
     }
 
     fun isBlackMarket(city: String): Boolean {
         if (city.isBlank()) return false
-        val c = city.lowercase().replace(" ", "").replace("'", "")
-        return c.contains("blackmarket") || c.contains("schwarzmarkt") || c.contains("schmuggler") || c == "3003"
+        val c = city.lowercase().replace(" ", "").replace("'", "").replace("-", "").replace("_", "")
+        val norm = normalizeCityName(city)
+        return norm == "blackmarket" || 
+               c.contains("blackmarket") || 
+               c.contains("schwarzmarkt") || 
+               c.contains("schmuggler") || 
+               c.contains("schmuggellager") || 
+               c == "3003" || 
+               c == "bm"
     }
 
     fun isBrecilien(city: String): Boolean {
         if (city.isBlank()) return false
+        val c = city.lowercase().replace(" ", "").replace("'", "").replace("-", "").replace("_", "")
         val norm = normalizeCityName(city)
-        return norm == "brecilien" || norm.contains("brecilien") || norm.contains("brec")
+        return norm == "brecilien" || 
+               c.contains("brecilien") || 
+               c.contains("brec") || 
+               c == "5003" || 
+               c == "5000" || 
+               c == "bc"
     }
 
     fun calculateOpportunities(
@@ -354,7 +379,7 @@ object TradeCalculator {
 
                     val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
 
-                    val validSellPrices = qPrices.filter { !it.city.equals(bestBuy.city, ignoreCase = true) && it.sellPriceMin > 0 }
+                    val validSellPrices = qPrices.filter { !citiesMatch(it.city, bestBuy.city) && it.sellPriceMin > 0 }
                     if (validSellPrices.isEmpty()) continue
 
                     val bestSell = validSellPrices.maxByOrNull { it.sellPriceMin } ?: continue

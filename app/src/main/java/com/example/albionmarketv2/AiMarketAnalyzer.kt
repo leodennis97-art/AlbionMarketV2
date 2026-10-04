@@ -72,7 +72,7 @@ object AiMarketAnalyzer {
      * KI-Bot Suchregeln für präzise Marktlücken:
      * 1. Zonen-Sicherheit: Ausschluss von Caerleon & Rotzonen wenn 'avoidDangerousZones' aktiv.
      * 2. Budget & Kapazität: Berücksichtigung von Silber-Budget und Traglast.
-     * 3. Brecilien-Filter: Ausschluss von Brecilien wenn 'includeBrecilien' inaktiv.
+     * 3. Brecilien-Filter: Ausschluss von Brecilien wenn 'hideBrecilien' aktiv.
      * 4. Anomalie-Filter: Verwerfung unrealistischer Preisspitzen (> 4x oder < 10 Silber).
      * 5. Echtzeit-Aktualisierung: Laufender 5-Sekunden-Suchloop.
      */
@@ -82,7 +82,7 @@ object AiMarketAnalyzer {
         avoidDangerousZones: Boolean = false,
         silverBudget: Long = 10_000_000L,
         carryCapacityKg: Double = 2000.0,
-        includeBrecilien: Boolean = false,
+        hideBrecilien: Boolean = false,
         hideBlackMarket: Boolean = false,
     ): AiAnalysisResult {
         val comparisons = mutableListOf<AiItemPriceComparison>()
@@ -101,7 +101,7 @@ object AiMarketAnalyzer {
                 baseFiltered
             }
 
-            val validPrices = if (!includeBrecilien) {
+            val validPrices = if (hideBrecilien) {
                 noBm.filter { !TradeCalculator.isBrecilien(it.city) }
             } else {
                 noBm
@@ -111,7 +111,7 @@ object AiMarketAnalyzer {
 
             // Find lowest & highest price in different cities
             val lowest = validPrices.minByOrNull { it.sellPriceMin } ?: continue
-            val validSellPrices = validPrices.filter { !it.city.equals(lowest.city, ignoreCase = true) }
+            val validSellPrices = validPrices.filter { !TradeCalculator.citiesMatch(it.city, lowest.city) }
             val highest = validSellPrices.maxByOrNull { it.sellPriceMin } ?: continue
 
             val buyPrice = lowest.sellPriceMin

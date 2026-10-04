@@ -408,7 +408,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val prefs = AppPreferences(context)
 
         var fetchedPrices = emptyList<MarketPrice>()
-        if (forceRefresh || cachedPriceMap == null) {
+        if (forceRefresh || (cachedPriceMap == null)) {
             val resources = AlbionResourceRepository.resources
             val itemIds = resources.asSequence().map { it.fullId }.distinct().toList()
 
@@ -433,7 +433,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                     sellPriceMinDate = "",
                     buyPriceMax = it.buyPriceMax,
                     buyPriceMaxDate = "",
-                    sellPriceMinAmount = it.sellPriceMinAmount
+                    sellPriceMinAmount = it.sellPriceMinAmount,
                 )
             }.toList()
 
@@ -469,15 +469,15 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         }
 
         if (fetchedPrices.isNotEmpty()) {
-            val newSnapshots = fetchedPrices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }.map {
+            val newSnapshots = fetchedPrices.asSequence().filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }.map {
                 PriceSnapshot(
                     itemId = it.itemId,
                     city = it.city,
                     sellPriceMin = it.sellPriceMin,
                     buyPriceMax = it.buyPriceMax,
-                    sellPriceMinAmount = it.sellPriceMinAmount
+                    sellPriceMinAmount = it.sellPriceMinAmount,
                 )
-            }
+            }.toList()
             if (newSnapshots.isNotEmpty()) {
                 val accumulated = (localSnapshots + newSnapshots).distinctBy { "${it.itemId}_${it.city}" }
                 prefs.savePriceSnapshots(server = prefs.server, snapshots = accumulated)
@@ -511,22 +511,29 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val standpunkt = if (bubbleCity != "ALLE") bubbleCity else null
         val bubbleCategory = prefs.bubbleCategory
         val bubbleTier = prefs.bubbleTier
+        val bubbleEnchantment = prefs.bubbleEnchantment
 
         val filteredResources = resources.filter { res ->
             val matchesCategory = if (bubbleCategory != "ALL") {
-                try {
-                    res.category.name.equals(bubbleCategory, ignoreCase = true) || res.category.name == bubbleCategory
-                } catch (_: Exception) {
-                    true
-                }
+                res.category.name.equals(bubbleCategory, ignoreCase = true) ||
+                res.category.displayName.equals(bubbleCategory, ignoreCase = true)
             } else true
 
             val matchesTier = if (bubbleTier > 0) {
                 res.tier == bubbleTier
             } else true
 
-            matchesCategory && matchesTier
+            val matchesEnchantment = if (bubbleEnchantment >= 0) {
+                res.enchantment == bubbleEnchantment
+            } else true
+
+            matchesCategory && matchesTier && matchesEnchantment
         }
+
+        val avoidDangerous = prefs.bubbleAvoidDangerousZones || prefs.avoidDangerousZones
+        val hideBrec = prefs.bubbleHideBrecilien || prefs.hideBrecilien
+        val hideBm = prefs.bubbleHideBlackMarket || prefs.hideBlackMarket
+        val maxZones = prefs.bubbleMaxZones
 
         var rawOpportunities = TradeCalculator.calculateOpportunities(
             resources = filteredResources,
@@ -535,22 +542,67 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             carryCapacityKg = prefs.carryCapacityKg,
             marketTaxPercent = if (prefs.hasPremium) 4.0 else 8.0,
             targetMarginPercent = prefs.bubbleMinMarginPercent,
-            avoidDangerousZones = prefs.bubbleAvoidDangerousZones,
+            avoidDangerousZones = avoidDangerous,
             currentGoldPrice = 4250,
             standpunktCity = standpunkt,
-            maxCityDistance = prefs.bubbleMaxZones,
-            hideBrecilien = prefs.bubbleHideBrecilien,
-            hideBlackMarket = prefs.bubbleHideBlackMarket,
+            maxCityDistance = maxZones,
+            hideBrecilien = hideBrec,
+            hideBlackMarket = hideBm,
         ).filter { it.roiPercent >= prefs.bubbleMinMarginPercent }
 
-        if (prefs.bubbleAvoidDangerousZones) {
-            rawOpportunities = rawOpportunities.filter { !TradeCalculator.isDangerousCity(it.buyCity) && !TradeCalculator.isDangerousCity(it.sellCity) }
+        // 1. Standpunkt strict filter: Buy city MUST match Standpunkt
+        if (!standpunkt.isNullOrBlank()) {
+            rawOpportunities = rawOpportunities.filter { TradeCalculator.citiesMatch(it.buyCity, standpunkt) }
         }
-        if (prefs.bubbleHideBlackMarket) {
-            rawOpportunities = rawOpportunities.filter { !TradeCalculator.isBlackMarket(it.buyCity) && !TradeCalculator.isBlackMarket(it.sellCity) }
+
+        // 2. Category strict filter
+        if (bubbleCategory != "ALL") {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) ||
+                opp.resource.category.displayName.equals(bubbleCategory, ignoreCase = true)
+            }
         }
-        if (prefs.bubbleHideBrecilien || prefs.hideBrecilien) {
-            rawOpportunities = rawOpportunities.filter { !TradeCalculator.isBrecilien(it.buyCity) && !TradeCalculator.isBrecilien(it.sellCity) }
+
+        // 3. Tier strict filter
+        if (bubbleTier > 0) {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                opp.resource.tier == bubbleTier
+            }
+        }
+
+        // 4. Enchantment strict filter
+        if (bubbleEnchantment >= 0) {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                opp.resource.enchantment == bubbleEnchantment
+            }
+        }
+
+        // 5. Max Zones Distance strict filter
+        if (maxZones < 99) {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                opp.zonesWalkedCount <= maxZones
+            }
+        }
+
+        // 6. Dangerous / Red Zones strict filter
+        if (avoidDangerous) {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                !TradeCalculator.isDangerousCity(opp.buyCity) && !TradeCalculator.isDangerousCity(opp.sellCity)
+            }
+        }
+
+        // 7. Black Market strict filter
+        if (hideBm) {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                !TradeCalculator.isBlackMarket(opp.buyCity) && !TradeCalculator.isBlackMarket(opp.sellCity)
+            }
+        }
+
+        // 8. Brecilien strict filter
+        if (hideBrec) {
+            rawOpportunities = rawOpportunities.filter { opp ->
+                !TradeCalculator.isBrecilien(opp.buyCity) && !TradeCalculator.isBrecilien(opp.sellCity)
+            }
         }
 
         // Extra KI-Anomalie Filter: Unrealistische Spitzen verworfen
@@ -668,7 +720,7 @@ fun BubbleOverlayContent(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var isMaximized by remember { mutableStateOf(value = false) }
-    var isCompactMode by remember { mutableStateOf(true) }
+    var isCompactMode by remember { mutableStateOf(value = true) }
     var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
     var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
     var bubbleWidthPortrait by remember { mutableIntStateOf(prefs.bubbleWidthPortrait) }
@@ -711,9 +763,9 @@ fun BubbleOverlayContent(
                     .clip(CircleShape)
                     .graphicsLayer(alpha = effOpacity)
                     .pointerInput(Unit) {
-                        detectTapGestures(
-                            onTap = { isExpanded = true }
-                        )
+                        detectTapGestures {
+                            isExpanded = true
+                        }
                     }
                     .pointerInput(Unit) {
                         detectDragGestures { change, dragAmount ->
@@ -1416,6 +1468,41 @@ fun BubbleOverlayContent(
                                     }
                                 }
                             }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "✨ " + (if (lang == "DE") "Verzauberungs-Filter:" else "Enchantment Filter:"),
+                                color = Color(0xFF00E676),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
+                            val bubbleEnchantments = listOf(-1 to "ALLE", 0 to ".0", 1 to ".1", 2 to ".2", 3 to ".3", 4 to ".4")
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                            ) {
+                                items(bubbleEnchantments) { (enc, label) ->
+                                    val isSelected = currentBubbleEnchantment == enc
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (isSelected) Color(0xFF00E676) else Color(0xFF1E3A4C),
+                                        modifier = Modifier.clickable {
+                                            currentBubbleEnchantment = enc
+                                            prefsForCity.bubbleEnchantment = enc
+                                            onRefresh()
+                                        }
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            color = if (isSelected) Color.Black else Color.White,
+                                            fontSize = 9.sp,
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
                             // Max Zonen Distance Filter Chips
                             Text(
                                 text = "🗺️ " + (if (lang == "DE") "Max. Zonen-Distanz:" else "Max Zone Distance:"),
@@ -1454,7 +1541,7 @@ fun BubbleOverlayContent(
                             Spacer(modifier = Modifier.height(2.dp))
 
                             // Switches for Red / Dangerous Zones & Brecilien
-                            var currentBubbleAvoidDangerous by remember { mutableStateOf(prefsForCity.bubbleAvoidDangerousZones) }
+                            var currentBubbleAvoidDangerous by remember { mutableStateOf(prefsForCity.bubbleAvoidDangerousZones || prefsForCity.avoidDangerousZones) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1466,13 +1553,14 @@ fun BubbleOverlayContent(
                                     onCheckedChange = {
                                         currentBubbleAvoidDangerous = it
                                         prefsForCity.bubbleAvoidDangerousZones = it
+                                        prefsForCity.avoidDangerousZones = it
                                         onRefresh()
                                     },
                                     colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444))
                                 )
                             }
 
-                            var currentBubbleHideBrecilien by remember { mutableStateOf(prefsForCity.bubbleHideBrecilien) }
+                            var currentBubbleHideBrecilien by remember { mutableStateOf(prefsForCity.bubbleHideBrecilien || prefsForCity.hideBrecilien) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1491,7 +1579,7 @@ fun BubbleOverlayContent(
                                 )
                             }
 
-                            var currentBubbleHideBlackMarket by remember { mutableStateOf(prefsForCity.bubbleHideBlackMarket) }
+                            var currentBubbleHideBlackMarket by remember { mutableStateOf(prefsForCity.bubbleHideBlackMarket || prefsForCity.hideBlackMarket) }
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -1503,6 +1591,7 @@ fun BubbleOverlayContent(
                                     onCheckedChange = {
                                         currentBubbleHideBlackMarket = it
                                         prefsForCity.bubbleHideBlackMarket = it
+                                        prefsForCity.hideBlackMarket = it
                                         onRefresh()
                                     },
                                     colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFFB74D))
@@ -3566,9 +3655,9 @@ fun BubbleAdminTab(
                     val licensesRes = licensesDef.await()
                     val devicesRes = devicesDef.await()
 
-                    if (usersRes is AdminApiResult.Success) users = usersRes.data
-                    if (licensesRes is AdminApiResult.Success) licenses = licensesRes.data
-                    if (devicesRes is AdminApiResult.Success) devices = devicesRes.data
+                    (usersRes as? AdminApiResult.Success)?.let { users = it.data }
+                    (licensesRes as? AdminApiResult.Success)?.let { licenses = it.data }
+                    (devicesRes as? AdminApiResult.Success)?.let { devices = it.data }
                 }
             } catch (e: Throwable) {
                 e.printStackTrace()
