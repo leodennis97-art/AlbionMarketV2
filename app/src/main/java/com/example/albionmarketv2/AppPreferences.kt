@@ -373,6 +373,7 @@ class AppPreferences(private val context: Context) {
             val jsonStr = arr.toString()
             prefs.edit().putString("trade_orders_json", jsonStr).apply()
             ExternalStorageBackupManager.backupTradeOrders(contextRef, jsonStr)
+            ExternalStorageBackupManager.backupAppSettings(contextRef)
         }
     }
 

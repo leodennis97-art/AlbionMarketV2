@@ -153,4 +153,50 @@ object ExternalStorageBackupManager {
         }
         return "[]"
     }
+
+    fun backupAppSettings(context: Context) {
+        try {
+            val folder = getBackupFolder(context)
+            val file = File(folder, "app_settings_backup.json")
+            val prefs = context.getSharedPreferences("albion_market_prefs", Context.MODE_PRIVATE)
+            val allEntries = prefs.all
+            val obj = JSONObject()
+            for ((key, value) in allEntries) {
+                if (value != null) {
+                    obj.put(key, value)
+                }
+            }
+            file.writeText(obj.toString(), Charsets.UTF_8)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun loadBackupAppSettings(context: Context) {
+        try {
+            val folder = getBackupFolder(context)
+            val file = File(folder, "app_settings_backup.json")
+            if (file.exists() && file.length() > 0) {
+                val jsonStr = file.readText(Charsets.UTF_8)
+                val obj = JSONObject(jsonStr)
+                val prefs = context.getSharedPreferences("albion_market_prefs", Context.MODE_PRIVATE)
+                val editor = prefs.edit()
+                val keys = obj.keys()
+                while (keys.hasNext()) {
+                    val key = keys.next()
+                    val value = obj.get(key)
+                    when (value) {
+                        is String -> editor.putString(key, value)
+                        is Int -> editor.putInt(key, value)
+                        is Long -> editor.putLong(key, value)
+                        is Float -> editor.putFloat(key, value)
+                        is Boolean -> editor.putBoolean(key, value)
+                    }
+                }
+                editor.apply()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
 }

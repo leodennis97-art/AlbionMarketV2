@@ -45,6 +45,13 @@ class AlbionMarketApplication : Application() {
         // Initialize server config folder and server_config.json file upon installation/launch
         ServerConfigManager.initServerConfig(this)
 
+        // Restore settings, credentials, and trade history from persistent external storage folder (Documents/AlbionDataPro)
+        try {
+            ExternalStorageBackupManager.loadBackupAppSettings(this)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
         // Instantly connect to Render Cloud upon app startup
         applicationScope.launch {
             try {
