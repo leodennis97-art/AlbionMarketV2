@@ -467,7 +467,7 @@ class MainActivity : ComponentActivity() {
                                                 modifier = Modifier.weight(1f),
                                                 contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
                                             ) {
-                                                Text("🌐 Download (Render)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                Text("🌐 Download (v$CURRENT_APP_VERSION)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
                                             }
                                         }
                                     }

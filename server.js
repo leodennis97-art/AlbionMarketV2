@@ -125,7 +125,7 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = "2.2.0";
+const CURRENT_SERVER_VERSION = "2.2.1";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -555,9 +555,6 @@ app.get(['/', '/get', '/app'], (req, res) => {
         <div class="text-2xl font-bold tracking-tighter flex items-center gap-2">
             <i class="fa-solid fa-shield-halved text-blue-500"></i> AlbionDataPro
         </div>
-        <div>
-            <span class="bg-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-sm font-semibold border border-emerald-500/30">v${CURRENT_SERVER_VERSION} Live</span>
-        </div>
     </nav>
 
     <!-- Hero Section -->
@@ -574,7 +571,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 <i class="fa-brands fa-telegram text-xl"></i> Lizenz kaufen (15€/Monat)
             </a>
             <a href="/download/AlbionDataPro.apk" class="glass-panel hover:bg-slate-800 text-white font-bold py-4 px-8 rounded-xl transition-all flex items-center justify-center gap-3 text-lg border border-slate-600 hover:border-slate-500">
-                <i class="fa-solid fa-download"></i> App Herunterladen (APK)
+                <i class="fa-solid fa-download"></i> App Herunterladen (v${CURRENT_SERVER_VERSION} APK)
             </a>
         </div>
 

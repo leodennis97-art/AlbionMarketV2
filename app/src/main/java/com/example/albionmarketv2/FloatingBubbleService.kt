@@ -3240,6 +3240,50 @@ fun BubbleMapTab(
     val regions = AlbionWorldData.worldRegions
     val activeRegion = regions.find { it.name == selectedRegionName } ?: regions.first()
     val context = LocalContext.current
+    val uiState by viewModel.uiState.collectAsState()
+
+    val cityName = activeRegion.name.split(" ")[0]
+    val refinedRes = remember(uiState.marketPrices) {
+        AlbionResourceRepository.resources.filter { it.category == ResourceCategory.REFINED }
+    }
+    val matchingRes = remember(refinedRes, activeRegion.name) {
+        refinedRes.filter { res ->
+            when {
+                activeRegion.name.contains("Bridgewatch") -> res.id.contains("LEATHER")
+                activeRegion.name.contains("Fort Sterling") -> res.id.contains("METALBAR")
+                activeRegion.name.contains("Lymhurst") -> res.id.contains("PLANKS")
+                activeRegion.name.contains("Martlock") -> res.id.contains("STONEBLOCK")
+                activeRegion.name.contains("Thetford") -> res.id.contains("CLOTH")
+                else -> true
+            }
+        }.take(8)
+    }
+
+    val avgCost = remember(matchingRes, cityName, uiState.marketPrices) {
+        if (matchingRes.isNotEmpty()) {
+            matchingRes.map { res ->
+                val recipe = CraftingRepository.getRecipeFor(res)
+                recipe.ingredients.sumOf { ing ->
+                    ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
+                }
+            }.average().toLong()
+        } else 0L
+    }
+
+    val avgNetProfit = remember(matchingRes, cityName, uiState.marketPrices) {
+        if (matchingRes.isNotEmpty()) {
+            matchingRes.map { res ->
+                val recipe = CraftingRepository.getRecipeFor(res)
+                val cost = recipe.ingredients.sumOf { ing ->
+                    ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
+                }
+                val sell = CraftingRepository.getPriceInCity(res.fullId, cityName, uiState.marketPrices)
+                val netEarn = (sell * 0.96).toLong() // 4% market tax
+                netEarn - cost
+            }.average().toLong()
+        } else 0L
+    }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -3308,6 +3352,26 @@ fun BubbleMapTab(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text("⛏️ Ressourcen: ${activeRegion.resourcesFound.joinToString(", ")}", color = Color.White, fontSize = 9.sp)
                 Text("🛣️ Verbindet: ${activeRegion.connectsTo.joinToString(" ➔ ")}", color = Color.LightGray, fontSize = 8.sp)
+
+                Spacer(modifier = Modifier.height(3.dp))
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = Color(0xFF0E2532),
+                    border = BorderStroke(1.dp, Color(0xFF10B981)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(5.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text("💰 Veredelungskosten & Gewinn (Netto):", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Ø Rohstoff-Kosten:", color = Color.LightGray, fontSize = 8.sp)
+                            Text("${fmt.format(avgCost)} S.", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                        }
+                        Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                            Text("Ø Netto-Gewinn:", color = Color.LightGray, fontSize = 8.sp)
+                            Text("${if (avgNetProfit >= 0) "+" else ""}${fmt.format(avgNetProfit)} S.", color = if (avgNetProfit >= 0) Color(0xFF10B981) else Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 8.sp)
+                        }
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(
