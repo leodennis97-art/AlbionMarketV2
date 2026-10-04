@@ -104,47 +104,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Automatic All Files Access / External Storage Permission Handling
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
-                        data = "package:$packageName".toUri()
-                    }
-                    startActivity(intent)
-                } catch (_: Exception) {
-                    try {
-                        val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                        startActivity(intent)
-                    } catch (_: Exception) {}
-                }
-            }
-        }
-
-        // Request Ignore Battery Optimization
-        val powerManager = getSystemService(POWER_SERVICE) as? PowerManager
-        if ((powerManager != null) && (!powerManager.isIgnoringBatteryOptimizations(packageName))) {
-            try {
-                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                    data = "package:$packageName".toUri()
-                }
-                startActivity(intent)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        // Request Overlay / Floating Bubble Permission if missing
-        if (!Settings.canDrawOverlays(this)) {
-            try {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-                    "package:$packageName".toUri(),
-                )
-                startActivity(intent)
-            } catch (_: Exception) {}
-        }
-
         setContent {
             AlbionMarketV2Theme {
                 val context = LocalContext.current
