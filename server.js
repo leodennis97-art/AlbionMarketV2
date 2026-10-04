@@ -581,10 +581,10 @@ app.get(['/', '/get', '/app'], (req, res) => {
         <!-- Download & Telegram CTA -->
         <div class="flex flex-col sm:flex-row gap-5 justify-center mb-20">
             <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-emerald-400/30">
-                <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
+                <i class="fa-solid fa-crown text-amber-300 text-2xl"></i> APK Herunterladen (Meister Version v${CURRENT_SERVER_VERSION})
             </a>
-            <a href="https://t.me/DnnxDigitalCreator?text=Hallo%20Dnnx,%20ich%20möchte%20AlbionDataPro%20für%201%20Monat%20kaufen!" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-blue-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-blue-400/30">
-                <i class="fa-brands fa-telegram text-2xl"></i> Hier freischalten
+            <a href="https://t.me/DnnxDigitalCreator?text=Hallo%20Dnnx,%20ich%20möchte%20AlbionDataPro%20(Meister%20Version)%20für%201%20Monat%20für%20Lena%20kaufen!" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-blue-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-blue-400/30">
+                <i class="fa-brands fa-telegram text-2xl"></i> Hier freischalten (Lena / 1 Monat)
             </a>
         </div>
 
