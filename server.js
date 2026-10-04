@@ -125,7 +125,24 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-const CURRENT_SERVER_VERSION = "2.2.5";
+function getAppVersionFromGradle() {
+    try {
+        const versionPath = path.join(DOWNLOADS_DIR, 'version.txt');
+        if (fs.existsSync(versionPath)) {
+            const v = fs.readFileSync(versionPath, 'utf8').trim();
+            if (v) return v;
+        }
+        const buildGradlePath = path.join(__dirname, 'app', 'build.gradle');
+        if (fs.existsSync(buildGradlePath)) {
+            const content = fs.readFileSync(buildGradlePath, 'utf8');
+            const match = content.match(/versionName\s+['"]([^'"]+)['"]/);
+            if (match) return match[1];
+        }
+    } catch (e) {}
+    return "2.2.5";
+}
+
+let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -191,8 +208,14 @@ app.post('/api/admin/upload-apk', requireAdminAuth, upload.single('apkFile'), (r
     const targetPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
     fs.renameSync(req.file.path, targetPath);
 
-    triggerAutoOtaUpdateForAllDevices('Neue APK von Admin hochgeladen');
-    res.json({ status: 'success', message: 'APK erfolgreich hochgeladen und alte Versionen bereinigt!' });
+    const uploadedVer = req.query.version || req.headers['x-target-version'];
+    if (uploadedVer) {
+        CURRENT_SERVER_VERSION = uploadedVer;
+        fs.writeFileSync(path.join(DOWNLOADS_DIR, 'version.txt'), uploadedVer);
+    }
+
+    triggerAutoOtaUpdateForAllDevices(`Neue APK v${CURRENT_SERVER_VERSION} von Admin hochgeladen`);
+    res.json({ status: 'success', message: `APK v${CURRENT_SERVER_VERSION} erfolgreich hochgeladen und Homepage & Download-Button aktualisiert!` });
 });
 
 // Endpoint zum Bereinigen alter APKs
@@ -230,17 +253,7 @@ function syncLatestApk() {
     }
 }
 
-function getAppVersionFromGradle() {
-    try {
-        const buildGradlePath = path.join(__dirname, 'app', 'build.gradle');
-        if (fs.existsSync(buildGradlePath)) {
-            const content = fs.readFileSync(buildGradlePath, 'utf8');
-            const match = content.match(/versionName\s+['"]([^'"]+)['"]/);
-            if (match) return match[1];
-        }
-    } catch (e) {}
-    return CURRENT_SERVER_VERSION;
-}
+// (getAppVersionFromGradle is defined at startup)
 
 // Autonome Echtzeit-Cloud-Schleife: Erkennt App-Änderungen in Gradle sofort und synchronisiert Server & Geräte
 async function autonomousApkSyncLoop() {
@@ -268,6 +281,7 @@ async function autonomousApkSyncLoop() {
         if (sourceApk && needsUpdate) {
             fs.copyFileSync(sourceApk, apkPath);
             fs.writeFileSync(versionPath, currentGradleVersion);
+            CURRENT_SERVER_VERSION = currentGradleVersion;
             console.log(`[Autonomous Sync] 🚀 Neue App-Version v${currentGradleVersion} erkannt & Server automatisch aktualisiert!`);
             triggerAutoOtaUpdateForAllDevices(`Neue App-Version v${currentGradleVersion} veröffentlicht`);
             return;
@@ -276,6 +290,7 @@ async function autonomousApkSyncLoop() {
         if (needsUpdate) {
             console.log(`[Autonomous Sync] 🔄 Synchronisiere Server auf neuste Version v${currentGradleVersion}...`);
             fs.writeFileSync(versionPath, currentGradleVersion);
+            CURRENT_SERVER_VERSION = currentGradleVersion;
             triggerAutoOtaUpdateForAllDevices(`Server auf v${currentGradleVersion} aktualisiert`);
         }
     } catch (e) {
