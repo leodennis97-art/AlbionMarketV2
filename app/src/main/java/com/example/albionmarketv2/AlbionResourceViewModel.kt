@@ -31,6 +31,7 @@ data class ResourceUiState(
     val selectedResource: AlbionResource? = null,
     val sortOption: OpportunitySort = OpportunitySort.HIGHEST_MARGIN,
     val selectedTierFilter: Int = 0, // 0 = All, 1..8 = Tiers 1-8
+    val selectedOpportunityEnchantmentFilter: Int = -1, // -1 = All, 0..4 = Enchantment levels
     val opportunitySearchQuery: String = "",
 
     // Navigation Tabs:
@@ -450,6 +451,12 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
     fun onTierFilterChanged(tier: Int) {
         val current = _uiState.value
         val updated = current.copy(selectedTierFilter = tier)
+        recalculateOpportunities(updated)
+    }
+
+    fun onOpportunityEnchantmentFilterChanged(enchantment: Int) {
+        val current = _uiState.value
+        val updated = current.copy(selectedOpportunityEnchantmentFilter = enchantment)
         recalculateOpportunities(updated)
     }
 
@@ -1131,6 +1138,11 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 newCalculated = newCalculated.filter { it.resource.tier == state.selectedTierFilter }
             }
 
+            // Enchantment filter (-1 = All, 0..4 = Enchantment levels)
+            if (state.selectedOpportunityEnchantmentFilter >= 0) {
+                newCalculated = newCalculated.filter { it.resource.enchantment == state.selectedOpportunityEnchantmentFilter }
+            }
+
             // Search filter
             if (state.opportunitySearchQuery.isNotBlank()) {
                 val q = state.opportunitySearchQuery.trim().lowercase()
@@ -1147,7 +1159,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 OpportunitySort.NEWEST -> newCalculated.sortedByDescending { it.updatedTimestamp }
                 OpportunitySort.FEWEST_STOCK -> newCalculated.sortedBy { it.stockAvailable }
                 OpportunitySort.HIGHEST_MARGIN -> newCalculated.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
-            }.distinctBy { it.resource.id }.take(20)
+            }.distinctBy { "${it.resource.fullId}_${it.buyCity}_${it.sellCity}" }.take(30)
 
             _uiState.value = state.copy(
                 targetMarginPercent = effectiveMargin,

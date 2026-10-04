@@ -526,7 +526,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             matchesCategory && matchesTier
         }
 
-        val rawOpportunities = TradeCalculator.calculateOpportunities(
+        var rawOpportunities = TradeCalculator.calculateOpportunities(
             resources = filteredResources,
             pricesByItem = priceMap,
             silverBudget = prefs.silverBudget,
@@ -540,6 +540,16 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             hideBrecilien = prefs.bubbleHideBrecilien,
             hideBlackMarket = prefs.bubbleHideBlackMarket,
         ).filter { it.roiPercent >= prefs.bubbleMinMarginPercent }
+
+        if (prefs.bubbleAvoidDangerousZones) {
+            rawOpportunities = rawOpportunities.filter { !TradeCalculator.isDangerousCity(it.buyCity) && !TradeCalculator.isDangerousCity(it.sellCity) }
+        }
+        if (prefs.bubbleHideBlackMarket) {
+            rawOpportunities = rawOpportunities.filter { !TradeCalculator.isBlackMarket(it.buyCity) && !TradeCalculator.isBlackMarket(it.sellCity) }
+        }
+        if (prefs.bubbleHideBrecilien) {
+            rawOpportunities = rawOpportunities.filter { !it.buyCity.contains("Brecilien", ignoreCase = true) && !it.sellCity.contains("Brecilien", ignoreCase = true) }
+        }
 
         // Extra KI-Anomalie Filter: Unrealistische Spitzen verworfen
         val aiSanitizedOpportunities = rawOpportunities.filter { opp ->

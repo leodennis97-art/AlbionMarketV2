@@ -1450,6 +1450,32 @@ fun CalculatorTabContent(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Enchantment Filter Bar (-1 = Alle, 0..4 = .0 to .4)
+                Text("🔮 Verzauberungs-Filter:", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.height(4.dp))
+                val enchantmentsList = listOf(-1, 0, 1, 2, 3, 4)
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(enchantmentsList) { enc ->
+                        val isSelected = uiState.selectedOpportunityEnchantmentFilter == enc
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.onOpportunityEnchantmentFilterChanged(enc) },
+                            label = { Text(if (enc == -1) "Alle Verzauberungen" else ".$enc", fontSize = 11.sp) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.Black,
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                labelColor = MaterialTheme.colorScheme.onSurface
+                            )
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 // Sorting Options (Meiste Marge vs Neueste Angebote vs Wenigste auf Lager)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
