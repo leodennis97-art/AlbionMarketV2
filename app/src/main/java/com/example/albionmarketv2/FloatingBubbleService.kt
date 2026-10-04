@@ -53,6 +53,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -2349,17 +2350,39 @@ fun BubbleCraftingTab(
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val fmtDec = remember { DecimalFormat("0.0", DecimalFormatSymbols(Locale.GERMANY)) }
+    var hideCaerleonInCrafting by remember { mutableStateOf(false) }
 
-    val craftingOpps = remember(priceMap) {
-        CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true).take(15)
+    val craftingOpps = remember(priceMap, hideCaerleonInCrafting) {
+        CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true, hideCaerleon = hideCaerleonInCrafting).take(25)
     }
 
-    LazyColumn(
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(max = maxHeight),
+            .heightIn(max = maxHeight)
     ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+        ) {
+            Text("⚒️ Handwerks-Guide", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("🔴 Caerleon ausblenden", fontSize = 8.5.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(4.dp))
+                Switch(
+                    checked = hideCaerleonInCrafting,
+                    onCheckedChange = { hideCaerleonInCrafting = it },
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444)),
+                    modifier = Modifier.scale(0.7f)
+                )
+            }
+        }
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        ) {
         itemsIndexed(craftingOpps, key = { index: Int, opp: CraftingOpportunityDetails -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
             val rankBadge = when (index) {
                 0 -> "🏆 #1 Beste Marge"
@@ -2483,6 +2506,7 @@ fun BubbleCraftingTab(
             }
         }
     }
+}
 }
 
 @Composable

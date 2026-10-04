@@ -115,7 +115,8 @@ object CraftingRepository {
 
     fun calculateCraftingOpportunities(
         priceMap: Map<String, List<MarketPrice>>,
-        hasPremium: Boolean = true
+        hasPremium: Boolean = true,
+        hideCaerleon: Boolean = false
     ): List<CraftingOpportunityDetails> {
         val list = mutableListOf<CraftingOpportunityDetails>()
         val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
@@ -130,13 +131,15 @@ object CraftingRepository {
 
             for (ing in recipe.ingredients) {
                 val ingPrices = priceMap[ing.resourceId] ?: emptyList()
-                val validIngPrices = ingPrices.filter { it.sellPriceMin > 0 }
+                val validIngPrices = ingPrices.filter {
+                    it.sellPriceMin > 0 && (!hideCaerleon || !it.city.contains("Caerleon", ignoreCase = true))
+                }
 
                 val bestIngPrice = if (validIngPrices.isNotEmpty()) {
                     validIngPrices.minByOrNull { it.sellPriceMin }
                 } else null
 
-                val ingCity = bestIngPrice?.city ?: "Lymhurst"
+                val ingCity = bestIngPrice?.city ?: (if (hideCaerleon) "Lymhurst" else "Caerleon")
                 val unitPrice = bestIngPrice?.sellPriceMin ?: getPriceInCity(ing.resourceId, ingCity, priceMap)
                 val costForIng = ing.amount.toLong() * unitPrice.toLong()
 
@@ -149,13 +152,19 @@ object CraftingRepository {
 
             // Find highest sell price for finished crafted item
             val itemPrices = priceMap[res.fullId] ?: emptyList()
-            val validItemPrices = itemPrices.filter { it.sellPriceMin > 0 }
+            val validItemPrices = itemPrices.filter {
+                it.sellPriceMin > 0 && (!hideCaerleon || !it.city.contains("Caerleon", ignoreCase = true))
+            }
             val bestSellItem = if (validItemPrices.isNotEmpty()) {
                 validItemPrices.maxByOrNull { it.sellPriceMin }
             } else null
 
-            val highestSellCity = bestSellItem?.city ?: "Caerleon"
+            val highestSellCity = bestSellItem?.city ?: (if (hideCaerleon) "Bridgewatch" else "Caerleon")
             val itemSellPrice = bestSellItem?.sellPriceMin ?: getPriceInCity(res.fullId, highestSellCity, priceMap)
+
+            if (hideCaerleon && (cheapestBuyCity.contains("Caerleon", ignoreCase = true) || highestSellCity.contains("Caerleon", ignoreCase = true))) {
+                continue
+            }
 
             val netRevenue = (itemSellPrice * (1.0 - taxRate - 0.025)).toLong()
             val netProfit = netRevenue - totalCost
