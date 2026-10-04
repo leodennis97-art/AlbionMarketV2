@@ -130,8 +130,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
     override fun onCreate() {
         try {
-            savedStateRegistryController.performRestore(null)
             super.onCreate()
+            savedStateRegistryController.performRestore(null)
             isRunning = true
             windowManager = getSystemService(WINDOW_SERVICE) as WindowManager
 
