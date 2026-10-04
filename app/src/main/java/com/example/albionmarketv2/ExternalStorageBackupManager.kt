@@ -18,14 +18,14 @@ object ExternalStorageBackupManager {
             if (albionFolder.exists() && albionFolder.canWrite()) {
                 return albionFolder
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (_: Throwable) {}
 
         val altFolder = File(context.getExternalFilesDir(null), "AlbionDataPro")
-        if (!altFolder.exists()) {
-            altFolder.mkdirs()
-        }
+        try {
+            if (!altFolder.exists()) {
+                altFolder.mkdirs()
+            }
+        } catch (_: Throwable) {}
         return altFolder
     }
 
