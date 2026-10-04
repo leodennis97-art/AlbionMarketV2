@@ -65,7 +65,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
+import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
@@ -81,10 +84,15 @@ import kotlin.math.round
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
-class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
+class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner, ViewModelStoreOwner {
 
     @Suppress("DEPRECATION")
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
+
+    private val store = ViewModelStore()
+
+    override val viewModelStore: ViewModelStore
+        get() = store
 
     override val savedStateRegistry: SavedStateRegistry
         get() = savedStateRegistryController.savedStateRegistry
@@ -258,6 +266,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             composeView = ComposeView(this).apply {
                 setViewTreeLifecycleOwner(this@FloatingBubbleService)
                 setViewTreeSavedStateRegistryOwner(this@FloatingBubbleService)
+                setViewTreeViewModelStoreOwner(this@FloatingBubbleService)
 
                 setContent {
                     AlbionMarketV2Theme {
