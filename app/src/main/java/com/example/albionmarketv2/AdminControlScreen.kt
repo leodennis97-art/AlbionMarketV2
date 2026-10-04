@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "2.3.11"
+const val CURRENT_APP_VERSION = "2.3.12"
 
 data class AdminDevice(
     val hwId: String,
@@ -1268,21 +1268,32 @@ fun AdminLicensesTab(
     }
 
     if (deleteTargetLicense != null) {
+        val targetKey = deleteTargetLicense?.key
+        val targetTier = deleteTargetLicense?.tier
         ConfirmDeleteDialog(
             title = "Lizenz löschen",
             message = "Möchtest du diese generierte Lizenz wirklich löschen?",
-            itemName = "${deleteTargetLicense?.key} (${deleteTargetLicense?.tier?.uppercase()})",
+            itemName = "${targetKey} (${targetTier?.uppercase()})",
             onDismiss = { deleteTargetLicense = null },
             onConfirm = {
-                val key = deleteTargetLicense?.key ?: return@ConfirmDeleteDialog
+                val key = targetKey ?: return@ConfirmDeleteDialog
                 deleteTargetLicense = null
                 coroutineScope.launch {
-                    val deleted = AdminControlManager.deleteLicense(context, key)
-                    if (deleted) {
-                        Toast.makeText(context, "🟢 Lizenz gelöscht", Toast.LENGTH_SHORT).show()
-                        onRefresh()
-                    } else {
-                        Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                    try {
+                        val deleted = AdminControlManager.deleteLicense(context, key)
+                        withContext(Dispatchers.Main) {
+                            if (deleted) {
+                                Toast.makeText(context, "🟢 Lizenz gelöscht", Toast.LENGTH_SHORT).show()
+                                onRefresh()
+                            } else {
+                                Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
@@ -1545,21 +1556,31 @@ fun AdminUsersTab(
     var revealedPasswordsMap by remember { mutableStateOf<Map<String, Boolean>>(emptyMap()) }
 
     if (deleteTargetUser != null) {
+        val targetUsername = deleteTargetUser?.username
         ConfirmDeleteDialog(
             title = "Benutzer löschen",
             message = "Möchtest du diesen Benutzer und seine Zugänge löschen?",
-            itemName = "Benutzer: ${deleteTargetUser?.username}",
+            itemName = "Benutzer: $targetUsername",
             onDismiss = { deleteTargetUser = null },
             onConfirm = {
-                val username = deleteTargetUser?.username ?: return@ConfirmDeleteDialog
+                val username = targetUsername ?: return@ConfirmDeleteDialog
                 deleteTargetUser = null
                 coroutineScope.launch {
-                    val deleted = AdminControlManager.deleteUser(context, username)
-                    if (deleted) {
-                        Toast.makeText(context, "🟢 Benutzer gelöscht", Toast.LENGTH_SHORT).show()
-                        onRefresh()
-                    } else {
-                        Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                    try {
+                        val deleted = AdminControlManager.deleteUser(context, username)
+                        withContext(Dispatchers.Main) {
+                            if (deleted) {
+                                Toast.makeText(context, "🟢 Benutzer gelöscht", Toast.LENGTH_SHORT).show()
+                                onRefresh()
+                            } else {
+                                Toast.makeText(context, "❌ Fehler beim Löschen", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
@@ -3084,12 +3105,21 @@ fun AdminDevicesTab(
             onConfirmBan = { reason ->
                 showBanDialog = false
                 coroutineScope.launch {
-                    val ok = AdminControlManager.banDevice(context, banTargetHwId, reason)
-                    if (ok) {
-                        Toast.makeText(context, "🔴 Banned & Gekickt", Toast.LENGTH_SHORT).show()
-                        onRefresh()
-                    } else {
-                        Toast.makeText(context, "❌ Fehler beim Bannen", Toast.LENGTH_SHORT).show()
+                    try {
+                        val ok = AdminControlManager.banDevice(context, banTargetHwId, reason)
+                        withContext(Dispatchers.Main) {
+                            if (ok) {
+                                Toast.makeText(context, "🔴 Banned & Gekickt", Toast.LENGTH_SHORT).show()
+                                onRefresh()
+                            } else {
+                                Toast.makeText(context, "❌ Fehler beim Bannen", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }
             }
@@ -3303,10 +3333,21 @@ fun AdminDevicesTab(
                                         onClick = {
                                             try { view.performHapticFeedback(HapticFeedbackConstants.CONTEXT_CLICK) } catch (_: Exception) {}
                                             coroutineScope.launch {
-                                                val ok = AdminControlManager.unbanDevice(context, dev.hwId)
-                                                if (ok) {
-                                                    Toast.makeText(context, "🟢 Entbannt & HWID freigegeben!", Toast.LENGTH_SHORT).show()
-                                                    onRefresh()
+                                                try {
+                                                    val ok = AdminControlManager.unbanDevice(context, dev.hwId)
+                                                    withContext(Dispatchers.Main) {
+                                                        if (ok) {
+                                                            Toast.makeText(context, "🟢 Entbannt & HWID freigegeben!", Toast.LENGTH_SHORT).show()
+                                                            onRefresh()
+                                                        } else {
+                                                            Toast.makeText(context, "❌ Entbannen fehlgeschlagen", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                } catch (e: Exception) {
+                                                    e.printStackTrace()
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_SHORT).show()
+                                                    }
                                                 }
                                             }
                                         },

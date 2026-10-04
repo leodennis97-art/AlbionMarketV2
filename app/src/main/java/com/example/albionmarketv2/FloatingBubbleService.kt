@@ -267,7 +267,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                             activeOrder = activeOrder,
                             topOpportunities = topOpportunities,
                             isLoadingOpps = isLoadingOpps,
-                            onRefresh = { loadData(forceRefreshPrices = true) },
+                            onRefresh = { loadTopOpportunities(forceRefresh = false) },
                             onAcceptOpportunity = { opp -> acceptOpportunity(opp) },
                             onDrag = { dx, dy ->
                                 try {
@@ -465,7 +465,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val aiVerifiedPrices = rawCombined.filter { p ->
             val isNotZero = p.sellPriceMin > 0
             val isNotUnrealistic = !AlbionMarketApi.isUnrealisticPrice(p.itemId, p.sellPriceMin)
-            val isWithinBounds = (p.sellPriceMin in 5..500_000_000)
+            val isWithinBounds = p.sellPriceMin in 5..500_000_000
             val isBuyOrderValid = p.buyPriceMax == 0 || p.buyPriceMax < (p.sellPriceMin * 3)
 
             isNotZero && isNotUnrealistic && isWithinBounds && isBuyOrderValid
@@ -610,7 +610,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
         // Extra KI-Anomalie Filter: Unrealistische Spitzen verworfen
         val aiSanitizedOpportunities = rawOpportunities.filter { opp ->
-            opp.roiPercent in 0.1..500.0 && opp.unitNetProfit in 1..50_000_000
+            (opp.roiPercent in 0.1..500.0) && (opp.unitNetProfit in 1..50_000_000)
         }
 
         return aiSanitizedOpportunities.asSequence().sortedByDescending { it.updatedTimestamp }.take(25).toList()
@@ -646,7 +646,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 acceptedDate = dateStr,
                 status = OrderStatus.ACTIVE,
                 recommendedBuyOrderPrice = if (opp.recommendedBuyOrderPrice > 0) opp.recommendedBuyOrderPrice else (opp.buyPrice * 0.88).toInt().coerceAtLeast(1),
-                recommendedSellOrderPrice = if (opp.recommendedSellOrderPrice > 0) opp.recommendedSellOrderPrice else (opp.sellPrice * 1.08).toInt().coerceAtLeast(1)
+                recommendedSellOrderPrice = if (opp.recommendedSellOrderPrice > 0) opp.recommendedSellOrderPrice else (opp.sellPrice * 1.08).toInt().coerceAtLeast(1),
             )
 
             val updatedOrders = currentOrders + newOrder
@@ -957,7 +957,7 @@ fun BubbleOverlayContent(
                             horizontalArrangement = Arrangement.spacedBy(if (isCompactMode) 3.dp else 6.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            items(availableTabs) { tab ->
+                            items(availableTabs) { tab: BubbleTab ->
                                 val isSelected = selectedTab == tab
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
@@ -1341,7 +1341,7 @@ fun BubbleOverlayContent(
                                         var editSilverText by remember(uiState.silverBudget) { mutableStateOf(uiState.silverBudget.toString()) }
                                         OutlinedTextField(
                                             value = editSilverText,
-                                            onValueChange = { str ->
+                                            onValueChange = { str: String ->
                                                 val clean = str.filter { it.isDigit() }
                                                 editSilverText = clean
                                                 val valLong = clean.toLongOrNull() ?: 0L
@@ -1360,7 +1360,7 @@ fun BubbleOverlayContent(
                                         var editCapText by remember(uiState.carryCapacityKg) { mutableStateOf(uiState.carryCapacityKg.toLong().toString()) }
                                         OutlinedTextField(
                                             value = editCapText,
-                                            onValueChange = { str ->
+                                            onValueChange = { str: String ->
                                                 val clean = str.filter { it.isDigit() }
                                                 editCapText = clean
                                                 val valDbl = clean.toDoubleOrNull() ?: 0.0
@@ -1426,7 +1426,7 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                             ) {
-                                items(bubbleCities) { c ->
+                                items(bubbleCities) { c: String ->
                                     val isSelected = currentBubbleCity == c
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
@@ -1460,7 +1460,7 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
-                                items(ResourceCategory.entries) { cat ->
+                                items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
                                     val isSelected = currentBubbleCategory == cat.name
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
@@ -1495,7 +1495,7 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
-                                items(bubbleTiers) { tier ->
+                                items(bubbleTiers) { tier: Int ->
                                     val isSelected = currentBubbleTier == tier
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
@@ -1530,7 +1530,8 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
-                                items(bubbleEnchantments) { (enc, label) ->
+                                items(bubbleEnchantments) { pair: Pair<Int, String> ->
+                                    val (enc, label) = pair
                                     val isSelected = currentBubbleEnchantment == enc
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
@@ -1565,7 +1566,7 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
-                                items(zoneOptions) { z ->
+                                items(zoneOptions) { z: Int ->
                                     val isSelected = currentBubbleMaxZones == z
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
@@ -1662,7 +1663,7 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                             ) {
-                                items(intervalOptions) { mins ->
+                                items(intervalOptions) { mins: Int ->
                                     val isSelected = currentBubbleInterval == mins
                                     Surface(
                                         shape = RoundedCornerShape(6.dp),
@@ -2172,7 +2173,7 @@ fun BubbleCatalogTab(
 
         // Category Filter Chips Row
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            items(ResourceCategory.entries) { cat ->
+            items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
                 val isSelected = selectedCat == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2193,7 +2194,7 @@ fun BubbleCatalogTab(
         // Tier Filter Chips Row
         val tiersList = listOf(0, 2, 3, 4, 5, 6, 7, 8)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            items(tiersList) { tier ->
+            items(tiersList) { tier: Int ->
                 val isSelected = selectedTier == tier
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2343,7 +2344,7 @@ fun BubbleCraftingTab(
             .fillMaxWidth()
             .heightIn(max = maxHeight),
     ) {
-        itemsIndexed(craftingOpps, key = { index, opp -> "${opp.resource.fullId}_$index" }) { index, opp ->
+        itemsIndexed(craftingOpps, key = { index: Int, opp: CraftingOpportunityDetails -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
             val rankBadge = when (index) {
                 0 -> "🏆 #1 Beste Marge"
                 1 -> "🥈 #2 Top Marge"
@@ -2504,7 +2505,7 @@ fun BubbleIslandTab(
     ) {
         // City Filter Chips
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(cities) { city ->
+            items(cities) { city: String ->
                 val isSelected = selectedCityFilter == city
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2572,7 +2573,8 @@ fun BubbleIslandTab(
                 
                 // Schnellstart-Buttons für Ernte & Tiere in Bubble
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    items(IslandTimerManager.standardCropOptions) { (cropName, hours) ->
+                    items(IslandTimerManager.standardCropOptions) { option: Pair<String, Int> ->
+                        val (cropName, hours) = option
                         Button(
                             onClick = {
                                 IslandTimerManager.addTimer(context, cropName.substringBefore(" ("), TimerCategory.CROP, hours)
@@ -2589,7 +2591,8 @@ fun BubbleIslandTab(
                     }
                 }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    items(IslandTimerManager.standardAnimalOptions) { (animalName, hours) ->
+                    items(IslandTimerManager.standardAnimalOptions) { option: Pair<String, Int> ->
+                        val (animalName, hours) = option
                         Button(
                             onClick = {
                                 IslandTimerManager.addTimer(context, animalName.substringBefore(" ("), TimerCategory.ANIMAL, hours)
@@ -2727,7 +2730,7 @@ fun BubbleEventsTab(
         // 2. Player Count Category Chips for Floating Bubble
         Text("👥 Spieler-Kategorie wählen:", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 8.sp)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
-            items(PlayerCategory.entries.toTypedArray()) { cat ->
+            items(PlayerCategory.entries.toList()) { cat: PlayerCategory ->
                 val isSelected = selectedPlayerCategory == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2842,7 +2845,7 @@ fun BubbleGoldTab(
 
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
+        modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState()),
     ) {
         Surface(
             shape = RoundedCornerShape(10.dp),
@@ -3226,8 +3229,10 @@ fun BubbleBuildsTab(
 
     val filteredBuilds = remember(selectedCat, uiState.equipmentBuilds) {
         uiState.equipmentBuilds
+            .asSequence()
             .filter { it.category == selectedCat }
             .sortedByDescending { it.estimatedMarginPercent }
+            .toList()
     }
 
     Column(
@@ -3235,7 +3240,7 @@ fun BubbleBuildsTab(
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
     ) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            items(BuildCategory.entries.toTypedArray()) { cat ->
+            items(BuildCategory.entries.toList()) { cat: BuildCategory ->
                 val isSelected = selectedCat == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -3330,7 +3335,7 @@ fun BubbleMapTab(
         AlbionResourceRepository.resources.filter { it.category == ResourceCategory.REFINED }
     }
     val matchingRes = remember(refinedRes, activeRegion.name) {
-        refinedRes.filter { res ->
+        refinedRes.asSequence().filter { res ->
             when {
                 activeRegion.name.contains("Bridgewatch") -> res.id.contains("LEATHER")
                 activeRegion.name.contains("Fort Sterling") -> res.id.contains("METALBAR")
@@ -3339,7 +3344,7 @@ fun BubbleMapTab(
                 activeRegion.name.contains("Thetford") -> res.id.contains("CLOTH")
                 else -> true
             }
-        }.take(8)
+        }.take(8).toList()
     }
 
     val avgCost = remember(matchingRes, cityName, uiState.marketPrices) {
@@ -3373,7 +3378,7 @@ fun BubbleMapTab(
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
     ) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(regions) { reg ->
+            items(regions) { reg: WorldMapRegion ->
                 val isSelected = selectedRegionName == reg.name
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -3795,7 +3800,6 @@ fun BubbleAdminTab(
             devices = devices,
             showMergeBot = false,
             onFocusModeChanged = onFocusModeChanged,
-            onRefresh = { loadAdminData() }
-        )
+        ) { loadAdminData() }
     }
 }
