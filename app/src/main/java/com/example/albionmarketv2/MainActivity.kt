@@ -311,25 +311,27 @@ class MainActivity : ComponentActivity() {
                                 .verticalScroll(rememberScrollState()),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Card(
+                            NeonGlowCard(
+                                glowColors = listOf(Color(0xFFFFD700), Color(0xFF38BDF8), Color(0xFF8B5CF6)),
+                                containerColor = Color(0xFF1E293B),
+                                shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier
                                     .fillMaxWidth(0.92f)
                                     .padding(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                shape = RoundedCornerShape(16.dp),
                             ) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(14.dp),
+                                        .padding(16.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
+                                    RainbowAlbionDataProTitle(titleName = prefs.customAppName)
                                     Text(
-                                        text = "🔒 Login",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
+                                        text = "🔒 High-End Cloud Login",
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = Color(0xFF94A3B8),
                                         textAlign = TextAlign.Center,
                                     )
 
@@ -1015,9 +1017,14 @@ fun UnlockedLockscreenContent(
                                             Toast.makeText(context, "🛑 Floating Bubble gestoppt", Toast.LENGTH_SHORT).show()
                                         } else {
                                             if (Settings.canDrawOverlays(context)) {
-                                                FloatingBubbleService.startService(context)
-                                                isBubbleRunning = true
-                                                Toast.makeText(context, "⚡ Floating Bubble gestartet!", Toast.LENGTH_SHORT).show()
+                                                try {
+                                                    FloatingBubbleService.startService(context)
+                                                    isBubbleRunning = true
+                                                    Toast.makeText(context, "⚡ Floating Bubble gestartet!", Toast.LENGTH_SHORT).show()
+                                                } catch (e: Exception) {
+                                                    e.printStackTrace()
+                                                    Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_LONG).show()
+                                                }
                                                 val prefs = AppPreferences(context)
                                                 if (prefs.hideAppOnBubbleActivate) {
                                                     (context as? Activity)?.moveTaskToBack(true)

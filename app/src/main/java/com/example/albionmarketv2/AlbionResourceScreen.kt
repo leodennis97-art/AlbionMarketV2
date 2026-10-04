@@ -305,8 +305,13 @@ fun AlbionResourceScreen(
                                     return@IconButton
                                 }
                                 if (Settings.canDrawOverlays(context)) {
-                                    FloatingBubbleService.startService(context)
-                                    Toast.makeText(context, "Overlay Bubble gestartet", Toast.LENGTH_SHORT).show()
+                                    try {
+                                        FloatingBubbleService.startService(context)
+                                        Toast.makeText(context, "Overlay Bubble gestartet", Toast.LENGTH_SHORT).show()
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        Toast.makeText(context, "❌ Fehler: ${e.localizedMessage ?: "Unbekannt"}", Toast.LENGTH_LONG).show()
+                                    }
                                     if (prefs.hideAppOnBubbleActivate) {
                                         (context as? Activity)?.moveTaskToBack(true)
                                     }
