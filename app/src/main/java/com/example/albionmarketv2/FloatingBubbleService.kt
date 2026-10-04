@@ -20,6 +20,7 @@ import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.core.net.toUri
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -1911,6 +1912,44 @@ fun BubbleOverlayContent(
                                                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                                                 )
                                                             }
+                                                        }
+                                                    }
+
+                                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                                    // ALBION 2D STATS LINK & LIQUIDITY BADGE
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        modifier = Modifier.fillMaxWidth()
+                                                    ) {
+                                                        Text(
+                                                            text = if (opp.liquidityScore.isNotBlank()) opp.liquidityScore else "📊 24h Markt-Volumen",
+                                                            color = Color(0xFF38BDF8),
+                                                            fontSize = 8.sp,
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+
+                                                        Surface(
+                                                            shape = RoundedCornerShape(4.dp),
+                                                            color = Color(0xFF0F172A),
+                                                            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                                                            modifier = Modifier.clickable {
+                                                                try {
+                                                                    val intent = Intent(Intent.ACTION_VIEW, opp.albion2dUrl.toUri()).apply {
+                                                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                                    }
+                                                                    context.startActivity(intent)
+                                                                } catch (_: Exception) {}
+                                                            }
+                                                        ) {
+                                                            Text(
+                                                                text = "🌐 2D Stats",
+                                                                color = Color(0xFF38BDF8),
+                                                                fontSize = 8.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                            )
                                                         }
                                                     }
                                                 }

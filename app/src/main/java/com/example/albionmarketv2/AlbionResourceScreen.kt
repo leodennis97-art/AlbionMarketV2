@@ -2151,6 +2151,82 @@ fun TradeOpportunityCard(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            // ALBION2D MARKET STATS, LIQUIDITY & DIRECT 2D STATS LINK
+            val context = LocalContext.current
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF0F172A),
+                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.6f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (opportunity.liquidityScore.isNotBlank()) opportunity.liquidityScore else "📊 24h Markt-Liquidität",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF38BDF8)
+                        )
+                        if (opportunity.focusProfitPerPoint > 0) {
+                            Text(
+                                text = "✨ +${opportunity.focusProfitPerPoint} S./Fokus",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFF10B981)
+                            )
+                        }
+                    }
+
+                    if (opportunity.isScamPriceWarning) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF7F1D1D)
+                        ) {
+                            Text(
+                                text = "⚠️ Warnung: Preis liegt >80% über 7-Tage-Schnitt (Möglicher Scam)",
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
+                    ) {
+                        Text(
+                            text = "🌐 europe.albiononline2d.com",
+                            fontSize = 9.sp,
+                            color = Color.LightGray
+                        )
+
+                        OutlinedButton(
+                            onClick = {
+                                try {
+                                    val intent = Intent(Intent.ACTION_VIEW, opportunity.albion2dUrl.toUri()).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {}
+                            },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                            modifier = Modifier.height(26.dp)
+                        ) {
+                            Text("🌐 2D Stats", fontSize = 9.5.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "👆 Tippe auf das Item, um den Auftrag anzunehmen",
                 fontSize = 10.sp,

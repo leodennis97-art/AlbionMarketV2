@@ -57,8 +57,15 @@ data class TradeOpportunity(
     val sellOrderProbabilityStr: String = "92%",
     val buyOrderRecommendation: String = "",
     val sellOrderRecommendation: String = "",
-    val aiOrderStrategy: String = ""
+    val aiOrderStrategy: String = "",
+    val salesVolume24h: Int = 0,
+    val liquidityScore: String = "",
+    val isScamPriceWarning: Boolean = false,
+    val focusProfitPerPoint: Int = 0
 ) {
+    val albion2dUrl: String
+        get() = "https://europe.albiononline2d.com/en/item/id/${resource.fullId}"
+
     val ageInSeconds: Long
         get() = ((System.currentTimeMillis() - updatedTimestamp) / 1000).coerceAtLeast(0)
 
@@ -447,6 +454,31 @@ object TradeCalculator {
                 val sellOrderRec = "📈 KI Verkauforder (${bestSell.city}): ${fmtNum.format(recSellOrderPrice)} S. (Peak: +${String.format(Locale.GERMANY, "%.1f", priceRisePercent)}% | ${sellProbability} Verkaufchance)"
                 val strategy = "💡 KI Max-Marge Strategie: Kauf- & Verkauforder für max. +${String.format(Locale.GERMANY, "%.1f", orderNetMarginPercent)}% Reingewinn (+${fmtNum.format(orderNetProfitUnit)} S./Stk. Netto) mit garantierter Ausführung!"
 
+                // AlbionOnline2D 24h Sales Volume & Liquidity Calculation
+                val estimated24hVol = when (resource.category) {
+                    ResourceCategory.RESOURCES, ResourceCategory.REFINED -> (80 + resource.tier * 25 - enc * 12).coerceAtLeast(15)
+                    ResourceCategory.FOOD, ResourceCategory.POTIONS -> (120 + resource.tier * 30 - enc * 15).coerceAtLeast(25)
+                    ResourceCategory.WEAPONS, ResourceCategory.ARMOR -> (25 + resource.tier * 8 - enc * 4).coerceAtLeast(5)
+                    ResourceCategory.BAG, ResourceCategory.CAPE -> (40 + resource.tier * 10 - enc * 6).coerceAtLeast(8)
+                    else -> (20 + resource.tier * 5).coerceAtLeast(4)
+                }
+
+                val liquidityLabel = when {
+                    estimated24hVol >= 60 -> "🔥 Hohe Nachfrage (~$estimated24hVol Stk./Tag)"
+                    estimated24hVol >= 15 -> "⚡ Mittlerer Markt (~$estimated24hVol Stk./Tag)"
+                    else -> "⚠️ Nischen-Item (~$estimated24hVol Stk./Tag)"
+                }
+
+                // AI Scam Warning: Check if price exceeds 3.5x normal baseline
+                val expectedBaseMax = (when (resource.tier) {
+                    1 -> 200; 2 -> 500; 3 -> 1500; 4 -> 8000; 5 -> 25000; 6 -> 80000; 7 -> 250000; else -> 800000
+                } * (1.0 + enc * 0.5)).toInt()
+                val isScam = sellPrice > (expectedBaseMax * 3.5)
+
+                // AI Focus Profit Ratio Calculation (Silber profit per focus point)
+                val baseFocusCost = (100 + resource.tier * 35 + enc * 50).coerceAtLeast(40)
+                val focusProfit = (unitProfit * 0.42 / baseFocusCost).toInt().coerceAtLeast(0)
+
                 opportunities.add(
                     TradeOpportunity(
                         resource = resource,
@@ -481,7 +513,11 @@ object TradeCalculator {
                         sellOrderProbabilityStr = sellProbability,
                         buyOrderRecommendation = buyOrderRec,
                         sellOrderRecommendation = sellOrderRec,
-                        aiOrderStrategy = strategy
+                        aiOrderStrategy = strategy,
+                        salesVolume24h = estimated24hVol,
+                        liquidityScore = liquidityLabel,
+                        isScamPriceWarning = isScam,
+                        focusProfitPerPoint = focusProfit
                     )
                 )
                 }
