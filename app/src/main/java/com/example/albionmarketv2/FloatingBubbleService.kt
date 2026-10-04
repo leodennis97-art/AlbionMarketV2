@@ -97,7 +97,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         fun startService(context: Context) {
             try {
                 val intent = Intent(context, FloatingBubbleService::class.java)
-                context.startForegroundService(intent)
+                context.startService(intent)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -193,14 +193,18 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 .setOngoing(true)
                 .build()
 
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                try {
-                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
-                } catch (_: Exception) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    try {
+                        startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                    } catch (_: Throwable) {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } else {
                     startForeground(NOTIFICATION_ID, notification)
                 }
-            } else {
-                startForeground(NOTIFICATION_ID, notification)
+            } catch (t: Throwable) {
+                t.printStackTrace()
             }
         } catch (e: Exception) {
             e.printStackTrace()
