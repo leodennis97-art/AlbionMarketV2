@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "2.3.18"
+const val CURRENT_APP_VERSION = "2.4.0"
 
 data class AdminDevice(
     val hwId: String,
@@ -986,6 +986,17 @@ fun AdminControlDialog(
                         ShimmerLoadingCard(height = 70.dp)
                     }
                 } else {
+                    AdminKpiHeader(
+                        totalUsers = users.size,
+                        totalAdmins = users.count { it.isAdmin },
+                        totalLicenses = licenses.size,
+                        totalDevices = devices.size,
+                        bannedDevices = devices.count { it.isBanned },
+                        outdatedDevices = devices.count { it.appVersion.trim() < CURRENT_APP_VERSION },
+                        activeTab = 0,
+                        onSelectTabAndFilter = { _, _ -> }
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
                     AdminSimpleView(
                         viewModel = viewModel,
                         users = users,
@@ -1040,6 +1051,17 @@ fun AdminKpiHeader(
             .fillMaxWidth()
             .padding(vertical = 2.dp)
     ) {
+        item {
+            KpiStatCard(
+                title = "Einnahmen / ARR",
+                value = "~${totalLicenses * 15} €",
+                subtitle = "Geschätzt/Monat",
+                color = Color(0xFFF59E0B),
+                icon = Icons.Default.CheckCircle,
+                isSelected = false,
+                onClick = { }
+            )
+        }
         item {
             KpiStatCard(
                 title = "Benutzer",

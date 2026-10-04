@@ -23,6 +23,7 @@ import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.core.net.toUri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -747,6 +748,7 @@ fun BubbleOverlayContent(
     val maxBubbleHeightTab = ((if (isLandscape) (bubbleHeightLandscape - 45).coerceAtLeast(80) else (bubbleHeightPortrait - 45).coerceAtLeast(100)).toFloat() * effScale).dp
 
     var isExpanded by remember { mutableStateOf(value = false) }
+    var isGhostMode by remember { mutableStateOf(value = false) }
     var isBookingMode by remember { mutableStateOf(value = false) }
     var selectedTab by remember { mutableStateOf(if (activeOrder != null) BubbleTab.ACTIVE_ORDER else BubbleTab.TOP_MARGIN) }
 
@@ -761,7 +763,7 @@ fun BubbleOverlayContent(
     Box(
         modifier = Modifier.wrapContentSize(),
     ) {
-        if (!isExpanded) {
+        if (!isExpanded || isGhostMode) {
             val minBubbleSize = ((if (isCompactMode) 46.dp else 60.dp).value * effScale).dp
             val minIconSize = ((if (isCompactMode) 32.dp else 44.dp).value * effScale).dp
             Surface(
@@ -772,10 +774,11 @@ fun BubbleOverlayContent(
                 modifier = Modifier
                     .size(minBubbleSize)
                     .clip(CircleShape)
-                    .graphicsLayer(alpha = effOpacity)
+                    .graphicsLayer(alpha = if (isGhostMode) 0.5f else effOpacity)
                     .pointerInput(Unit) {
                         detectTapGestures {
                             isExpanded = true
+                            isGhostMode = false
                         }
                     }
                     .pointerInput(Unit) {
@@ -792,6 +795,28 @@ fun BubbleOverlayContent(
                         tint = Color.Unspecified,
                         modifier = Modifier.size(minIconSize),
                     )
+                    
+                    if (isGhostMode && topOpportunities.isNotEmpty()) {
+                        val maxProfit = topOpportunities.maxOfOrNull { it.totalNetProfit } ?: 0L
+                        if (maxProfit > 0) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFEF4444),
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .size(16.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = "${topOpportunities.size}",
+                                        color = Color.White,
+                                        fontSize = 8.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         } else {
@@ -836,6 +861,18 @@ fun BubbleOverlayContent(
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Ghost Mode (Hide) Button
+                            IconButton(
+                                onClick = { isGhostMode = true },
+                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
+                            ) {
+                                Text(
+                                    text = "👻",
+                                    color = Color.White,
+                                    fontSize = if (isCompactMode) 10.sp else 12.sp,
+                                )
+                            }
+
                             // Zoom In (+) Button
                             IconButton(
                                 onClick = {
@@ -1320,9 +1357,10 @@ fun BubbleOverlayContent(
                                 }
                             }
                         }
-                    } else if (selectedTab == BubbleTab.TOP_MARGIN) {
+                        } else if (selectedTab == BubbleTab.TOP_MARGIN) {
                         val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
                         val uiState by viewModel.uiState.collectAsState()
+                        var showAdvancedFilters by remember { mutableStateOf(false) }
 
                         Column(
                             modifier = Modifier
@@ -1334,129 +1372,36 @@ fun BubbleOverlayContent(
                             var currentBubbleCity by remember { mutableStateOf(prefsForCity.bubbleStandpunktCity) }
                             val bubbleCities = remember { listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien", "Black Market") }
 
-                            Card(
+                            // 📊 SMART DASHBOARD
+                            Surface(
                                 shape = RoundedCornerShape(8.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 6.dp)
-                            ) {
-                                Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Text("⚡ Silber Budget & Tragkraft (Manuell anpassen)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
-
-                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                                        var editSilverText by remember(uiState.silverBudget) { mutableStateOf(uiState.silverBudget.toString()) }
-                                        OutlinedTextField(
-                                            value = editSilverText,
-                                            onValueChange = { str: String ->
-                                                val clean = str.filter { it.isDigit() }
-                                                editSilverText = clean
-                                                val valLong = clean.toLongOrNull() ?: 0L
-                                                viewModel.onSilverBudgetChanged(valLong)
-                                                prefsForCity.silverBudget = valLong
-                                                onRefresh()
-                                            },
-                                            label = { Text("💰 Silber Budget", fontSize = 8.sp, color = Color.LightGray) },
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            singleLine = true,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
-                                        )
-
-                                        var editCapText by remember(uiState.carryCapacityKg) { mutableStateOf(uiState.carryCapacityKg.toLong().toString()) }
-                                        OutlinedTextField(
-                                            value = editCapText,
-                                            onValueChange = { str: String ->
-                                                val clean = str.filter { it.isDigit() }
-                                                editCapText = clean
-                                                val valDbl = clean.toDoubleOrNull() ?: 0.0
-                                                viewModel.onCarryCapacityChanged(valDbl)
-                                                prefsForCity.carryCapacityKg = valDbl
-                                                onRefresh()
-                                            },
-                                            label = { Text("⚖️ Tragkraft (kg)", fontSize = 8.sp, color = Color.LightGray) },
-                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            singleLine = true,
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
-                                        )
-                                    }
-
-                                    // Schnell-Buttons für Silber
-                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
-                                        listOf(1_000_000L to "1M", 5_000_000L to "5M", 10_000_000L to "10M", 50_000_000L to "50M").forEach { (amt, label) ->
-                                            Button(
-                                                onClick = {
-                                                    viewModel.onSilverBudgetChanged(amt)
-                                                    onRefresh()
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = if (uiState.silverBudget == amt) Color(0xFF3B82F6) else Color(0xFF334155)),
-                                                shape = RoundedCornerShape(4.dp),
-                                                modifier = Modifier.weight(1f).height(24.dp),
-                                                contentPadding = PaddingValues(0.dp)
-                                            ) {
-                                                Text(label, fontSize = 8.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                                            }
-                                        }
-                                    }
-
-                                    // Schnell-Buttons für Tragkraft
-                                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
-                                        listOf(1000 to "1t", 2000 to "2t", 3000 to "3t", 5000 to "5t").forEach { (cap, label) ->
-                                            Button(
-                                                onClick = {
-                                                    viewModel.onCarryCapacityChanged(cap.toDouble())
-                                                    onRefresh()
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = if (uiState.carryCapacityKg.toInt() == cap) Color(0xFF3B82F6) else Color(0xFF334155)),
-                                                shape = RoundedCornerShape(4.dp),
-                                                modifier = Modifier.weight(1f).height(24.dp),
-                                                contentPadding = PaddingValues(0.dp)
-                                            ) {
-                                                Text(label, fontSize = 8.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            Text(
-                                text = "🏙️ Standpunkt: ${if (currentBubbleCity == "ALLE") "Alle" else LanguageManager.getCityTranslation(currentBubbleCity, lang)}",
-                                color = Color(0xFF81D4FA),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                color = Color(0xFF0F172A),
+                                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                             ) {
-                                items(bubbleCities) { c: String ->
-                                    val isSelected = currentBubbleCity == c
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (isSelected) Color(0xFF4CAF50) else Color(0xFF1E3A4C),
-                                        modifier = Modifier.clickable {
-                                            currentBubbleCity = c
-                                            prefsForCity.bubbleStandpunktCity = c
-                                            onRefresh()
-                                        }
-                                    ) {
-                                        Text(
-                                            text = if (c == "ALLE") "Alle" else LanguageManager.getCityTranslation(c, lang),
-                                            color = Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(6.dp)
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("📦 Deals", color = Color.Gray, fontSize = 8.sp)
+                                        Text("${topOpportunities.size}", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        val topProfit = topOpportunities.maxOfOrNull { it.totalNetProfit } ?: 0L
+                                        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+                                        Text("💰 Top Profit", color = Color.Gray, fontSize = 8.sp)
+                                        Text("+${fmt.format(topProfit)}", color = Color(0xFFF59E0B), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    }
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("⏰ Scan", color = Color.Gray, fontSize = 8.sp)
+                                        Text("Live", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            // 🔍 Real-Time Category & Item Search Input
+
+                            // 🔍 Real-Time Category & Item Search Input (Always visible)
                             var searchInputText by remember { mutableStateOf(prefsForCity.bubbleSearchQuery) }
                             OutlinedTextField(
                                 value = searchInputText,
@@ -1469,28 +1414,22 @@ fun BubbleOverlayContent(
                                 singleLine = true,
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .padding(bottom = 4.dp)
                                     .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                             )
 
-                            // ⚡ Category Presets Bar
-                            Text(
-                                text = "⚡ " + (if (lang == "DE") "Kategorie Presets:" else "Category Presets:"),
-                                color = Color(0xFF38BDF8),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
+                            // ⚡ Category Presets Bar (Always visible)
                             val presets = listOf(
                                 "ALL" to "🌟 Alle",
-                                "SAMMLER" to "🌾 Sammler & Veredler",
-                                "GEAR" to "⚔️ Gear & Waffen",
-                                "GASTRO" to "🧪 Gastro & Alchemie",
-                                "LUXUS" to "🐎 Reittiere & Artefakte"
+                                "SAMMLER" to "🌾 Sammler",
+                                "GEAR" to "⚔️ Gear",
+                                "GASTRO" to "🧪 Gastro",
+                                "LUXUS" to "🐎 Luxus"
                             )
                             var currentBubbleCategory by remember { mutableStateOf(prefsForCity.bubbleCategory) }
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                             ) {
                                 items(presets) { pair: Pair<String, String> ->
                                     val (presetKey, presetLabel) = pair
@@ -1509,266 +1448,252 @@ fun BubbleOverlayContent(
                                             color = if (isSelected) Color.Black else Color.White,
                                             fontSize = 8.5.sp,
                                             fontWeight = FontWeight.Bold,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 4.dp)
                                         )
                                     }
                                 }
                             }
 
-                            // 📦 Main Category Chips with Live Deal Counters & Badges
-                            Text(
-                                text = "📦 " + (if (lang == "DE") "Kategorie-Filter:" else "Category Filter:"),
-                                color = Color(0xFFFFB74D),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                            // ⚙️ Profi-Filter Toggle Button
+                            Button(
+                                onClick = { showAdvancedFilters = !showAdvancedFilters },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.fillMaxWidth().height(26.dp),
+                                contentPadding = PaddingValues(0.dp)
                             ) {
-                                items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
-                                    val isSelected = currentBubbleCategory == cat.name
-                                    val dealCount = topOpportunities.count { it.resource.category == cat }
-                                    val countText = if (dealCount > 0) " ($dealCount)" else ""
+                                Text(if (showAdvancedFilters) "➖ Profi-Filter einklappen" else "➕ Profi-Filter & Budget", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
 
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
-                                        modifier = Modifier.clickable {
-                                            currentBubbleCategory = cat.name
-                                            prefsForCity.bubbleCategory = cat.name
-                                            onRefresh()
-                                        }
+                            AnimatedVisibility(visible = showAdvancedFilters) {
+                                Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+                                    Card(
+                                        shape = RoundedCornerShape(8.dp),
+                                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                                        border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                                     ) {
-                                        Text(
-                                            text = "${cat.displayName}$countText",
-                                            color = Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "⭐ " + (if (lang == "DE") "Tier-Filter:" else "Tier Filter:"),
-                                color = Color(0xFFFDD835),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            var currentBubbleTier by remember { mutableIntStateOf(prefsForCity.bubbleTier) }
-                            val bubbleTiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                            ) {
-                                items(bubbleTiers) { tier: Int ->
-                                    val isSelected = currentBubbleTier == tier
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
-                                        modifier = Modifier.clickable {
-                                            currentBubbleTier = tier
-                                            prefsForCity.bubbleTier = tier
-                                            onRefresh()
+                                        Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text("⚡ Silber Budget & Tragkraft", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+                                                var editSilverText by remember(uiState.silverBudget) { mutableStateOf(uiState.silverBudget.toString()) }
+                                                OutlinedTextField(
+                                                    value = editSilverText,
+                                                    onValueChange = { str ->
+                                                        val clean = str.filter { it.isDigit() }
+                                                        editSilverText = clean
+                                                        val valLong = clean.toLongOrNull() ?: 0L
+                                                        viewModel.onSilverBudgetChanged(valLong)
+                                                        prefsForCity.silverBudget = valLong
+                                                        onRefresh()
+                                                    },
+                                                    label = { Text("💰 Budget", fontSize = 8.sp, color = Color.LightGray) },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    singleLine = true,
+                                                    modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                                )
+
+                                                var editCapText by remember(uiState.carryCapacityKg) { mutableStateOf(uiState.carryCapacityKg.toLong().toString()) }
+                                                OutlinedTextField(
+                                                    value = editCapText,
+                                                    onValueChange = { str ->
+                                                        val clean = str.filter { it.isDigit() }
+                                                        editCapText = clean
+                                                        val valDbl = clean.toDoubleOrNull() ?: 0.0
+                                                        viewModel.onCarryCapacityChanged(valDbl)
+                                                        prefsForCity.carryCapacityKg = valDbl
+                                                        onRefresh()
+                                                    },
+                                                    label = { Text("⚖️ kg", fontSize = 8.sp, color = Color.LightGray) },
+                                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                    singleLine = true,
+                                                    modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                                )
+                                            }
+
+                                            // Schnell-Buttons für Silber
+                                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
+                                                listOf(1_000_000L to "1M", 5_000_000L to "5M", 10_000_000L to "10M", 50_000_000L to "50M").forEach { (amt, label) ->
+                                                    Button(
+                                                        onClick = {
+                                                            viewModel.onSilverBudgetChanged(amt)
+                                                            prefsForCity.silverBudget = amt
+                                                            onRefresh()
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = if (uiState.silverBudget == amt) Color(0xFF3B82F6) else Color(0xFF334155)),
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        modifier = Modifier.weight(1f).height(24.dp),
+                                                        contentPadding = PaddingValues(0.dp)
+                                                    ) {
+                                                        Text(label, fontSize = 8.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                            }
+
+                                            // Schnell-Buttons für Tragkraft
+                                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
+                                                listOf(1000 to "1t", 2000 to "2t", 3000 to "3t", 5000 to "5t").forEach { (cap, label) ->
+                                                    Button(
+                                                        onClick = {
+                                                            viewModel.onCarryCapacityChanged(cap.toDouble())
+                                                            prefsForCity.carryCapacityKg = cap.toDouble()
+                                                            onRefresh()
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = if (uiState.carryCapacityKg.toInt() == cap) Color(0xFF3B82F6) else Color(0xFF334155)),
+                                                        shape = RoundedCornerShape(4.dp),
+                                                        modifier = Modifier.weight(1f).height(24.dp),
+                                                        contentPadding = PaddingValues(0.dp)
+                                                    ) {
+                                                        Text(label, fontSize = 8.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                            }
                                         }
-                                    ) {
-                                        Text(
-                                            text = if (tier == 0) "Alle Tiers" else "T$tier",
-                                            color = if (isSelected) Color.Black else Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
                                     }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "✨ " + (if (lang == "DE") "Verzauberungs-Filter:" else "Enchantment Filter:"),
-                                color = Color(0xFF00E676),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
-                            val bubbleEnchantments = listOf(-1 to "ALLE", 0 to ".0", 1 to ".1", 2 to ".2", 3 to ".3", 4 to ".4")
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                            ) {
-                                items(bubbleEnchantments) { pair: Pair<Int, String> ->
-                                    val (enc, label) = pair
-                                    val isSelected = currentBubbleEnchantment == enc
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isSelected) Color(0xFF00E676) else Color(0xFF1E3A4C),
-                                        modifier = Modifier.clickable {
-                                            currentBubbleEnchantment = enc
-                                            prefsForCity.bubbleEnchantment = enc
-                                            onRefresh()
+
+                                    Text("🏙️ Standpunkt:", color = Color(0xFF81D4FA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+                                        items(bubbleCities) { c: String ->
+                                            val isSelected = currentBubbleCity == c
+                                            Surface(
+                                                shape = RoundedCornerShape(6.dp),
+                                                color = if (isSelected) Color(0xFF4CAF50) else Color(0xFF1E3A4C),
+                                                modifier = Modifier.clickable {
+                                                    currentBubbleCity = c
+                                                    prefsForCity.bubbleStandpunktCity = c
+                                                    onRefresh()
+                                                }
+                                            ) {
+                                                Text(if (c == "ALLE") "Alle" else LanguageManager.getCityTranslation(c, lang), color = Color.White, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                            }
                                         }
-                                    ) {
-                                        Text(
-                                            text = label,
-                                            color = if (isSelected) Color.Black else Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
                                     }
-                                }
-                            }
-                            // Max Zonen Distance Filter Chips
-                            Text(
-                                text = "🗺️ " + (if (lang == "DE") "Max. Zonen-Distanz:" else "Max Zone Distance:"),
-                                color = Color(0xFFCE93D8),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            var currentBubbleMaxZones by remember { mutableIntStateOf(prefsForCity.bubbleMaxZones) }
-                            val zoneOptions = listOf(1, 2, 3, 5, 99)
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                            ) {
-                                items(zoneOptions) { z: Int ->
-                                    val isSelected = currentBubbleMaxZones == z
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isSelected) Color(0xFFAB47BC) else Color(0xFF1E3A4C),
-                                        modifier = Modifier.clickable {
-                                            currentBubbleMaxZones = z
-                                            prefsForCity.bubbleMaxZones = z
-                                            onRefresh()
+
+                                    Text("📦 Kategorie-Filter:", color = Color(0xFFFFB74D), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                                        items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
+                                            val isSelected = currentBubbleCategory == cat.name
+                                            val dealCount = topOpportunities.count { it.resource.category == cat }
+                                            val countText = if (dealCount > 0) " ($dealCount)" else ""
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
+                                                modifier = Modifier.clickable {
+                                                    currentBubbleCategory = cat.name
+                                                    prefsForCity.bubbleCategory = cat.name
+                                                    onRefresh()
+                                                }
+                                            ) {
+                                                Text("${cat.displayName}$countText", color = Color.White, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp))
+                                            }
                                         }
-                                    ) {
-                                        Text(
-                                            text = if (z == 99) "Alle Zonen" else "$z ${if (z == 1) "Zone" else "Zonen"}",
-                                            color = if (isSelected) Color.White else Color(0xFFB0BEC5),
-                                            fontSize = 9.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
                                     }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(2.dp))
 
-                            // Switches for Red / Dangerous Zones & Brecilien
-                            var currentBubbleAvoidDangerous by remember { mutableStateOf(prefsForCity.bubbleAvoidDangerousZones || prefsForCity.avoidDangerousZones) }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
-                            ) {
-                                Text("🔴 Rote / PvP Zonen ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                Switch(
-                                    checked = currentBubbleAvoidDangerous,
-                                    onCheckedChange = {
-                                        currentBubbleAvoidDangerous = it
-                                        prefsForCity.bubbleAvoidDangerousZones = it
-                                        prefsForCity.avoidDangerousZones = it
-                                        onRefresh()
-                                    },
-                                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444))
-                                )
-                            }
-
-                            var currentBubbleHideBrecilien by remember { mutableStateOf(prefsForCity.bubbleHideBrecilien || prefsForCity.hideBrecilien) }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
-                            ) {
-                                Text("✨ Brecilien ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                Switch(
-                                    checked = currentBubbleHideBrecilien,
-                                    onCheckedChange = {
-                                        currentBubbleHideBrecilien = it
-                                        prefsForCity.bubbleHideBrecilien = it
-                                        prefsForCity.hideBrecilien = it
-                                        onRefresh()
-                                    },
-                                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF38BDF8))
-                                )
-                            }
-
-                            var currentBubbleHideBlackMarket by remember { mutableStateOf(prefsForCity.bubbleHideBlackMarket || prefsForCity.hideBlackMarket) }
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)
-                            ) {
-                                Text("🏴‍☠️ Schmuggler (Schwarzmarkt) ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                Switch(
-                                    checked = currentBubbleHideBlackMarket,
-                                    onCheckedChange = {
-                                        currentBubbleHideBlackMarket = it
-                                        prefsForCity.bubbleHideBlackMarket = it
-                                        prefsForCity.hideBlackMarket = it
-                                        onRefresh()
-                                    },
-                                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFFB74D))
-                                )
-                            }
-
-
-
-                            // KI Preisvergleich Intervall (Minuten) Selector
-                            Text(
-                                text = "⏱️ " + (if (lang == "DE") "KI-Preisvergleich Intervall:" else "AI Price Check Interval:"),
-                                color = Color(0xFF38BDF8),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            var currentBubbleInterval by remember { mutableIntStateOf(prefsForCity.bubbleIntervalMinutes) }
-                            val intervalOptions = listOf(1, 3, 5, 10, 15)
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
-                            ) {
-                                items(intervalOptions) { mins: Int ->
-                                    val isSelected = currentBubbleInterval == mins
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
-                                        modifier = Modifier.clickable {
-                                            currentBubbleInterval = mins
-                                            prefsForCity.bubbleIntervalMinutes = mins
-                                            onRefresh()
+                                    Text("⭐ Tier-Filter:", color = Color(0xFFFDD835), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    var currentBubbleTier by remember { mutableIntStateOf(prefsForCity.bubbleTier) }
+                                    val bubbleTiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                                        items(bubbleTiers) { tier: Int ->
+                                            val isSelected = currentBubbleTier == tier
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                                                modifier = Modifier.clickable {
+                                                    currentBubbleTier = tier
+                                                    prefsForCity.bubbleTier = tier
+                                                    onRefresh()
+                                                }
+                                            ) {
+                                                Text(if (tier == 0) "Alle" else "T$tier", color = if (isSelected) Color.Black else Color.White, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                            }
                                         }
-                                    ) {
-                                        Text(
-                                            text = "$mins Min",
-                                            color = if (isSelected) Color.Black else Color.White,
-                                            fontSize = 9.sp,
-                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
-                                        )
+                                    }
+
+                                    Text("✨ Verzauberungs-Filter:", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
+                                    val bubbleEnchantments = listOf(-1 to "ALLE", 0 to ".0", 1 to ".1", 2 to ".2", 3 to ".3", 4 to ".4")
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                                        items(bubbleEnchantments) { pair: Pair<Int, String> ->
+                                            val (enc, label) = pair
+                                            val isSelected = currentBubbleEnchantment == enc
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isSelected) Color(0xFF00E676) else Color(0xFF1E3A4C),
+                                                modifier = Modifier.clickable {
+                                                    currentBubbleEnchantment = enc
+                                                    prefsForCity.bubbleEnchantment = enc
+                                                    onRefresh()
+                                                }
+                                            ) {
+                                                Text(label, color = if (isSelected) Color.Black else Color.White, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                            }
+                                        }
+                                    }
+
+                                    Text("🗺️ Max. Zonen-Distanz:", color = Color(0xFFCE93D8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    var currentBubbleMaxZones by remember { mutableIntStateOf(prefsForCity.bubbleMaxZones) }
+                                    val zoneOptions = listOf(1, 2, 3, 5, 99)
+                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
+                                        items(zoneOptions) { z ->
+                                            val isSelected = currentBubbleMaxZones == z
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = if (isSelected) Color(0xFFAB47BC) else Color(0xFF1E3A4C),
+                                                modifier = Modifier.clickable {
+                                                    currentBubbleMaxZones = z
+                                                    prefsForCity.bubbleMaxZones = z
+                                                    onRefresh()
+                                                }
+                                            ) {
+                                                Text(if (z == 99) "Alle Zonen" else "$z Zonen", color = if (isSelected) Color.White else Color(0xFFB0BEC5), fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    var currentBubbleAvoidDangerous by remember { mutableStateOf(prefsForCity.bubbleAvoidDangerousZones || prefsForCity.avoidDangerousZones) }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                                        Text("🔴 Rote / PvP Zonen ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Switch(checked = currentBubbleAvoidDangerous, onCheckedChange = {
+                                            currentBubbleAvoidDangerous = it
+                                            prefsForCity.bubbleAvoidDangerousZones = it
+                                            prefsForCity.avoidDangerousZones = it
+                                            onRefresh()
+                                        }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444)))
+                                    }
+
+                                    var currentBubbleHideBrecilien by remember { mutableStateOf(prefsForCity.bubbleHideBrecilien || prefsForCity.hideBrecilien) }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                                        Text("✨ Brecilien ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Switch(checked = currentBubbleHideBrecilien, onCheckedChange = {
+                                            currentBubbleHideBrecilien = it
+                                            prefsForCity.bubbleHideBrecilien = it
+                                            prefsForCity.hideBrecilien = it
+                                            onRefresh()
+                                        }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF38BDF8)))
+                                    }
+
+                                    var currentBubbleHideBlackMarket by remember { mutableStateOf(prefsForCity.bubbleHideBlackMarket || prefsForCity.hideBlackMarket) }
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
+                                        Text("🏴‍☠️ Schmuggler ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Switch(checked = currentBubbleHideBlackMarket, onCheckedChange = {
+                                            currentBubbleHideBlackMarket = it
+                                            prefsForCity.bubbleHideBlackMarket = it
+                                            prefsForCity.hideBlackMarket = it
+                                            onRefresh()
+                                        }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFFB74D)))
                                     }
                                 }
                             }
 
+                            Spacer(modifier = Modifier.height(4.dp))
                             var currentBubbleSort by remember { mutableStateOf("MARGE") }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
-                            ) {
-                                Text(
-                                    text = "🔥 " + LanguageManager.getString("top_opportunities", lang),
-                                    color = Color(0xFFFFB74D),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
 
                             // Sortier-Optionen im Bubble Overlay (Marge | Neueste | Wenigster Bestand)
                             Row(
@@ -1794,7 +1719,7 @@ fun BubbleOverlayContent(
                                     color = if (currentBubbleSort == "FEWEST_STOCK") Color(0xFFF59E0B) else Color(0xFF1E3A4C),
                                     modifier = Modifier.weight(1f).clickable { currentBubbleSort = "FEWEST_STOCK" }
                                 ) {
-                                    Text("📦 Wenigste Bestand", color = if (currentBubbleSort == "FEWEST_STOCK") Color.Black else Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 3.dp))
+                                    Text("📦 Bestand", color = if (currentBubbleSort == "FEWEST_STOCK") Color.Black else Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, modifier = Modifier.padding(vertical = 3.dp))
                                 }
                             }
 
