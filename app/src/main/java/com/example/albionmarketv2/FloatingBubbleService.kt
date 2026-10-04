@@ -1072,43 +1072,21 @@ fun BubbleOverlayContent(
                                     ) {
                                         Column(
                                             modifier = Modifier.padding(4.dp),
-                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                            verticalArrangement = Arrangement.spacedBy(1.dp)
                                         ) {
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text(
-                                                text = "🛒 Kauforder in $buyCityTrans: ${fmt.format(buyOrderPrice)} S.",
-                                                color = Color(0xFF38BDF8),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 8.5.sp
-                                            )
-                                            Text(
-                                                text = "100% Kaufchance",
-                                                color = Color(0xFF10B981),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 8.sp
-                                            )
-                                        }
+                                        Text(
+                                            text = "🛒 Kauforder in $buyCityTrans: ${fmt.format(buyOrderPrice)} S.",
+                                            color = Color(0xFF38BDF8),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 8.5.sp
+                                        )
 
-                                        Row(
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            modifier = Modifier.fillMaxWidth()
-                                        ) {
-                                            Text(
-                                                text = "📈 Verkauforder in $sellCityTrans: ${fmt.format(sellOrderPrice)} S.",
-                                                color = Color(0xFFFFD700),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 8.5.sp
-                                            )
-                                            Text(
-                                                text = "100% Verkaufchance",
-                                                color = Color(0xFF10B981),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 8.sp
-                                            )
-                                        }
+                                        Text(
+                                            text = "📈 Verkauforder in $sellCityTrans: ${fmt.format(sellOrderPrice)} S.",
+                                            color = Color(0xFFFFD700),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 8.5.sp
+                                        )
 
                                         Text(
                                             text = "💡 KI Max-Marge: +${fmt.format(maxOrderProfitTotal)} S. Netto (+${fmt.format(netOrderUnitProfit)} S./Stk.)",
@@ -2474,15 +2452,9 @@ fun BubbleCraftingTab(
                         color = Color(0xFF0F172A),
                         modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                     ) {
-                        Column(modifier = Modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text("🛒 KI Kauforder (Zutaten): ${fmt.format(opp.recBuyOrderCost)} S.", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
-                                Text("100% Kaufchance", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 8.sp)
-                            }
-                            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                Text("📈 KI Verkauforder (Endprodukt): ${fmt.format(opp.recSellOrderPrice)} S.", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
-                                Text("100% Verkaufchance", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 8.sp)
-                            }
+                        Column(modifier = Modifier.padding(4.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                            Text("🛒 KI Kauforder (Zutaten): ${fmt.format(opp.recBuyOrderCost)} S.", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
+                            Text("📈 KI Verkauforder (Endprodukt): ${fmt.format(opp.recSellOrderPrice)} S.", color = Color(0xFFFFD700), fontWeight = FontWeight.Bold, fontSize = 8.5.sp)
                             Text("💡 KI Max-Marge Reingewinn: +${fmt.format(opp.maxOrderProfit)} S. Netto", color = Color(0xFF4ADE80), fontWeight = FontWeight.ExtraBold, fontSize = 8.5.sp)
                         }
                     }

@@ -798,15 +798,9 @@ fun OrdersAndStatsTabContent(
                             color = Color(0xFF0F172A),
                             modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
-                            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                    Text("🛒 Kauforder (${order.buyCity}): ${numberFormat.format(recBuy)} S.", fontSize = 11.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
-                                    Text("100% Kaufchance", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                                }
-                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                                    Text("📈 Verkauforder (${order.sellCity}): ${numberFormat.format(recSell)} S.", fontSize = 11.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
-                                    Text("100% Verkaufchance", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
-                                }
+                            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                                Text("🛒 Kauforder (${order.buyCity}): ${numberFormat.format(recBuy)} S.", fontSize = 11.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                Text("📈 Verkauforder (${order.sellCity}): ${numberFormat.format(recSell)} S.", fontSize = 11.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
                                 Text("💡 KI Max-Marge: +${numberFormat.format(totalRecNetProfit)} S. Netto (+${numberFormat.format(netRecUnitProfit)} S./Stk.)", fontSize = 11.sp, color = Color(0xFF4ADE80), fontWeight = FontWeight.ExtraBold)
                             }
                         }
