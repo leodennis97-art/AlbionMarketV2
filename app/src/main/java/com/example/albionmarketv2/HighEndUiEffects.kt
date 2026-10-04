@@ -251,7 +251,7 @@ object ZoneThemeColors {
     }
 
     fun isBrecilien(city: String): Boolean {
-        return city.equals("Brecilien", ignoreCase = true)
+        return TradeCalculator.isBrecilien(city)
     }
 
     fun isRedZone(city: String): Boolean {

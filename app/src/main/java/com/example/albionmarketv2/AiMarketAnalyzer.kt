@@ -102,7 +102,7 @@ object AiMarketAnalyzer {
             }
 
             val validPrices = if (!includeBrecilien) {
-                noBm.filter { !it.city.equals("Brecilien", ignoreCase = true) }
+                noBm.filter { !TradeCalculator.isBrecilien(it.city) }
             } else {
                 noBm
             }

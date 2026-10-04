@@ -27,7 +27,6 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -550,8 +549,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         if (prefs.bubbleHideBlackMarket) {
             rawOpportunities = rawOpportunities.filter { !TradeCalculator.isBlackMarket(it.buyCity) && !TradeCalculator.isBlackMarket(it.sellCity) }
         }
-        if (prefs.bubbleHideBrecilien) {
-            rawOpportunities = rawOpportunities.filter { !it.buyCity.contains("Brecilien", ignoreCase = true) && !it.sellCity.contains("Brecilien", ignoreCase = true) }
+        if (prefs.bubbleHideBrecilien || prefs.hideBrecilien) {
+            rawOpportunities = rawOpportunities.filter { !TradeCalculator.isBrecilien(it.buyCity) && !TradeCalculator.isBrecilien(it.sellCity) }
         }
 
         // Extra KI-Anomalie Filter: Unrealistische Spitzen verworfen
@@ -942,103 +941,84 @@ fun BubbleOverlayContent(
                             val catEmoji = AlbionResourceRepository.resources.find { it.id == activeOrder.resourceId }?.category?.displayName?.substringBefore(" ") ?: "📦"
 
                             Surface(
-                                shape = RoundedCornerShape(10.dp),
+                                shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFF1E3A4C),
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
                             ) {
-                                Column(modifier = Modifier.padding(6.dp)) {
+                                Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                    // Row 1: Item Name, Tier/Enchantment & Net Profit
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
-                                        val resOpt = AlbionResourceRepository.resources.find { it.id == activeOrder.resourceId }
-                                        resOpt?.let { res ->
-                                            AsyncImage(
-                                                model = res.imageUrl,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(20.dp).padding(end = 4.dp),
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            val resOpt = AlbionResourceRepository.resources.find { it.id == activeOrder.resourceId }
+                                            resOpt?.let { res ->
+                                                AsyncImage(
+                                                    model = res.imageUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(18.dp).padding(end = 4.dp),
+                                                )
+                                            }
+                                            Text(
+                                                text = "$catEmoji ${activeOrder.resourceNameDe} (T${activeOrder.tier})",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 11.sp,
+                                                maxLines = 1
                                             )
                                         }
+
                                         Text(
-                                            text = "$catEmoji ${activeOrder.resourceNameDe} (T${activeOrder.tier})",
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 13.sp,
-                                            modifier = Modifier.weight(1f),
-                                        )
-                                        Text(
-                                            text = "${LanguageManager.getString("quantity", lang)}: $unitsStr",
-                                            color = Color(0xFF81D4FA),
-                                            fontWeight = FontWeight.SemiBold,
-                                            fontSize = 10.sp,
+                                            text = "+$profitStr S.",
+                                            color = Color(0xFF10B981),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 11.sp
                                         )
                                     }
 
-                                    Spacer(modifier = Modifier.height(4.dp))
-
+                                    // Row 2: Route & Quantity Info
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
                                         modifier = Modifier.fillMaxWidth(),
                                     ) {
-                                        Column {
-                                            Text(
-                                                text = "${LanguageManager.getString("buy_in", lang)}: $buyCityTrans ($buyPriceStr S.)",
-                                                color = Color(0xFF81C784),
-                                                fontSize = 10.sp,
-                                            )
-                                            Text(
-                                                text = "🤖 Kauforder (KI): ${fmt.format(if (activeOrder.recommendedBuyOrderPrice > 0) activeOrder.recommendedBuyOrderPrice else (activeOrder.buyPrice * 0.88).toInt())} S.",
-                                                color = Color(0xFF38BDF8),
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = "${LanguageManager.getString("sell_in", lang)}: $sellCityTrans ($sellPriceStr S.)",
-                                                color = Color(0xFF81C784),
-                                                fontSize = 10.sp,
-                                            )
-                                            Text(
-                                                text = "🤖 Verkauforder (KI): ${fmt.format(if (activeOrder.recommendedSellOrderPrice > 0) activeOrder.recommendedSellOrderPrice else (activeOrder.sellPrice * 1.08).toInt())} S.",
-                                                color = Color(0xFFFFD700),
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-
-                                        Column(horizontalAlignment = Alignment.End) {
-                                            Text(
-                                                text = "+$profitStr S.",
-                                                color = Color(0xFFFFB74D),
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 12.sp,
-                                            )
-                                            Text(
-                                                text = activeOrder.acceptedDate,
-                                                color = Color.LightGray,
-                                                fontSize = 9.sp,
-                                            )
-                                        }
+                                        Text(
+                                            text = "📍 $buyCityTrans ($buyPriceStr S.) ➔ $sellCityTrans ($sellPriceStr S.)",
+                                            color = Color(0xFF81D4FA),
+                                            fontWeight = FontWeight.SemiBold,
+                                            fontSize = 9.5.sp
+                                        )
+                                        Text(
+                                            text = "📦 $unitsStr Stk.",
+                                            color = Color(0xFFFFB74D),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.5.sp
+                                        )
                                     }
 
-                                    Spacer(modifier = Modifier.height(4.dp))
-
+                                    // Row 3: Compact Action Buttons (Buchen / Stornieren)
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                                     ) {
                                         Button(
                                             onClick = {
                                                 isBookingMode = true
                                                 onFocusModeChanged(true)
                                             },
-                                            shape = RoundedCornerShape(8.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                                            modifier = Modifier.weight(1f)
+                                            shape = RoundedCornerShape(6.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                            modifier = Modifier.weight(1f).height(26.dp)
                                         ) {
-                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(if (lang == "DE") "Buchen" else "Book", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 10.sp)
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(13.dp))
+                                            Spacer(modifier = Modifier.width(3.dp))
+                                            Text(if (lang == "DE") "Buchen" else "Book", fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 9.5.sp)
                                         }
 
                                         OutlinedButton(
@@ -1055,12 +1035,11 @@ fun BubbleOverlayContent(
                                                     e.printStackTrace()
                                                 }
                                             },
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.weight(1f)
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                                            modifier = Modifier.weight(1f).height(26.dp)
                                         ) {
-                                            Icon(Icons.Default.Close, contentDescription = null, tint = Color(0xFFFF8A80), modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.width(4.dp))
-                                            Text(if (lang == "DE") "Stornieren" else "Cancel", fontWeight = FontWeight.Bold, color = Color(0xFFFF8A80), fontSize = 10.sp)
+                                            Text(if (lang == "DE") "Stornieren" else "Cancel", fontSize = 9.sp, color = Color.LightGray)
                                         }
                                     }
                                 }
@@ -1505,6 +1484,7 @@ fun BubbleOverlayContent(
                                     onCheckedChange = {
                                         currentBubbleHideBrecilien = it
                                         prefsForCity.bubbleHideBrecilien = it
+                                        prefsForCity.hideBrecilien = it
                                         onRefresh()
                                     },
                                     colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF38BDF8))
@@ -1934,7 +1914,7 @@ fun BubbleOverlayContent(
                                                         modifier = Modifier.fillMaxWidth()
                                                     ) {
                                                         Text(
-                                                            text = if (opp.liquidityScore.isNotBlank()) opp.liquidityScore else "📊 24h Markt-Volumen",
+                                                            text = opp.liquidityScore.ifBlank { "📊 24h Markt-Volumen" },
                                                             color = Color(0xFF38BDF8),
                                                             fontSize = 8.sp,
                                                             fontWeight = FontWeight.Bold

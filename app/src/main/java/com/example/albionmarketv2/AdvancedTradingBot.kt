@@ -347,7 +347,7 @@ object AdvancedTradingBot {
             val filteredPrices = priceList.filter { p ->
                 val isDangerous = TradeCalculator.isDangerousCity(p.city)
                 val isBm = TradeCalculator.isBlackMarket(p.city)
-                val isBrec = p.city.contains("Brecilien", ignoreCase = true)
+                val isBrec = TradeCalculator.isBrecilien(p.city)
 
                 if (avoidDangerous && isDangerous) return@filter false
                 if (hideBlackMarket && isBm) return@filter false
@@ -374,7 +374,7 @@ object AdvancedTradingBot {
             // Strikter Filter für Rote Zonen, Schmuggler/Schwarzmarkt und Brecilien
             if (avoidDangerous && (TradeCalculator.isDangerousCity(bestBuy.city) || TradeCalculator.isDangerousCity(bestSell.city))) continue
             if (hideBlackMarket && (TradeCalculator.isBlackMarket(bestBuy.city) || TradeCalculator.isBlackMarket(bestSell.city))) continue
-            if (hideBrecilien && (bestBuy.city.contains("Brecilien", ignoreCase = true) || bestSell.city.contains("Brecilien", ignoreCase = true))) continue
+            if (hideBrecilien && (TradeCalculator.isBrecilien(bestBuy.city) || TradeCalculator.isBrecilien(bestSell.city))) continue
 
             // Zonen-Distanz prüfen
             val zones = CityDistanceCalculator.getZonesDistance(bestBuy.city, bestSell.city)

@@ -395,6 +395,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     fun onHideBrecilienToggled(hide: Boolean) {
         prefs.hideBrecilien = hide
+        prefs.bubbleHideBrecilien = hide
         val current = _uiState.value
         val updated = current.copy(hideBrecilien = hide)
         updateState(updated)
@@ -1086,7 +1087,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 newCalculated = newCalculated.filter { !TradeCalculator.isBlackMarket(it.buyCity) && !TradeCalculator.isBlackMarket(it.sellCity) }
             }
             if (state.hideBrecilien) {
-                newCalculated = newCalculated.filter { !it.buyCity.contains("Brecilien", ignoreCase = true) && !it.sellCity.contains("Brecilien", ignoreCase = true) }
+                newCalculated = newCalculated.filter { !TradeCalculator.isBrecilien(it.buyCity) && !TradeCalculator.isBrecilien(it.sellCity) }
             }
 
             if (state.filterHighPriorityOnly) {
