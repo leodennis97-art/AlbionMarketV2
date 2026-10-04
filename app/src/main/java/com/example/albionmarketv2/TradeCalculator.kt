@@ -378,11 +378,44 @@ object TradeCalculator {
                     if (validBuyPrices.isEmpty()) continue
 
                     val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
+                    val buyPrice = bestBuy.sellPriceMin
+                    if (buyPrice < 10) continue
 
-                    val validSellPrices = qPrices.filter { !citiesMatch(it.city, bestBuy.city) && it.sellPriceMin > 0 }
-                    if (validSellPrices.isEmpty()) continue
+                    // Find best target sell city: choose city with highest net profit using the lowest competitive sell price in that city
+                    val targetCityCandidates = qPrices
+                        .filter { !citiesMatch(it.city, bestBuy.city) && it.sellPriceMin > buyPrice }
+                        .groupBy { it.city }
 
-                    val bestSell = validSellPrices.maxByOrNull { it.sellPriceMin } ?: continue
+                    var bestSellPrice = 0
+                    var bestSellCityPrice: MarketPrice? = null
+                    var maxNetProfitUnit = 0L
+
+                    for ((cityName, cityPrices) in targetCityCandidates) {
+                        if (avoidDangerousZones && isDangerousCity(cityName)) continue
+                        if (hideBlackMarket && isBlackMarket(cityName)) continue
+                        if (hideBrecilien && isBrecilien(cityName)) continue
+
+                        // In this target city, find lowest active sell order so our offer undercuts it
+                        val cheapestSellInCity = cityPrices.filter { it.sellPriceMin > buyPrice }.minByOrNull { it.sellPriceMin } ?: continue
+                        val candSellPrice = cheapestSellInCity.sellPriceMin
+
+                        // Anomaly filter: ignore overpriced listings > 3.5x buy price
+                        if (candSellPrice > buyPrice * 3.5) continue
+
+                        val tax = (candSellPrice * (marketTaxPercent / 100.0)).toLong()
+                        val setupFee = (candSellPrice * 0.025).toLong()
+                        val net = candSellPrice - tax - setupFee
+                        val profit = net - buyPrice
+
+                        if (profit > maxNetProfitUnit) {
+                            maxNetProfitUnit = profit
+                            bestSellPrice = candSellPrice
+                            bestSellCityPrice = cheapestSellInCity
+                        }
+                    }
+
+                    val bestSell = bestSellCityPrice ?: continue
+                    val sellPrice = bestSellPrice
 
                 if (avoidDangerousZones && (isDangerousCity(bestBuy.city) || isDangerousCity(bestSell.city))) {
                     continue
@@ -393,13 +426,6 @@ object TradeCalculator {
                 if (hideBrecilien && (isBrecilien(bestBuy.city) || isBrecilien(bestSell.city))) {
                     continue
                 }
-
-                val buyPrice = bestBuy.sellPriceMin
-                val sellPrice = bestSell.sellPriceMin
-
-                // FILTER UNREALISTIC PRICE ANOMALIES
-                if (buyPrice < 10) continue
-                if (sellPrice > buyPrice * 4) continue
 
                 val taxPerUnit = (sellPrice * (marketTaxPercent / 100.0)).toInt()
                 val setupFeePerUnit = (sellPrice * 0.025).toInt() // 2.5% Einstellungsgebühr
