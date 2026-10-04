@@ -144,6 +144,10 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getInt("bubble_enchantment", -1) // -1 = ALLE
         set(value) = prefs.edit().putInt("bubble_enchantment", value).apply()
 
+    var bubbleSubCategory: String
+        get() = prefs.getString("bubble_subcategory", "ALL") ?: "ALL"
+        set(value) = prefs.edit().putString("bubble_subcategory", value).apply()
+
     var avoidDangerousZones: Boolean
         get() = prefs.getBoolean("avoid_dangerous_zones", prefs.getBoolean("bubble_avoid_dangerous", false))
         set(value) = prefs.edit().putBoolean("avoid_dangerous_zones", value).putBoolean("bubble_avoid_dangerous", value).apply()

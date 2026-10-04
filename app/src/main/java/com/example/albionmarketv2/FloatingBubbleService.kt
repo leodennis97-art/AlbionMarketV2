@@ -517,21 +517,23 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val bubbleTier = prefs.bubbleTier
         val bubbleEnchantment = prefs.bubbleEnchantment
 
+        val searchQ = prefs.bubbleSearchQuery.trim().lowercase()
+
         val filteredResources = resources.filter { res ->
-            val matchesCategory = if (bubbleCategory != "ALL") {
-                res.category.name.equals(bubbleCategory, ignoreCase = true) ||
-                res.category.displayName.equals(bubbleCategory, ignoreCase = true)
-            } else true
+            val matchesCategory = when (bubbleCategory) {
+                "ALL" -> true
+                "SAMMLER" -> res.category == ResourceCategory.RESOURCES || res.category == ResourceCategory.REFINED
+                "GEAR" -> res.category == ResourceCategory.WEAPONS || res.category == ResourceCategory.ARMOR || res.category == ResourceCategory.HELMETS || res.category == ResourceCategory.SHOES || res.category == ResourceCategory.OFFHAND || res.category == ResourceCategory.BAG || res.category == ResourceCategory.CAPE
+                "GASTRO" -> res.category == ResourceCategory.FOOD || res.category == ResourceCategory.POTIONS
+                "LUXUS" -> res.category == ResourceCategory.MOUNTS || res.category == ResourceCategory.ARTIFACTS
+                else -> res.category.name.equals(bubbleCategory, ignoreCase = true) || res.category.displayName.equals(bubbleCategory, ignoreCase = true)
+            }
 
-            val matchesTier = if (bubbleTier > 0) {
-                res.tier == bubbleTier
-            } else true
+            val matchesTier = if (bubbleTier > 0) res.tier == bubbleTier else true
+            val matchesEnchantment = if (bubbleEnchantment >= 0) res.enchantment == bubbleEnchantment else true
+            val matchesSearch = if (searchQ.isNotBlank()) res.nameDe.lowercase().contains(searchQ) || res.nameEn.lowercase().contains(searchQ) || res.id.lowercase().contains(searchQ) else true
 
-            val matchesEnchantment = if (bubbleEnchantment >= 0) {
-                res.enchantment == bubbleEnchantment
-            } else true
-
-            matchesCategory && matchesTier && matchesEnchantment
+            matchesCategory && matchesTier && matchesEnchantment && matchesSearch
         }
 
         val avoidDangerous = prefs.bubbleAvoidDangerousZones || prefs.avoidDangerousZones
@@ -562,8 +564,13 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         // 2. Category strict filter
         if (bubbleCategory != "ALL") {
             rawOpportunities = rawOpportunities.filter { opp ->
-                opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) ||
-                opp.resource.category.displayName.equals(bubbleCategory, ignoreCase = true)
+                when (bubbleCategory) {
+                    "SAMMLER" -> opp.resource.category == ResourceCategory.RESOURCES || opp.resource.category == ResourceCategory.REFINED
+                    "GEAR" -> opp.resource.category == ResourceCategory.WEAPONS || opp.resource.category == ResourceCategory.ARMOR || opp.resource.category == ResourceCategory.HELMETS || opp.resource.category == ResourceCategory.SHOES || opp.resource.category == ResourceCategory.OFFHAND || opp.resource.category == ResourceCategory.BAG || opp.resource.category == ResourceCategory.CAPE
+                    "GASTRO" -> opp.resource.category == ResourceCategory.FOOD || opp.resource.category == ResourceCategory.POTIONS
+                    "LUXUS" -> opp.resource.category == ResourceCategory.MOUNTS || opp.resource.category == ResourceCategory.ARTIFACTS
+                    else -> opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) || opp.resource.category.displayName.equals(bubbleCategory, ignoreCase = true)
+                }
             }
         }
 
@@ -614,7 +621,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             (opp.roiPercent in 0.1..500.0) && (opp.unitNetProfit in 1..50_000_000)
         }
 
-        return aiSanitizedOpportunities.asSequence().sortedByDescending { it.updatedTimestamp }.take(25).toList()
+        return aiSanitizedOpportunities.asSequence().sortedByDescending { it.updatedTimestamp }.take(50).toList()
     }
 
     private fun acceptOpportunity(opp: TradeOpportunity) {
@@ -1449,6 +1456,66 @@ fun BubbleOverlayContent(
                                 }
                             }
                             Spacer(modifier = Modifier.height(2.dp))
+                            // 🔍 Real-Time Category & Item Search Input
+                            var searchInputText by remember { mutableStateOf(prefsForCity.bubbleSearchQuery) }
+                            OutlinedTextField(
+                                value = searchInputText,
+                                onValueChange = { str ->
+                                    searchInputText = str
+                                    prefsForCity.bubbleSearchQuery = str
+                                    onRefresh()
+                                },
+                                label = { Text("🔍 Suche Item / Kategorie...", fontSize = 8.5.sp, color = Color.LightGray) },
+                                singleLine = true,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                            )
+
+                            // ⚡ Category Presets Bar
+                            Text(
+                                text = "⚡ " + (if (lang == "DE") "Kategorie Presets:" else "Category Presets:"),
+                                color = Color(0xFF38BDF8),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            val presets = listOf(
+                                "ALL" to "🌟 Alle",
+                                "SAMMLER" to "🌾 Sammler & Veredler",
+                                "GEAR" to "⚔️ Gear & Waffen",
+                                "GASTRO" to "🧪 Gastro & Alchemie",
+                                "LUXUS" to "🐎 Reittiere & Artefakte"
+                            )
+                            var currentBubbleCategory by remember { mutableStateOf(prefsForCity.bubbleCategory) }
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                            ) {
+                                items(presets) { pair: Pair<String, String> ->
+                                    val (presetKey, presetLabel) = pair
+                                    val isSelected = currentBubbleCategory == presetKey
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                                        modifier = Modifier.clickable {
+                                            currentBubbleCategory = presetKey
+                                            prefsForCity.bubbleCategory = presetKey
+                                            onRefresh()
+                                        }
+                                    ) {
+                                        Text(
+                                            text = presetLabel,
+                                            color = if (isSelected) Color.Black else Color.White,
+                                            fontSize = 8.5.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 📦 Main Category Chips with Live Deal Counters & Badges
                             Text(
                                 text = "📦 " + (if (lang == "DE") "Kategorie-Filter:" else "Category Filter:"),
                                 color = Color(0xFFFFB74D),
@@ -1456,13 +1523,15 @@ fun BubbleOverlayContent(
                                 fontWeight = FontWeight.Bold
                             )
                             Spacer(modifier = Modifier.height(2.dp))
-                            var currentBubbleCategory by remember { mutableStateOf(prefsForCity.bubbleCategory) }
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
                             ) {
                                 items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
                                     val isSelected = currentBubbleCategory == cat.name
+                                    val dealCount = topOpportunities.count { it.resource.category == cat }
+                                    val countText = if (dealCount > 0) " ($dealCount)" else ""
+
                                     Surface(
                                         shape = RoundedCornerShape(4.dp),
                                         color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
@@ -1473,11 +1542,11 @@ fun BubbleOverlayContent(
                                         }
                                     ) {
                                         Text(
-                                            text = cat.displayName,
+                                            text = "${cat.displayName}$countText",
                                             color = Color.White,
                                             fontSize = 9.sp,
                                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                         )
                                     }
                                 }
