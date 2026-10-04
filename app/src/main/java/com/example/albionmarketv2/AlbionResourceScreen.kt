@@ -2151,55 +2151,6 @@ fun TradeOpportunityCard(
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            // AI BUY & SELL ORDER RECOMMENDATIONS CARD (Statistischer Preisfall/Preisanstieg)
-            Surface(
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF1E293B),
-                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("🤖 KI Order-Analyse (Wochen-Statistik)", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
-                        Surface(shape = RoundedCornerShape(10.dp), color = Color(0xFF10B981)) {
-                            Text("Garantierte Max-Marge", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                        }
-                    }
-
-                    if (opportunity.buyOrderRecommendation.isNotBlank()) {
-                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0F172A), modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                Text(opportunity.buyOrderRecommendation, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
-                                if (opportunity.expectedPriceDropPercent > 0) {
-                                    Text("📉 Erwarteter Preisfall der letzten Wochen: -${String.format(Locale.GERMANY, "%.1f", opportunity.expectedPriceDropPercent)}% (Optimaler Dip-Einkauf)", fontSize = 9.sp, color = Color.LightGray)
-                                }
-                            }
-                        }
-                    }
-
-                    if (opportunity.sellOrderRecommendation.isNotBlank()) {
-                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFF0F172A), modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(8.dp)) {
-                                Text(opportunity.sellOrderRecommendation, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFB74D))
-                                if (opportunity.expectedPriceRisePercent > 0) {
-                                    Text("📈 Erwarteter Preisanstieg der letzten Wochen: +${String.format(Locale.GERMANY, "%.1f", opportunity.expectedPriceRisePercent)}% (Optimaler Peak-Verkauf)", fontSize = 9.sp, color = Color.LightGray)
-                                }
-                            }
-                        }
-                    }
-
-                    if (opportunity.aiOrderStrategy.isNotBlank()) {
-                        Text(opportunity.aiOrderStrategy, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFFFBBF24))
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "👆 Tippe auf das Item, um den Auftrag anzunehmen",
                 fontSize = 10.sp,
