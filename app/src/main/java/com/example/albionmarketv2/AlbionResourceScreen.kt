@@ -1637,13 +1637,13 @@ fun AiTradingBotPredictionsSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("🤖 KI-Marktbot (Handel & Marge)", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFFFD700))
+                    Text("🤖 KI-Marktbot (Top 5 Max Marge)", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFFFD700))
                     Spacer(modifier = Modifier.width(4.dp))
                     Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
-                        Text("Top Order-Vorhersagen", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                        Text("100% Verkauf", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.Black, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
                     }
                 }
-                Text("🎯 ~95% Trefferquote", fontSize = 9.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                Text("🔥 Beste Marge & Buy/Sell Order", fontSize = 9.sp, color = Color(0xFF34D399), fontWeight = FontWeight.Bold)
             }
 
             val activeFiltersText = buildString {
