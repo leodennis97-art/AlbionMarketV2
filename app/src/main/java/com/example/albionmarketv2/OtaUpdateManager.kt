@@ -241,7 +241,7 @@ object OtaUpdateManager {
         try {
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "🌐 Starte direkten APK-Download von Render...", Toast.LENGTH_LONG).show()
-                val apkDirectUrl = "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk"
+                val apkDirectUrl = "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk"
                 val intent = Intent(Intent.ACTION_VIEW, apkDirectUrl.toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
@@ -284,7 +284,7 @@ object OtaUpdateManager {
         } catch (e: Exception) {
             e.printStackTrace()
             try {
-                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
+                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
                 context.startActivity(browserIntent)

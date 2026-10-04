@@ -69,7 +69,7 @@ function uploadApkToRenderServer(apkPath) {
         form.append('apkFile', fs.createReadStream(apkPath));
 
         const req = https.request({
-            hostname: 'albionmarketv2.onrender.com',
+            hostname: 'albionmarketv2-1.onrender.com',
             path: `/api/admin/upload-apk?version=${versionName}`,
             method: 'POST',
             headers: {
@@ -112,7 +112,7 @@ server.on('close', (code) => {
 
 // Keep-Alive Function to prevent Render from spinning down (every 8 minutes)
 function pingRender() {
-    const targetUrl = 'https://albionmarketv2.onrender.com';
+    const targetUrl = 'https://albionmarketv2-1.onrender.com';
     https.get(targetUrl, (res) => {
         console.log(`[AlbionDataPro] 🏓 Keep-Alive Ping an Render (${targetUrl}) - Status: ${res.statusCode}`);
     }).on('error', (err) => {

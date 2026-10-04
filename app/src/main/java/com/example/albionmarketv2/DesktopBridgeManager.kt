@@ -12,7 +12,7 @@ object DesktopBridgeManager {
             put("app", "AlbionDataPro")
             put("version", versionName)
             put("hwId", hwId)
-            put("bridgeUrl", "https://albionmarketv2.onrender.com/bridge/$hwId")
+            put("bridgeUrl", "https://albionmarketv2-1.onrender.com/bridge/$hwId")
         }.toString()
     }
 }
