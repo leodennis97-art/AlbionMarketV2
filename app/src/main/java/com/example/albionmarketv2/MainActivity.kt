@@ -242,18 +242,12 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Automatic Floating Overlay Bubble & Notification Management (Only when user is authenticated & logged in)
+                // Automatic Background Notification & Server Management (Only when user is authenticated & logged in)
                 LaunchedEffect(isUserLoggedInState) {
                     if (isUserLoggedInState && LicenseManager.isLicenseValid(context)) {
                         try {
                             PersistentServerSyncService.startService(context)
                         } catch (_: Exception) {}
-
-                        if (Settings.canDrawOverlays(context) && !FloatingBubbleService.isServiceRunning()) {
-                            try {
-                                FloatingBubbleService.startService(context)
-                            } catch (_: Exception) {}
-                        }
                     } else {
                         try {
                             PersistentServerSyncService.stopService(context)
@@ -894,21 +888,6 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         if (::billingManager.isInitialized) {
             billingManager.queryActivePurchases()
-        }
-        if (Settings.canDrawOverlays(this)) {
-            try {
-                val prefs = AppPreferences(this)
-                val isLoggedIn = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(this)
-                if (isLoggedIn) {
-                    if (!FloatingBubbleService.isServiceRunning()) {
-                        FloatingBubbleService.startService(this)
-                    }
-                } else {
-                    if (FloatingBubbleService.isServiceRunning()) {
-                        FloatingBubbleService.stopService(this)
-                    }
-                }
-            } catch (_: Exception) {}
         }
     }
 }

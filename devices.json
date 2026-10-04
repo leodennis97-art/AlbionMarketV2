@@ -10,8 +10,8 @@
     "bannedUntil": null,
     "banReason": null,
     "unbanned": true,
-    "pendingUpdate": false,
-    "forceOtaUpdate": false
+    "pendingUpdate": true,
+    "forceOtaUpdate": true
   },
   {
     "hwId": "c0e6970810360fa5",
@@ -20,7 +20,7 @@
     "activeOrdersCount": 0,
     "username": "dnnx",
     "password": "Dean3153...",
-    "lastSeen": "2026-10-04T00:22:53.522Z",
+    "lastSeen": "2026-10-04T00:24:15.648Z",
     "licenseExpiresAt": "2027-10-03T17:22:56.036Z",
     "bannedUntil": null,
     "banReason": null,
@@ -46,7 +46,7 @@
     "activeOrdersCount": 0,
     "username": "dnnx",
     "password": "Dean3153.....",
-    "lastSeen": "2026-10-04T00:22:49.718Z",
+    "lastSeen": "2026-10-04T00:24:28.591Z",
     "licenseExpiresAt": "2027-10-03T19:56:33.378Z",
     "bannedUntil": null,
     "banReason": null,

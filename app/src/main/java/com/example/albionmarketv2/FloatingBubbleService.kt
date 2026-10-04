@@ -653,7 +653,7 @@ fun BubbleOverlayContent(
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var isMaximized by remember { mutableStateOf(value = false) }
-    var isCompactMode by remember { mutableStateOf(prefs.bubbleCompactMode) }
+    var isCompactMode by remember { mutableStateOf(true) }
     var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
     var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
     var bubbleWidthPortrait by remember { mutableIntStateOf(prefs.bubbleWidthPortrait) }
@@ -3346,8 +3346,8 @@ fun BubbleSettingsTab(
             .fillMaxWidth()
             .heightIn(max = maxHeight)
             .verticalScroll(rememberScrollState())
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text("⚙️ Floating Bubble Einstellungen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
 
@@ -3614,9 +3614,9 @@ fun BubbleAdminTab(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(max = maxHeight)
-            .padding(8.dp)
+            .padding(4.dp)
             .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Text("👑 Admin-Zentrale (Overlay)", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
         AdminSimpleView(
