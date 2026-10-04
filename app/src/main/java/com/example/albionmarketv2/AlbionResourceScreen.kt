@@ -5719,6 +5719,80 @@ fun WorldMapTabContent(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
+                    Text("⚡ Direkt-Aufträge für Veredelung in $cityName:", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    matchingRes.forEach { res ->
+                        val recipe = CraftingRepository.getRecipeFor(res)
+                        val cost = recipe.ingredients.sumOf { ing ->
+                            ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
+                        }
+                        val sell = CraftingRepository.getPriceInCity(res.fullId, cityName, uiState.marketPrices)
+                        val netEarn = (sell * 0.96).toLong()
+                        val profit = netEarn - cost
+
+                        Card(
+                            shape = RoundedCornerShape(10.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                            border = BorderStroke(1.dp, Color(0xFF334155)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(10.dp)) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = "${res.nameDe} (T${res.tier})",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 13.sp,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "${if (profit >= 0) "+" else ""}${fmt.format(profit)} Silber",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (profit >= 0) Color(0xFF10B981) else Color(0xFFEF4444)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text("Kosten: ${fmt.format(cost)} | Verkauf: ${fmt.format(sell)}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Button(
+                                        onClick = {
+                                            viewModel.acceptCustomOrder(
+                                                resourceId = res.fullId,
+                                                resourceNameDe = res.nameDe,
+                                                tier = res.tier,
+                                                buyCity = cityName,
+                                                buyPrice = cost.toInt().coerceAtLeast(1),
+                                                sellCity = cityName,
+                                                sellPrice = sell.coerceAtLeast(1),
+                                                plannedUnits = 10,
+                                                targetProfit = (profit * 10).coerceAtLeast(1L)
+                                            )
+                                            Toast.makeText(viewModel.getApplication(), "✅ Auftrag für ${res.nameDe} in $cityName angenommen!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(30.dp)
+                                    ) {
+                                        Text("⚡ Auftrag annehmen", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     Text("⛏️ Vorkommende Ressourcen:", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     activeRegion.resourcesFound.forEach { res ->
                         Text("• $res", fontSize = 12.sp)
