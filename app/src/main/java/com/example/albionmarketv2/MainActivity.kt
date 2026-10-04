@@ -39,6 +39,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.IconButton
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -56,6 +57,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.PaddingValues
 import android.content.Context
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -594,47 +596,49 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
 
-                                    if (isAuthenticating) {
-                                        CircularProgressIndicator(color = Color(0xFF10B981), strokeWidth = 3.dp, modifier = Modifier.size(32.dp))
-                                    } else {
+                                    if (!isAuthenticating) {
                                         var passwordVisible by remember { mutableStateOf(false) }
 
                                         OutlinedTextField(
                                             value = usernameInput,
                                             onValueChange = { usernameInput = it },
-                                            label = { Text("Benutzername", color = Color(0xFF94A3B8), fontSize = 11.sp) },
+                                            label = { Text("Benutzername", color = Color(0xFF94A3B8), fontSize = 12.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(8.dp),
+                                            shape = RoundedCornerShape(10.dp),
+                                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF94A3B8)) },
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = Color(0xFF3B82F6),
-                                                unfocusedBorderColor = Color(0xFF475569),
+                                                unfocusedBorderColor = Color(0xFF334155),
                                                 focusedTextColor = Color.White,
                                                 unfocusedTextColor = Color.White,
+                                                focusedContainerColor = Color(0xFF0F172A),
+                                                unfocusedContainerColor = Color(0xFF0F172A)
                                             ),
                                             modifier = Modifier.fillMaxWidth(),
                                         )
 
+                                        Spacer(modifier = Modifier.height(6.dp))
+
                                         OutlinedTextField(
                                             value = passwordInput,
                                             onValueChange = { passwordInput = it },
-                                            label = { Text("Passwort", color = Color(0xFF94A3B8), fontSize = 11.sp) },
+                                            label = { Text("Passwort", color = Color(0xFF94A3B8), fontSize = 12.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(8.dp),
+                                            shape = RoundedCornerShape(10.dp),
                                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF94A3B8)) },
                                             trailingIcon = {
                                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                                    Icon(
-                                                        imageVector = if (passwordVisible) Icons.Default.Warning else Icons.Default.Lock,
-                                                        contentDescription = if (passwordVisible) "Passwort verbergen" else "Passwort anzeigen",
-                                                        tint = Color(0xFF94A3B8)
-                                                    )
+                                                    Text(if (passwordVisible) "👁️" else "🙈", fontSize = 14.sp)
                                                 }
                                             },
                                             colors = OutlinedTextFieldDefaults.colors(
                                                 focusedBorderColor = Color(0xFF3B82F6),
-                                                unfocusedBorderColor = Color(0xFF475569),
+                                                unfocusedBorderColor = Color(0xFF334155),
                                                 focusedTextColor = Color.White,
                                                 unfocusedTextColor = Color.White,
+                                                focusedContainerColor = Color(0xFF0F172A),
+                                                unfocusedContainerColor = Color(0xFF0F172A)
                                             ),
                                             modifier = Modifier.fillMaxWidth(),
                                         )
@@ -656,7 +660,7 @@ class MainActivity : ComponentActivity() {
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "💾 Passwort lokal auf diesem Gerät speichern",
+                                                text = "💾 Gerät merken (Auto-Login)",
                                                 fontSize = 12.sp,
                                                 color = Color(0xFFE2E8F0),
                                                 fontWeight = FontWeight.Medium
@@ -702,7 +706,7 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                         isUserLoggedInState = true
                                                         isUnlockedForSession = true
-                                                        Toast.makeText(context, "🟢 Cloud-Login & Lizenz erfolgreich verifiziert!", Toast.LENGTH_SHORT).show()
+                                                        Toast.makeText(context, "🟢 Login verifiziert & freigeschaltet!", Toast.LENGTH_SHORT).show()
                                                     } else {
                                                         val lockout = LoginSecurityManager.recordFailedAttempt(context)
                                                         prefs.isUserLoggedIn = false
@@ -723,65 +727,30 @@ class MainActivity : ComponentActivity() {
                                                     }
                                                 }
                                             },
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier.fillMaxWidth().height(48.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                             shape = RoundedCornerShape(10.dp),
+                                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
                                         ) {
-                                            Text("🔑 Login", fontWeight = FontWeight.Bold, color = Color.White)
+                                            if (isAuthenticating) {
+                                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                            } else {
+                                                Text("🔑 Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                            }
                                         }
+                                        
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        HorizontalDivider(color = Color(0xFF334155), thickness = 1.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
+                                        Spacer(modifier = Modifier.height(16.dp))
 
                                         Text(
-                                            text = "ℹ️ Für Zugangsdaten & Lizenz bitte an dnnx wenden.",
-                                            fontSize = 10.sp,
+                                            text = "Du hast noch kein Konto?",
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Bold,
                                             color = Color(0xFF94A3B8),
                                             textAlign = TextAlign.Center
                                         )
-
-                                        // Lizenzschlüssel Bereich
-                                        OutlinedTextField(
-                                            value = licenseKeyInput,
-                                            onValueChange = { licenseKeyInput = it },
-                                            label = { Text("🔑 Lizenzschlüssel eingeben", color = Color(0xFF8B5CF6), fontSize = 12.sp) },
-                                            singleLine = true,
-                                            shape = RoundedCornerShape(10.dp),
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = Color(0xFF8B5CF6),
-                                                unfocusedBorderColor = Color(0xFF475569),
-                                                focusedTextColor = Color.White,
-                                                unfocusedTextColor = Color.White,
-                                            ),
-                                            modifier = Modifier.fillMaxWidth(),
-                                        )
-
-                                        Button(
-                                            onClick = {
-                                                if (licenseKeyInput.isBlank()) {
-                                                    Toast.makeText(context, "❌ Bitte einen Lizenzschlüssel eingeben", Toast.LENGTH_SHORT).show()
-                                                    return@Button
-                                                }
-                                                val activated = LicenseManager.activateLicense(context, licenseKeyInput)
-                                                if (activated) {
-                                                    prefs.isUserLoggedIn = true
-                                                    isUserLoggedInState = true
-                                                    isUnlockedForSession = true
-                                                    Toast.makeText(context, "🟢 Lizenzschlüssel verifiziert! Erfolgreich freigeschaltet.", Toast.LENGTH_SHORT).show()
-                                                    licenseKeyInput = ""
-                                                } else {
-                                                    Toast.makeText(context, "❌ Ungültiger Lizenzschlüssel!", Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                                            shape = RoundedCornerShape(10.dp),
-                                            modifier = Modifier.fillMaxWidth(),
-                                        ) {
-                                            Text(
-                                                text = "🔑 Lizenz freischalten",
-                                                fontWeight = FontWeight.Bold,
-                                                fontSize = 13.sp,
-                                                color = Color.White,
-                                            )
-                                        }
-
+                                        
                                         Spacer(modifier = Modifier.height(4.dp))
 
                                         TelegramLicensePurchaseSection(context = context)
