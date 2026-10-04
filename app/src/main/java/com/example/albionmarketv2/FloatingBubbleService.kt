@@ -614,18 +614,22 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
     override fun onDestroy() {
         super.onDestroy()
         isRunning = false
-        serviceScope.cancel()
         try {
             screenReceiver?.let { unregisterReceiver(it) }
         } catch (_: Exception) {}
-        composeView?.let {
+        composeView?.let { view ->
             try {
-                windowManager.removeView(it)
+                if (view.isAttachedToWindow) {
+                    windowManager.removeView(view)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
         composeView = null
+        try {
+            serviceScope.cancel()
+        } catch (_: Exception) {}
     }
 }
 
@@ -1603,8 +1607,8 @@ fun BubbleOverlayContent(
                             val sortedBubbleOpportunities = remember(topOpportunities, currentBubbleSort) {
                                 when (currentBubbleSort) {
                                     "NEWEST" -> topOpportunities.sortedByDescending { it.updatedTimestamp }
-                                    "FEWEST_STOCK" -> topOpportunities.sortedBy { it.stockAvailable }
-                                    else -> topOpportunities.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.updatedTimestamp })
+                                    "FEWEST_STOCK" -> topOpportunities.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
+                                    else -> topOpportunities.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
                                 }
                             }
 

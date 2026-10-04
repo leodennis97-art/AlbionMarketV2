@@ -57,12 +57,16 @@ import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.PaddingValues
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -177,6 +181,22 @@ class MainActivity : ComponentActivity() {
                 var isUserLoggedInState by remember { mutableStateOf(value = false) }
                 var isUnlockedForSession by remember { mutableStateOf(value = false) }
                 var showWelcomeDialog by remember { mutableStateOf(value = false) }
+
+                val lifecycleOwner = LocalLifecycleOwner.current
+                DisposableEffect(lifecycleOwner) {
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            if (!prefs.isUserLoggedIn || !LicenseManager.isLicenseValid(context)) {
+                                isUserLoggedInState = false
+                                isUnlockedForSession = false
+                            }
+                        }
+                    }
+                    lifecycleOwner.lifecycle.addObserver(observer)
+                    onDispose {
+                        lifecycleOwner.lifecycle.removeObserver(observer)
+                    }
+                }
 
                 // Kein automatischer Login beim Start: Jeder Start erfordert manuelle Anmeldung mit Cloud- und Lizenzprüfung
                 LaunchedEffect(Unit) {
@@ -882,6 +902,11 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
     }
 
     override fun onResume() {
