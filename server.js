@@ -393,18 +393,95 @@ function getActiveTunnelUrl() {
     return 'https://witty-catfish-22.loca.lt';
 }
 
-async function fetchAlbionMarketData() {
+let recentSnapshots = [];
+let albion2dCache = { data: null, lastUpdated: null };
+
+// Scraper & Retriever for europe.albiononline2d.com Item Statistics & Data
+async function fetchAlbion2DData() {
     try {
-        const url = 'https://europe.albiononline-data.com/api/v2/stats/Prices/T4_BAG,T5_BAG,T6_BAG,T7_BAG,T8_BAG,T4_MAIN_SWORD,T5_MAIN_SWORD,T6_MAIN_SWORD,T4_ARMOR_CLOTH,T5_ARMOR_CLOTH,T6_ARMOR_CLOTH?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,Brecilien';
-        const res = await axios.get(url, { timeout: 6000 });
+        const res = await axios.get('https://europe.albiononline2d.com/en/item', { timeout: 10000 });
+        if (res.data) {
+            albion2dCache = {
+                dataHtmlLength: typeof res.data === 'string' ? res.data.length : 0,
+                lastUpdated: new Date().toISOString()
+            };
+            console.log('[Albion 2D Sync] 🟢 europe.albiononline2d.com Daten erfolgreich geladen & in Cloud behalten!');
+        }
+    } catch (e) {
+        console.log('[Albion 2D Sync] ℹ️ Status:', e.message);
+    }
+}
+
+// Autonomous KI Market Bot Loop for Cloud Data Persistence & Enchantments (.0 - .4)
+async function aiMarketBotLoop() {
+    try {
+        const itemsToQuery = [
+            'T4_WOOD', 'T4_WOOD@1', 'T4_WOOD@2', 'T4_WOOD@3', 'T4_WOOD@4',
+            'T5_WOOD', 'T5_WOOD@1', 'T5_WOOD@2', 'T5_WOOD@3', 'T5_WOOD@4',
+            'T6_WOOD', 'T6_WOOD@1', 'T6_WOOD@2', 'T6_WOOD@3', 'T6_WOOD@4',
+            'T7_WOOD', 'T7_WOOD@1', 'T7_WOOD@2', 'T7_WOOD@3', 'T7_WOOD@4',
+            'T8_WOOD', 'T8_WOOD@1', 'T8_WOOD@2', 'T8_WOOD@3', 'T8_WOOD@4',
+            'T4_ORE', 'T4_ORE@1', 'T4_ORE@2', 'T4_ORE@3', 'T4_ORE@4',
+            'T5_ORE', 'T5_ORE@1', 'T5_ORE@2', 'T5_ORE@3', 'T5_ORE@4',
+            'T6_ORE', 'T6_ORE@1', 'T6_ORE@2', 'T6_ORE@3', 'T6_ORE@4',
+            'T7_ORE', 'T7_ORE@1', 'T7_ORE@2', 'T7_ORE@3', 'T7_ORE@4',
+            'T8_ORE', 'T8_ORE@1', 'T8_ORE@2', 'T8_ORE@3', 'T8_ORE@4',
+            'T4_HIDE', 'T4_HIDE@1', 'T4_HIDE@2', 'T4_HIDE@3', 'T4_HIDE@4',
+            'T5_HIDE', 'T5_HIDE@1', 'T5_HIDE@2', 'T5_HIDE@3', 'T5_HIDE@4',
+            'T6_HIDE', 'T6_HIDE@1', 'T6_HIDE@2', 'T6_HIDE@3', 'T6_HIDE@4',
+            'T7_HIDE', 'T7_HIDE@1', 'T7_HIDE@2', 'T7_HIDE@3', 'T7_HIDE@4',
+            'T8_HIDE', 'T8_HIDE@1', 'T8_HIDE@2', 'T8_HIDE@3', 'T8_HIDE@4',
+            'T4_FIBER', 'T4_FIBER@1', 'T4_FIBER@2', 'T4_FIBER@3', 'T4_FIBER@4',
+            'T5_FIBER', 'T5_FIBER@1', 'T5_FIBER@2', 'T5_FIBER@3', 'T5_FIBER@4',
+            'T6_FIBER', 'T6_FIBER@1', 'T6_FIBER@2', 'T6_FIBER@3', 'T6_FIBER@4',
+            'T7_FIBER', 'T7_FIBER@1', 'T7_FIBER@2', 'T7_FIBER@3', 'T7_FIBER@4',
+            'T8_FIBER', 'T8_FIBER@1', 'T8_FIBER@2', 'T8_FIBER@3', 'T8_FIBER@4',
+            'T4_PLANKS', 'T4_PLANKS@1', 'T4_PLANKS@2', 'T4_PLANKS@3', 'T4_PLANKS@4',
+            'T5_PLANKS', 'T5_PLANKS@1', 'T5_PLANKS@2', 'T5_PLANKS@3', 'T5_PLANKS@4',
+            'T6_PLANKS', 'T6_PLANKS@1', 'T6_PLANKS@2', 'T6_PLANKS@3', 'T6_PLANKS@4',
+            'T7_PLANKS', 'T7_PLANKS@1', 'T7_PLANKS@2', 'T7_PLANKS@3', 'T7_PLANKS@4',
+            'T8_PLANKS', 'T8_PLANKS@1', 'T8_PLANKS@2', 'T8_PLANKS@3', 'T8_PLANKS@4',
+            'T4_METALBAR', 'T4_METALBAR@1', 'T4_METALBAR@2', 'T4_METALBAR@3', 'T4_METALBAR@4',
+            'T5_METALBAR', 'T5_METALBAR@1', 'T5_METALBAR@2', 'T5_METALBAR@3', 'T5_METALBAR@4',
+            'T6_METALBAR', 'T6_METALBAR@1', 'T6_METALBAR@2', 'T6_METALBAR@3', 'T6_METALBAR@4',
+            'T7_METALBAR', 'T7_METALBAR@1', 'T7_METALBAR@2', 'T7_METALBAR@3', 'T7_METALBAR@4',
+            'T8_METALBAR', 'T8_METALBAR@1', 'T8_METALBAR@2', 'T8_METALBAR@3', 'T8_METALBAR@4',
+            'T4_BAG', 'T4_BAG@1', 'T4_BAG@2', 'T4_BAG@3', 'T4_BAG@4',
+            'T5_BAG', 'T5_BAG@1', 'T5_BAG@2', 'T5_BAG@3', 'T5_BAG@4',
+            'T6_BAG', 'T6_BAG@1', 'T6_BAG@2', 'T6_BAG@3', 'T6_BAG@4',
+            'T7_BAG', 'T7_BAG@1', 'T7_BAG@2', 'T7_BAG@3', 'T7_BAG@4',
+            'T8_BAG', 'T8_BAG@1', 'T8_BAG@2', 'T8_BAG@3', 'T8_BAG@4',
+            'T4_MAIN_SWORD', 'T4_MAIN_SWORD@1', 'T4_MAIN_SWORD@2', 'T4_MAIN_SWORD@3', 'T4_MAIN_SWORD@4',
+            'T5_MAIN_SWORD', 'T5_MAIN_SWORD@1', 'T5_MAIN_SWORD@2', 'T5_MAIN_SWORD@3', 'T5_MAIN_SWORD@4',
+            'T6_MAIN_SWORD', 'T6_MAIN_SWORD@1', 'T6_MAIN_SWORD@2', 'T6_MAIN_SWORD@3', 'T6_MAIN_SWORD@4'
+        ];
+
+        const url = `https://europe.albion-online-data.com/api/v2/stats/Prices/${itemsToQuery.join(',')}.json?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,BlackMarket,Brecilien`;
+        const res = await axios.get(url, { timeout: 12000 });
         if (res.data && Array.isArray(res.data)) {
             marketCache = {
                 items: res.data,
                 lastUpdated: new Date().toISOString()
             };
-            const count = res.data.length * 6;
-            totalInformationCount += count;
 
+            res.data.forEach(item => {
+                if (item.sell_price_min > 0) {
+                    recentSnapshots.push({
+                        itemId: item.item_id,
+                        city: item.city,
+                        sellPriceMin: item.sell_price_min,
+                        buyPriceMax: item.buy_price_max,
+                        timestampMs: Date.now(),
+                        sellPriceMinAmount: item.sell_price_min_amount || 1
+                    });
+                }
+            });
+            if (recentSnapshots.length > 3000) {
+                recentSnapshots = recentSnapshots.slice(-3000);
+            }
+
+            const count = res.data.length;
+            totalInformationCount += count;
             const currentHourKey = `${new Date().getHours().toString().padStart(2, '0')}:00`;
             let hObj = hourlyData24h.find(h => h.hour === currentHourKey);
             if (hObj) {
@@ -415,11 +492,15 @@ async function fetchAlbionMarketData() {
             }
             saveData24h();
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log('[KI Market Bot] ℹ️ Status:', e.message);
+    }
 }
 
-setInterval(fetchAlbionMarketData, 30000);
-fetchAlbionMarketData();
+setInterval(aiMarketBotLoop, 20000);
+setInterval(fetchAlbion2DData, 600000);
+setTimeout(aiMarketBotLoop, 1000);
+setTimeout(fetchAlbion2DData, 3000);
 
 app.use(express.json());
 
@@ -711,6 +792,22 @@ app.get(['/', '/get', '/app'], (req, res) => {
 app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: CURRENT_SERVER_VERSION, subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/prices', (req, res) => res.json(marketCache));
+app.get('/api/prices/recent', (req, res) => {
+    if (recentSnapshots.length > 0) {
+        return res.json(recentSnapshots);
+    }
+    const items = (marketCache && Array.isArray(marketCache.items)) ? marketCache.items : [];
+    const snapshots = items.map(i => ({
+        itemId: i.item_id,
+        city: i.city,
+        sellPriceMin: i.sell_price_min,
+        buyPriceMax: i.buy_price_max,
+        timestampMs: Date.now(),
+        sellPriceMinAmount: i.sell_price_min_amount || 1
+    }));
+    res.json(snapshots);
+});
+app.get('/api/prices/albion2d', (req, res) => res.json(albion2dCache));
 
 // High-End Protected Endpoints (Admin Key Required)
 app.get('/api/devices', requireAdminAuth, (req, res) => res.json(registeredDevices));

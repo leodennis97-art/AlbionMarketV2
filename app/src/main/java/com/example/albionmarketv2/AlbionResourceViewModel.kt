@@ -967,7 +967,14 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     query = _uiState.value.searchQuery
                 )
 
-                val itemIds = currentResources.asSequence().map { it.fullId }.distinct().toList()
+                // Build item IDs across all enchantments (.0, .1, .2, .3, .4) for complete market coverage
+                val itemIds = currentResources.flatMap { res ->
+                    if (res.tier >= 4) {
+                        listOf(res.id, "${res.id}@1", "${res.id}@2", "${res.id}@3", "${res.id}@4")
+                    } else {
+                        listOf(res.id)
+                    }
+                }.distinct()
 
                 val fetchedPrices = AlbionMarketApi.fetchPrices(_uiState.value.server, itemIds)
                 val cloudSnapshots = try { ServerSyncManager.fetchCloudPrices(getApplication()) } catch (_: Exception) { emptyList() }
@@ -983,7 +990,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     )
                 }.toList()
 
-                val combinedPrices = (fetchedPrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.sellPriceMin}" }
+                // Overwrite older local prices with newer cloud and API market data
+                val combinedPrices = (cloudPrices + fetchedPrices).distinctBy { "${it.itemId}_${it.city}_${it.sellPriceMin}" }
 
                 val priceMap = if (combinedPrices.isNotEmpty()) {
                     combinedPrices.groupBy { it.itemId }
@@ -1041,42 +1049,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 }
 
                 recalculateOpportunities(stateWithPrices)
-
-                val currentState = _uiState.value
-                if (currentState.systemNotificationsEnabled && currentState.tradeOpportunities.isNotEmpty()) {
-                    currentState.tradeOpportunities.firstOrNull()?.let { topOpp ->
-                        val sysKey = "SYS_${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.totalNetProfit}"
-                        if (!notifiedKeys.contains(sysKey)) {
-                            notifiedKeys.add(sysKey)
-                            NotificationHelper.showOpportunityNotification(
-                                getApplication(),
-                                opp = topOpp
-                            )
-                        }
-                    }
-                }
-
-                if (currentState.callMeBotAutoSend && currentState.callMeBotPhone.isNotBlank() && currentState.callMeBotApiKey.isNotBlank() && currentState.tradeOpportunities.isNotEmpty()) {
-                    currentState.tradeOpportunities.firstOrNull()?.let { topOpp ->
-                        val waKey = "WA_${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.totalNetProfit}"
-                        if (!notifiedKeys.contains(waKey)) {
-                            notifiedKeys.add(waKey)
-                            val msg = WhatsAppMessageFormatter.formatOpportunityMessage(
-                                opp = topOpp,
-                                serverName = currentState.server.displayName,
-                                silverBudget = currentState.silverBudget,
-                                carryCapacityKg = currentState.carryCapacityKg
-                            )
-                            viewModelScope.launch {
-                                CallMeBotApi.sendWhatsAppMessage(
-                                    phoneNumber = currentState.callMeBotPhone,
-                                    apiKey = currentState.callMeBotApiKey,
-                                    message = msg
-                                )
-                            }
-                        }
-                    }
-                }
 
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -1157,7 +1129,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             // Sorting
             newCalculated = when (state.sortOption) {
                 OpportunitySort.NEWEST -> newCalculated.sortedByDescending { it.updatedTimestamp }
-                OpportunitySort.FEWEST_STOCK -> newCalculated.sortedBy { it.stockAvailable }
+                OpportunitySort.FEWEST_STOCK -> newCalculated.sortedBy { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }
                 OpportunitySort.HIGHEST_MARGIN -> newCalculated.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
             }.distinctBy { "${it.resource.fullId}_${it.buyCity}_${it.sellCity}" }.take(30)
 
@@ -1166,6 +1138,42 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 tradeOpportunities = newCalculated
             )
             SharedTradeStore.latestOpportunities = newCalculated
+
+            val currentState = _uiState.value
+            if (currentState.systemNotificationsEnabled && newCalculated.isNotEmpty()) {
+                newCalculated.firstOrNull()?.let { topOpp ->
+                    val sysKey = "SYS_${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.totalNetProfit}"
+                    if (!notifiedKeys.contains(sysKey)) {
+                        notifiedKeys.add(sysKey)
+                        NotificationHelper.showOpportunityNotification(
+                            getApplication(),
+                            opp = topOpp
+                        )
+                    }
+                }
+            }
+
+            if (currentState.callMeBotAutoSend && currentState.callMeBotPhone.isNotBlank() && currentState.callMeBotApiKey.isNotBlank() && newCalculated.isNotEmpty()) {
+                newCalculated.firstOrNull()?.let { topOpp ->
+                    val waKey = "WA_${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.totalNetProfit}"
+                    if (!notifiedKeys.contains(waKey)) {
+                        notifiedKeys.add(waKey)
+                        val msg = WhatsAppMessageFormatter.formatOpportunityMessage(
+                            opp = topOpp,
+                            serverName = currentState.server.displayName,
+                            silverBudget = currentState.silverBudget,
+                            carryCapacityKg = currentState.carryCapacityKg
+                        )
+                        viewModelScope.launch {
+                            CallMeBotApi.sendWhatsAppMessage(
+                                phoneNumber = currentState.callMeBotPhone,
+                                apiKey = currentState.callMeBotApiKey,
+                                message = msg
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
