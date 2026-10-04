@@ -475,6 +475,10 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getBoolean("bubble_compact_mode", true)
         set(value) = prefs.edit().putBoolean("bubble_compact_mode", value).apply()
 
+    var globalCompactMode: Boolean
+        get() = prefs.getBoolean("global_compact_mode", true)
+        set(value) = prefs.edit().putBoolean("global_compact_mode", value).apply()
+
     var hideAppOnBubbleActivate: Boolean
         get() = prefs.getBoolean("hide_app_on_bubble_activate", true)
         set(value) = prefs.edit().putBoolean("hide_app_on_bubble_activate", value).apply()

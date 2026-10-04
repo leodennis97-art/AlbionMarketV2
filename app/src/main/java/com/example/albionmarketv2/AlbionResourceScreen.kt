@@ -5912,6 +5912,25 @@ fun AppSettingsDialog(
                     singleLine = true
                 )
 
+                var globalCompact by remember { mutableStateOf(prefs.globalCompactMode) }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("📱 Kompakter App-Modus", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Reduziert Abstände & Schriftgrößen dynamisch in der gesamten APK", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(
+                        checked = globalCompact,
+                        onCheckedChange = {
+                            globalCompact = it
+                            prefs.globalCompactMode = it
+                        }
+                    )
+                }
+
                 // Support Button directly under MadeByDnnx
                 Button(
                     onClick = {
