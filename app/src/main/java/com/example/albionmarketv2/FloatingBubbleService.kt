@@ -1053,6 +1053,69 @@ fun BubbleOverlayContent(
                                         )
                                     }
 
+                                    // Row 3: Orders for 100% execution & Max Margin
+                                    val buyOrderPrice = if (activeOrder.recommendedBuyOrderPrice > 0) activeOrder.recommendedBuyOrderPrice else (activeOrder.buyPrice * 0.88).toInt().coerceAtLeast(1)
+                                    val sellOrderPrice = if (activeOrder.recommendedSellOrderPrice > 0) activeOrder.recommendedSellOrderPrice else (activeOrder.sellPrice * 1.08).toInt().coerceAtLeast(1)
+                                    val localPrefs = remember { AppPreferences(context) }
+                                    val marketTaxRate = if (localPrefs.hasPremium) 0.04 else 0.08
+                                    val netOrderSellPrice = (sellOrderPrice * (1.0 - marketTaxRate - 0.025)).toLong()
+                                    val netOrderUnitProfit = netOrderSellPrice - buyOrderPrice
+                                    val maxOrderProfitTotal = netOrderUnitProfit * activeOrder.plannedUnits
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF0F172A),
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(4.dp),
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = "🛒 Kauforder in $buyCityTrans: ${fmt.format(buyOrderPrice)} S.",
+                                                color = Color(0xFF38BDF8),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 8.5.sp
+                                            )
+                                            Text(
+                                                text = "100% Kaufchance",
+                                                color = Color(0xFF10B981),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 8.sp
+                                            )
+                                        }
+
+                                        Row(
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = "📈 Verkauforder in $sellCityTrans: ${fmt.format(sellOrderPrice)} S.",
+                                                color = Color(0xFFFFD700),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 8.5.sp
+                                            )
+                                            Text(
+                                                text = "100% Verkaufchance",
+                                                color = Color(0xFF10B981),
+                                                fontWeight = FontWeight.Bold,
+                                                fontSize = 8.sp
+                                            )
+                                        }
+
+                                        Text(
+                                            text = "💡 KI Max-Marge: +${fmt.format(maxOrderProfitTotal)} S. Netto (+${fmt.format(netOrderUnitProfit)} S./Stk.)",
+                                            color = Color(0xFF4ADE80),
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 8.5.sp
+                                        )
+                                    }
+                                }
+
                                     // Row 3: Compact Action Buttons (Buchen / Stornieren)
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(4.dp),

@@ -783,12 +783,32 @@ fun OrdersAndStatsTabContent(
                             Text("Verkaufspreis: ${numberFormat.format(order.sellPrice)} Silber", fontSize = 12.sp, color = Color(0xFF66BB6A), fontWeight = FontWeight.SemiBold)
                         }
 
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                        val recBuy = if (order.recommendedBuyOrderPrice > 0) order.recommendedBuyOrderPrice else (order.buyPrice * 0.88).toInt().coerceAtLeast(1)
+                        val recSell = if (order.recommendedSellOrderPrice > 0) order.recommendedSellOrderPrice else (order.sellPrice * 1.08).toInt().coerceAtLeast(1)
+                        val localContext = LocalContext.current
+                        val localPrefs = remember { AppPreferences(localContext) }
+                        val hasPremium = localPrefs.hasPremium
+                        val taxRate = if (hasPremium) 0.04 else 0.08
+                        val netRecSellUnit = (recSell * (1.0 - taxRate - 0.025)).toLong()
+                        val netRecUnitProfit = netRecSellUnit - recBuy
+                        val totalRecNetProfit = netRecUnitProfit * order.plannedUnits
+
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Color(0xFF0F172A),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
                         ) {
-                            Text("🤖 Kauforder (KI): ${numberFormat.format(if (order.recommendedBuyOrderPrice > 0) order.recommendedBuyOrderPrice else (order.buyPrice * 0.88).toInt())} S.", fontSize = 11.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
-                            Text("🤖 Verkauforder (KI): ${numberFormat.format(if (order.recommendedSellOrderPrice > 0) order.recommendedSellOrderPrice else (order.sellPrice * 1.08).toInt())} S.", fontSize = 11.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text("🛒 Kauforder (${order.buyCity}): ${numberFormat.format(recBuy)} S.", fontSize = 11.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                                    Text("100% Kaufchance", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                                }
+                                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                    Text("📈 Verkauforder (${order.sellCity}): ${numberFormat.format(recSell)} S.", fontSize = 11.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                                    Text("100% Verkaufchance", fontSize = 10.sp, color = Color(0xFF10B981), fontWeight = FontWeight.Bold)
+                                }
+                                Text("💡 KI Max-Marge: +${numberFormat.format(totalRecNetProfit)} S. Netto (+${numberFormat.format(netRecUnitProfit)} S./Stk.)", fontSize = 11.sp, color = Color(0xFF4ADE80), fontWeight = FontWeight.ExtraBold)
+                            }
                         }
 
                         Text("Menge: ${numberFormat.format(order.plannedUnits)} Stk. | Angenommen: ${order.acceptedDate}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
