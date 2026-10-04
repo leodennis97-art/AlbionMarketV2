@@ -7,6 +7,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import androidx.core.net.toUri
 import android.provider.Settings
 import android.widget.Toast
@@ -457,9 +459,16 @@ fun AlbionResourceScreen(
                     onLogout()
                 } else {
                     prefs.isUserLoggedIn = false
-                    try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
-                    try { PersistentServerSyncService.stopService(context) } catch (_: Exception) {}
-                    (context as? Activity)?.recreate()
+                    try {
+                        val loginIntent = Intent(context, MainActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        }
+                        context.startActivity(loginIntent)
+                    } catch (_: Exception) {}
+                    Handler(Looper.getMainLooper()).post {
+                        try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
+                        try { PersistentServerSyncService.stopService(context) } catch (_: Exception) {}
+                    }
                 }
             }
         }

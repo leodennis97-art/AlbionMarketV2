@@ -14,6 +14,8 @@ import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.Gravity
 import android.view.View
@@ -850,7 +852,11 @@ fun BubbleOverlayContent(
                                     .size(if (isCompactMode) 22.dp else 26.dp)
                                     .clickable {
                                         Toast.makeText(context, "🛑 Floating Bubble beendet", Toast.LENGTH_SHORT).show()
-                                        FloatingBubbleService.stopService(context)
+                                        Handler(Looper.getMainLooper()).post {
+                                            try {
+                                                FloatingBubbleService.stopService(context)
+                                            } catch (_: Exception) {}
+                                        }
                                     },
                             ) {
                                 Box(
@@ -3505,13 +3511,23 @@ fun BubbleSettingsTab(
         Button(
             onClick = {
                 prefs.isUserLoggedIn = false
-                Toast.makeText(context, "🔒 Abgemeldet! Floating Bubble beendet.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "🔒 Abgemeldet! Öffne Login-Seite...", Toast.LENGTH_SHORT).show()
                 try {
-                    FloatingBubbleService.stopService(context)
-                } catch (_: Exception) {}
-                try {
-                    PersistentServerSyncService.stopService(context)
-                } catch (_: Exception) {}
+                    val loginIntent = Intent(context, MainActivity::class.java).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    }
+                    context.startActivity(loginIntent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        FloatingBubbleService.stopService(context)
+                    } catch (_: Exception) {}
+                    try {
+                        PersistentServerSyncService.stopService(context)
+                    } catch (_: Exception) {}
+                }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
             shape = RoundedCornerShape(8.dp),
@@ -3525,7 +3541,11 @@ fun BubbleSettingsTab(
         Button(
             onClick = {
                 Toast.makeText(context, "🛑 Floating Bubble beendet", Toast.LENGTH_SHORT).show()
-                FloatingBubbleService.stopService(context)
+                Handler(Looper.getMainLooper()).post {
+                    try {
+                        FloatingBubbleService.stopService(context)
+                    } catch (_: Exception) {}
+                }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
             shape = RoundedCornerShape(8.dp),
