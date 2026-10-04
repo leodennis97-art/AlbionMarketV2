@@ -1055,9 +1055,17 @@ fun UnlockedLockscreenContent(
                                             isBubbleRunning = false
                                             Toast.makeText(context, "🛑 Floating Bubble gestoppt", Toast.LENGTH_SHORT).show()
                                         } else {
-                                            FloatingBubbleService.startService(context)
-                                            isBubbleRunning = true
-                                            Toast.makeText(context, "⚡ Floating Bubble gestartet!", Toast.LENGTH_SHORT).show()
+                                            if (Settings.canDrawOverlays(context)) {
+                                                FloatingBubbleService.startService(context)
+                                                isBubbleRunning = true
+                                                Toast.makeText(context, "⚡ Floating Bubble gestartet!", Toast.LENGTH_SHORT).show()
+                                                val prefs = AppPreferences(context)
+                                                if (prefs.hideAppOnBubbleActivate) {
+                                                    (context as? Activity)?.moveTaskToBack(true)
+                                                }
+                                            } else {
+                                                Toast.makeText(context, "⚠️ Bitte zuerst Overlay-Berechtigung erteilen!", Toast.LENGTH_LONG).show()
+                                            }
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(
