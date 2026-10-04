@@ -681,20 +681,26 @@ fun AdminSimpleView(
     users: List<AdminUser>,
     licenses: List<AdminLicense>,
     devices: List<AdminDevice>,
+    showMergeBot: Boolean = true,
     onFocusModeChanged: (Boolean) -> Unit = {},
     onRefresh: () -> Unit
 ) {
     val view = LocalView.current
     var selectedTab by remember { mutableIntStateOf(0) }
 
-    val categories = listOf(
-        "👤 Benutzer" to Color(0xFF38BDF8),
-        "💎 Lizenzen" to Color(0xFF8B5CF6),
-        "📱 Geräte" to Color(0xFF10B981),
-        "🎛️ Server" to Color(0xFF0EA5E9),
-        "📊 Statistik" to Color(0xFFF59E0B),
-        "🤖 Merge-Bot" to Color(0xFFEC4899)
-    )
+    val categories = remember(showMergeBot) {
+        val list = mutableListOf(
+            "👤 Benutzer" to Color(0xFF38BDF8),
+            "💎 Lizenzen" to Color(0xFF8B5CF6),
+            "📱 Geräte" to Color(0xFF10B981),
+            "🎛️ Server" to Color(0xFF0EA5E9),
+            "📊 Statistik" to Color(0xFFF59E0B)
+        )
+        if (showMergeBot) {
+            list.add("🤖 Merge-Bot" to Color(0xFFEC4899))
+        }
+        list
+    }
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -769,9 +775,11 @@ fun AdminSimpleView(
                         AdminAuditAndDiagnosticsTab(users = users, licenses = licenses, devices = devices, onRefresh = onRefresh)
                     }
                     5 -> {
-                        Text("Kategorie: Merge-Bot & KI Arbitrage", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFEC4899))
-                        Text("Subkategorie: 100% Statistische Verzauberung & Top Trade Order Vorhersagen", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
-                        AdminMergeBotTab(viewModel = viewModel, onFocusModeChanged = onFocusModeChanged)
+                        if (showMergeBot) {
+                            Text("Kategorie: Merge-Bot & KI Arbitrage", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFEC4899))
+                            Text("Subkategorie: 100% Statistische Verzauberung & Top Trade Order Vorhersagen", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                            AdminMergeBotTab(viewModel = viewModel, onFocusModeChanged = onFocusModeChanged)
+                        }
                     }
                 }
             }

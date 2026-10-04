@@ -3624,6 +3624,7 @@ fun BubbleAdminTab(
             users = users,
             licenses = licenses,
             devices = devices,
+            showMergeBot = false,
             onFocusModeChanged = onFocusModeChanged,
             onRefresh = { loadAdminData() }
         )

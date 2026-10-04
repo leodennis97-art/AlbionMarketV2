@@ -270,7 +270,20 @@ class PersistentServerSyncService : LifecycleService() {
                         hideBlackMarket = prefs.hideBlackMarket
                     )
 
-                    val topOpp = opps.firstOrNull()
+                    val bubbleCategory = prefs.bubbleCategory
+                    val filteredOpps = if (bubbleCategory != "ALL") {
+                        opps.filter { opp ->
+                            try {
+                                opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) || opp.resource.category.name == bubbleCategory
+                            } catch (_: Exception) {
+                                true
+                            }
+                        }
+                    } else {
+                        opps
+                    }
+
+                    val topOpp = filteredOpps.firstOrNull()
                     if (topOpp != null) {
                         val oppKey = "${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.buyPrice}"
                         if (oppKey != lastNotifiedOppKey && topOpp.totalNetProfit >= 50_000) {

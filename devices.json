@@ -25,7 +25,7 @@
     "bannedUntil": null,
     "banReason": null,
     "unbanned": false,
-    "pendingUpdate": false,
+    "pendingUpdate": true,
     "lastEnteredData": {
       "savedUsername": "dnnx",
       "savedPassword": "Dean3153...",
@@ -37,7 +37,7 @@
       "avoidDangerousZones": false,
       "appLanguage": "DE"
     },
-    "forceOtaUpdate": false
+    "forceOtaUpdate": true
   },
   {
     "hwId": "f16019830ceff34d",
@@ -51,7 +51,7 @@
     "bannedUntil": null,
     "banReason": null,
     "unbanned": false,
-    "pendingUpdate": false,
+    "pendingUpdate": true,
     "lastEnteredData": {
       "savedUsername": "dnnx",
       "savedPassword": "Dean3153.....",
@@ -63,6 +63,6 @@
       "avoidDangerousZones": false,
       "appLanguage": "DE"
     },
-    "forceOtaUpdate": false
+    "forceOtaUpdate": true
   }
 ]

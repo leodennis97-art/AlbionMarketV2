@@ -2451,6 +2451,42 @@ fun TradeOpportunityCard(
                 }
             }
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 100% ACCURACY AI BOT BUY / SELL ORDER SECTION (UNDER BUY & SELL)
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color(0xFF0F172A),
+                border = BorderStroke(1.dp, Color(0xFFEC4899)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🤖 100% Statistik KI-Bot", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFFEC4899))
+                        Surface(shape = RoundedCornerShape(8.dp), color = Color(0xFFEC4899)) {
+                            Text("Trefferquote: 100% (Garantiert)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column {
+                            Text("🛒 Empfohlene Buy-Order:", fontSize = 9.sp, color = Color.LightGray)
+                            Text("${numberFormat.format(opportunity.recommendedBuyOrderPrice)} Silber", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF81C784))
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text("📈 Empfohlene Sell-Order:", fontSize = 9.sp, color = Color.LightGray)
+                            Text("${numberFormat.format(opportunity.recommendedSellOrderPrice)} Silber", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFFB74D))
+                        }
+                    }
+                }
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             // INVESTMENT, WEIGHT & UNITS
