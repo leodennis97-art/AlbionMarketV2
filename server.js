@@ -157,7 +157,7 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.2.5";
+    return "3.2.6";
 }
 
 let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
