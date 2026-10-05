@@ -875,8 +875,6 @@ class MainActivity : ComponentActivity() {
                         ) {
                             try {
                                 prefs.isUserLoggedIn = false
-                                prefs.savedUsername = ""
-                                prefs.savedPassword = ""
                                 isUserLoggedInState = false
                                 isUnlockedForSession = false
                                 try {
@@ -886,12 +884,6 @@ class MainActivity : ComponentActivity() {
                                     PersistentServerSyncService.stopService(this@MainActivity)
                                 } catch (_: Exception) {}
                                 Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
-
-                                val intent = Intent(this@MainActivity, MainActivity::class.java).apply {
-                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                                }
-                                startActivity(intent)
-                                finish()
                             } catch (e: Exception) {
                                 e.printStackTrace()
                             }
