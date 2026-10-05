@@ -113,24 +113,25 @@ object OtaUpdateManager {
         }
 
         val baseUrls = ServerSyncManager.getServerBaseUrls(context)
+        val mainBaseUrl = (baseUrls.firstOrNull() ?: "https://albionmarketv2-1.onrender.com").trimEnd('/')
         val timestamp = System.currentTimeMillis()
+
         val downloadUrls = if (!updateUrlInput.isNullOrBlank()) {
+            val formattedInput = if (updateUrlInput.startsWith("/")) "$mainBaseUrl$updateUrlInput" else updateUrlInput
             listOf(
-                if (updateUrlInput.contains("?")) "$updateUrlInput&t=$timestamp" else "$updateUrlInput?t=$timestamp",
-                "https://github.com/DennisAlbion/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp"
+                if (formattedInput.contains("?")) "$formattedInput&t=$timestamp" else "$formattedInput?t=$timestamp",
+                "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk?v=$timestamp",
+                "https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp"
             )
         } else {
             val list = mutableListOf<String>()
             for (base in baseUrls) {
                 val cleanBase = base.trimEnd('/')
-                // Direct signed token path first, followed by clean fallback routes
+                list.add("$cleanBase/download/AlbionDataPro.apk?v=$timestamp")
                 list.add("$cleanBase/dl?t=$timestamp")
                 list.add("$cleanBase/apk?t=$timestamp")
-                list.add("$cleanBase/download/AlbionDataPro.apk?key=AlbionDataPro_Military_Admin_SuperSecret_2026%23Key&t=$timestamp")
-                list.add("$cleanBase/download/AlbionDataPro.apk?t=$timestamp")
             }
-            // Add GitHub Releases mirror as resilient backup
-            list.add("https://github.com/DennisAlbion/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp")
+            list.add("https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp")
             list
         }
 

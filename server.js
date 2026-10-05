@@ -191,7 +191,7 @@ function triggerAutoOtaUpdateForAllDevices(reason = 'Neue Version bereitgestellt
         targetVersion: CURRENT_SERVER_VERSION,
         force: true,
         reason: reason,
-        downloadUrl: '/download/AlbionDataPro.apk',
+        downloadUrl: 'https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk',
         timestamp: new Date().toISOString()
     });
 }
@@ -1723,7 +1723,7 @@ app.post('/api/admin/trigger-ota', requireAdminAuth, (req, res) => {
                 targetVersion: CURRENT_SERVER_VERSION,
                 hwId: cleanHwId,
                 force: true,
-                downloadUrl: '/download/AlbionDataPro.apk',
+                downloadUrl: 'https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk',
                 timestamp: new Date().toISOString()
             });
         }
