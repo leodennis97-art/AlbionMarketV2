@@ -655,6 +655,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 resourceNameDe = opp.resource.nameDe,
                 resourceNameEn = opp.resource.nameEn,
                 tier = opp.resource.tier,
+                enchantment = opp.enchantment,
                 buyCity = opp.buyCity,
                 buyPrice = opp.buyPrice,
                 sellCity = opp.sellCity,
@@ -968,7 +969,7 @@ fun BubbleOverlayContent(
                                                 )
                                             }
                                             Text(
-                                                text = "$catEmoji ${activeOrder.resourceNameDe} (T${activeOrder.tier})",
+                                                text = "$catEmoji ${activeOrder.resourceNameDe} (${activeOrder.tierText})",
                                                 color = Color.White,
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 11.sp,
@@ -1116,7 +1117,7 @@ fun BubbleOverlayContent(
                             ) {
                                 Column(modifier = Modifier.padding(6.dp)) {
                                     Text(
-                                        text = "${activeOrder.resourceNameDe} (T${activeOrder.tier})",
+                                        text = "${activeOrder.resourceNameDe} (${activeOrder.tierText})",
                                         color = Color.White,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
@@ -3320,7 +3321,7 @@ fun BubbleCompletedOrdersTab(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "${order.resourceNameDe} (T${order.tier})",
+                                text = "${order.resourceNameDe} (${order.tierText})",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,

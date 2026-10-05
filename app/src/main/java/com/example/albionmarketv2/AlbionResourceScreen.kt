@@ -644,7 +644,7 @@ fun OrdersAndStatsTabContent(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("${order.resourceNameDe} (T${order.tier})", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                            Text("${order.resourceNameDe} (${order.tierText})", fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.weight(1f))
                             val profit = order.realizedNetProfit
                             Text(
                                 text = "${if (profit >= 0) "+" else ""}${numberFormat.format(profit)} Silber",
@@ -748,7 +748,7 @@ fun OrdersAndStatsTabContent(
                                 shape = RoundedCornerShape(8.dp),
                                 color = getTierColor(order.tier)
                             ) {
-                                Text("T${order.tier}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                Text(order.tierText, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(order.resourceNameDe, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.weight(1f))
@@ -967,7 +967,7 @@ fun EditCompletedOrderDialog(
         title = { Text("✏️ Abgeschlossenen Auftrag bearbeiten", fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("${order.resourceNameDe} (T${order.tier})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("${order.resourceNameDe} (${order.tierText})", fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 Text("Route: ${order.buyCity} ➔ ${order.sellCity}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                 OutlinedTextField(

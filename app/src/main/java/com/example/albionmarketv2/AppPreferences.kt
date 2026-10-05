@@ -322,6 +322,7 @@ class AppPreferences(private val context: Context) {
                         resourceNameDe = obj.optString("resourceNameDe", resourceId),
                         resourceNameEn = obj.optString("resourceNameEn", ""),
                         tier = obj.optInt("tier", 4),
+                        enchantment = obj.optInt("enchantment", 0),
                         buyCity = obj.optString("buyCity", "Caerleon"),
                         buyPrice = obj.optInt("buyPrice", 0),
                         sellCity = obj.optString("sellCity", "Caerleon"),
@@ -357,6 +358,7 @@ class AppPreferences(private val context: Context) {
                 obj.put("resourceNameDe", o.resourceNameDe)
                 obj.put("resourceNameEn", o.resourceNameEn)
                 obj.put("tier", o.tier)
+                obj.put("enchantment", o.enchantment)
                 obj.put("buyCity", o.buyCity)
                 obj.put("buyPrice", o.buyPrice)
                 obj.put("sellCity", o.sellCity)

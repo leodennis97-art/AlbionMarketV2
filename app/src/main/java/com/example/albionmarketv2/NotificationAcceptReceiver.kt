@@ -30,6 +30,7 @@ class NotificationAcceptReceiver : BroadcastReceiver() {
                 val resourceNameDe = intent.getStringExtra("resourceNameDe") ?: "Handelsitem"
                 val resourceNameEn = intent.getStringExtra("resourceNameEn") ?: "Trade Item"
                 val tier = intent.getIntExtra("tier", 4)
+                val enchantment = intent.getIntExtra("enchantment", 0)
                 val buyCity = intent.getStringExtra("buyCity") ?: "Bridgewatch"
                 val buyPrice = intent.getIntExtra("buyPrice", 1000)
                 val sellCity = intent.getStringExtra("sellCity") ?: "Caerleon"
@@ -46,6 +47,7 @@ class NotificationAcceptReceiver : BroadcastReceiver() {
                     resourceNameDe = resourceNameDe,
                     resourceNameEn = resourceNameEn,
                     tier = tier,
+                    enchantment = enchantment,
                     buyCity = buyCity,
                     buyPrice = buyPrice,
                     sellCity = sellCity,

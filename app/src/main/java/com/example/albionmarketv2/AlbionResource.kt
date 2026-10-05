@@ -34,7 +34,7 @@ data class AlbionResource(
         get() = "https://render.albiononline.com/v1/item/$fullId.png"
 
     val tierText: String
-        get() = "T$tier"
+        get() = if (enchantment > 0) "T$tier.$enchantment" else "T$tier"
 
     val enchantmentText: String
         get() = if (enchantment > 0) ".$enchantment" else ""

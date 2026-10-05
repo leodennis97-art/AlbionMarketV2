@@ -12,6 +12,7 @@ data class TradeOrder(
     val resourceNameDe: String,
     val resourceNameEn: String,
     val tier: Int,
+    val enchantment: Int = 0,
     val buyCity: String,
     val buyPrice: Int, // Planned Unit Buy Price in Silber
     val sellCity: String,
@@ -33,6 +34,8 @@ data class TradeOrder(
     val actualUnits: Int? = null, // Realized Sold Units
     val completedDate: String? = null
 ) {
+    val tierText: String
+        get() = if (enchantment > 0) "T$tier.$enchantment" else "T$tier"
     fun isPriceStillValid(allPrices: Map<String, List<MarketPrice>>): Boolean {
         if (status != OrderStatus.ACTIVE) return false
         val prices = allPrices[resourceId] ?: return false

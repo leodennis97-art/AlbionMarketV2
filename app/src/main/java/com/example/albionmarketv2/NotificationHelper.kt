@@ -116,6 +116,7 @@ object NotificationHelper {
             putExtra("resourceNameDe", opp.resource.nameDe)
             putExtra("resourceNameEn", opp.resource.nameEn)
             putExtra("tier", opp.resource.tier)
+            putExtra("enchantment", opp.enchantment)
             putExtra("buyCity", opp.buyCity)
             putExtra("buyPrice", opp.buyPrice)
             putExtra("sellCity", opp.sellCity)
