@@ -224,6 +224,61 @@ object AlbionResourceRepository {
         AlbionResource("T7_MAIN_HOLYSTAFF", "Heilstab (T7)", "Holy Staff (T7)", 7, ResourceCategory.WEAPONS, 0, "Magische Heilwaffe"),
         AlbionResource("T8_MAIN_HOLYSTAFF", "Heilstab (T8)", "Holy Staff (T8)", 8, ResourceCategory.WEAPONS, 0, "Magische Heilwaffe"),
 
+        // SAMMLER-KLEIDUNG (Gathering Gear)
+        AlbionResource("T4_ARMOR_GATHERER_FIBER", "Ernter-Gewand (T4)", "Harvester Garb (T4)", 4, ResourceCategory.ARMOR, 0, "Faser-Sammlerkleidung"),
+        AlbionResource("T5_ARMOR_GATHERER_FIBER", "Ernter-Gewand (T5)", "Harvester Garb (T5)", 5, ResourceCategory.ARMOR, 0, "Faser-Sammlerkleidung"),
+        AlbionResource("T6_ARMOR_GATHERER_FIBER", "Ernter-Gewand (T6)", "Harvester Garb (T6)", 6, ResourceCategory.ARMOR, 0, "Faser-Sammlerkleidung"),
+        AlbionResource("T7_ARMOR_GATHERER_FIBER", "Ernter-Gewand (T7)", "Harvester Garb (T7)", 7, ResourceCategory.ARMOR, 0, "Faser-Sammlerkleidung"),
+        AlbionResource("T8_ARMOR_GATHERER_FIBER", "Ernter-Gewand (T8)", "Harvester Garb (T8)", 8, ResourceCategory.ARMOR, 0, "Faser-Sammlerkleidung"),
+
+        AlbionResource("T4_HEAD_GATHERER_FIBER", "Ernter-Mütze (T4)", "Harvester Cap (T4)", 4, ResourceCategory.HELMETS, 0, "Faser-Sammlermütze"),
+        AlbionResource("T5_HEAD_GATHERER_FIBER", "Ernter-Mütze (T5)", "Harvester Cap (T5)", 5, ResourceCategory.HELMETS, 0, "Faser-Sammlermütze"),
+        AlbionResource("T6_HEAD_GATHERER_FIBER", "Ernter-Mütze (T6)", "Harvester Cap (T6)", 6, ResourceCategory.HELMETS, 0, "Faser-Sammlermütze"),
+        AlbionResource("T7_HEAD_GATHERER_FIBER", "Ernter-Mütze (T7)", "Harvester Cap (T7)", 7, ResourceCategory.HELMETS, 0, "Faser-Sammlermütze"),
+        AlbionResource("T8_HEAD_GATHERER_FIBER", "Ernter-Mütze (T8)", "Harvester Cap (T8)", 8, ResourceCategory.HELMETS, 0, "Faser-Sammlermütze"),
+
+        AlbionResource("T4_SHOES_GATHERER_FIBER", "Ernter-Arbeitsstiefel (T4)", "Harvester Workboots (T4)", 4, ResourceCategory.SHOES, 0, "Faser-Sammlerstiefel"),
+        AlbionResource("T5_SHOES_GATHERER_FIBER", "Ernter-Arbeitsstiefel (T5)", "Harvester Workboots (T5)", 5, ResourceCategory.SHOES, 0, "Faser-Sammlerstiefel"),
+        AlbionResource("T6_SHOES_GATHERER_FIBER", "Ernter-Arbeitsstiefel (T6)", "Harvester Workboots (T6)", 6, ResourceCategory.SHOES, 0, "Faser-Sammlerstiefel"),
+        AlbionResource("T7_SHOES_GATHERER_FIBER", "Ernter-Arbeitsstiefel (T7)", "Harvester Workboots (T7)", 7, ResourceCategory.SHOES, 0, "Faser-Sammlerstiefel"),
+        AlbionResource("T8_SHOES_GATHERER_FIBER", "Ernter-Arbeitsstiefel (T8)", "Harvester Workboots (T8)", 8, ResourceCategory.SHOES, 0, "Faser-Sammlerstiefel"),
+
+        AlbionResource("T4_ARMOR_GATHERER_ORE", "Bergmann-Gewand (T4)", "Miner Garb (T4)", 4, ResourceCategory.ARMOR, 0, "Erz-Sammlerkleidung"),
+        AlbionResource("T5_ARMOR_GATHERER_ORE", "Bergmann-Gewand (T5)", "Miner Garb (T5)", 5, ResourceCategory.ARMOR, 0, "Erz-Sammlerkleidung"),
+        AlbionResource("T6_ARMOR_GATHERER_ORE", "Bergmann-Gewand (T6)", "Miner Garb (T6)", 6, ResourceCategory.ARMOR, 0, "Erz-Sammlerkleidung"),
+        AlbionResource("T7_ARMOR_GATHERER_ORE", "Bergmann-Gewand (T7)", "Miner Garb (T7)", 7, ResourceCategory.ARMOR, 0, "Erz-Sammlerkleidung"),
+        AlbionResource("T8_ARMOR_GATHERER_ORE", "Bergmann-Gewand (T8)", "Miner Garb (T8)", 8, ResourceCategory.ARMOR, 0, "Erz-Sammlerkleidung"),
+
+        AlbionResource("T4_HEAD_GATHERER_ORE", "Bergmann-Mütze (T4)", "Miner Cap (T4)", 4, ResourceCategory.HELMETS, 0, "Erz-Sammlermütze"),
+        AlbionResource("T5_HEAD_GATHERER_ORE", "Bergmann-Mütze (T5)", "Miner Cap (T5)", 5, ResourceCategory.HELMETS, 0, "Erz-Sammlermütze"),
+        AlbionResource("T6_HEAD_GATHERER_ORE", "Bergmann-Mütze (T6)", "Miner Cap (T6)", 6, ResourceCategory.HELMETS, 0, "Erz-Sammlermütze"),
+        AlbionResource("T7_HEAD_GATHERER_ORE", "Bergmann-Mütze (T7)", "Miner Cap (T7)", 7, ResourceCategory.HELMETS, 0, "Erz-Sammlermütze"),
+        AlbionResource("T8_HEAD_GATHERER_ORE", "Bergmann-Mütze (T8)", "Miner Cap (T8)", 8, ResourceCategory.HELMETS, 0, "Erz-Sammlermütze"),
+
+        AlbionResource("T4_SHOES_GATHERER_ORE", "Bergmann-Arbeitsstiefel (T4)", "Miner Workboots (T4)", 4, ResourceCategory.SHOES, 0, "Erz-Sammlerstiefel"),
+        AlbionResource("T5_SHOES_GATHERER_ORE", "Bergmann-Arbeitsstiefel (T5)", "Miner Workboots (T5)", 5, ResourceCategory.SHOES, 0, "Erz-Sammlerstiefel"),
+        AlbionResource("T6_SHOES_GATHERER_ORE", "Bergmann-Arbeitsstiefel (T6)", "Miner Workboots (T6)", 6, ResourceCategory.SHOES, 0, "Erz-Sammlerstiefel"),
+        AlbionResource("T7_SHOES_GATHERER_ORE", "Bergmann-Arbeitsstiefel (T7)", "Miner Workboots (T7)", 7, ResourceCategory.SHOES, 0, "Erz-Sammlerstiefel"),
+        AlbionResource("T8_SHOES_GATHERER_ORE", "Bergmann-Arbeitsstiefel (T8)", "Miner Workboots (T8)", 8, ResourceCategory.SHOES, 0, "Erz-Sammlerstiefel"),
+
+        AlbionResource("T4_ARMOR_GATHERER_HIDE", "Häuter-Gewand (T4)", "Skinner Garb (T4)", 4, ResourceCategory.ARMOR, 0, "Leder-Sammlerkleidung"),
+        AlbionResource("T5_ARMOR_GATHERER_HIDE", "Häuter-Gewand (T5)", "Skinner Garb (T5)", 5, ResourceCategory.ARMOR, 0, "Leder-Sammlerkleidung"),
+        AlbionResource("T6_ARMOR_GATHERER_HIDE", "Häuter-Gewand (T6)", "Skinner Garb (T6)", 6, ResourceCategory.ARMOR, 0, "Leder-Sammlerkleidung"),
+        AlbionResource("T7_ARMOR_GATHERER_HIDE", "Häuter-Gewand (T7)", "Skinner Garb (T7)", 7, ResourceCategory.ARMOR, 0, "Leder-Sammlerkleidung"),
+        AlbionResource("T8_ARMOR_GATHERER_HIDE", "Häuter-Gewand (T8)", "Skinner Garb (T8)", 8, ResourceCategory.ARMOR, 0, "Leder-Sammlerkleidung"),
+
+        AlbionResource("T4_ARMOR_GATHERER_WOOD", "Holzfäller-Gewand (T4)", "Lumberjack Garb (T4)", 4, ResourceCategory.ARMOR, 0, "Holz-Sammlerkleidung"),
+        AlbionResource("T5_ARMOR_GATHERER_WOOD", "Holzfäller-Gewand (T5)", "Lumberjack Garb (T5)", 5, ResourceCategory.ARMOR, 0, "Holz-Sammlerkleidung"),
+        AlbionResource("T6_ARMOR_GATHERER_WOOD", "Holzfäller-Gewand (T6)", "Lumberjack Garb (T6)", 6, ResourceCategory.ARMOR, 0, "Holz-Sammlerkleidung"),
+        AlbionResource("T7_ARMOR_GATHERER_WOOD", "Holzfäller-Gewand (T7)", "Lumberjack Garb (T7)", 7, ResourceCategory.ARMOR, 0, "Holz-Sammlerkleidung"),
+        AlbionResource("T8_ARMOR_GATHERER_WOOD", "Holzfäller-Gewand (T8)", "Lumberjack Garb (T8)", 8, ResourceCategory.ARMOR, 0, "Holz-Sammlerkleidung"),
+
+        AlbionResource("T4_ARMOR_GATHERER_ROCK", "Steinmetz-Gewand (T4)", "Quarryman Garb (T4)", 4, ResourceCategory.ARMOR, 0, "Stein-Sammlerkleidung"),
+        AlbionResource("T5_ARMOR_GATHERER_ROCK", "Steinmetz-Gewand (T5)", "Quarryman Garb (T5)", 5, ResourceCategory.ARMOR, 0, "Stein-Sammlerkleidung"),
+        AlbionResource("T6_ARMOR_GATHERER_ROCK", "Steinmetz-Gewand (T6)", "Quarryman Garb (T6)", 6, ResourceCategory.ARMOR, 0, "Stein-Sammlerkleidung"),
+        AlbionResource("T7_ARMOR_GATHERER_ROCK", "Steinmetz-Gewand (T7)", "Quarryman Garb (T7)", 7, ResourceCategory.ARMOR, 0, "Stein-Sammlerkleidung"),
+        AlbionResource("T8_ARMOR_GATHERER_ROCK", "Steinmetz-Gewand (T8)", "Quarryman Garb (T8)", 8, ResourceCategory.ARMOR, 0, "Stein-Sammlerkleidung"),
+
         // ARMOR (Rüstung, Helme, Stiefel)
         AlbionResource("T4_HEAD_PLATE_SET1", "Soldaten-Helm (T4)", "Soldier Helmet (T4)", 4, ResourceCategory.HELMETS, 0, "Platten-Kopfbedeckung"),
         AlbionResource("T5_HEAD_PLATE_SET1", "Soldaten-Helm (T5)", "Soldier Helmet (T5)", 5, ResourceCategory.HELMETS, 0, "Platten-Kopfbedeckung"),

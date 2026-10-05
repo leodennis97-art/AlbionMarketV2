@@ -5,7 +5,16 @@ object LanguageManager {
     enum class AppLanguage(val code: String, val displayName: String, val flag: String) {
         DE("DE", "Deutsch", "🇩🇪"),
         EN("EN", "English", "🇬🇧"),
-        ZH("ZH", "中文 (Asian)", "🇨🇳")
+        ES("ES", "Español", "🇪🇸"),
+        FR("FR", "Français", "🇫🇷"),
+        PT("PT", "Português", "🇵🇹"),
+        RU("RU", "Русский", "🇷🇺"),
+        ZH("ZH", "中文", "🇨🇳"),
+        JA("JA", "日本語", "🇯🇵"),
+        KO("KO", "한국어", "🇰🇷"),
+        TR("TR", "Türkçe", "🇹🇷"),
+        ID("ID", "Bahasa Indonesia", "🇮🇩"),
+        PL("PL", "Polski", "🇵🇱")
     }
 
     private val deMap = mapOf(
@@ -307,11 +316,19 @@ object LanguageManager {
     )
 
     fun getString(key: String, langCode: String): String {
-        return when (langCode.uppercase()) {
-            "EN" -> enMap[key] ?: deMap[key] ?: key
-            "ZH" -> zhMap[key] ?: enMap[key] ?: deMap[key] ?: key
-            else -> deMap[key] ?: key
+        val baseDe = deMap[key] ?: key
+        if (langCode.equals("DE", ignoreCase = true)) return baseDe
+
+        val staticTrans = when (langCode.uppercase()) {
+            "EN" -> enMap[key]
+            "ZH" -> zhMap[key]
+            else -> null
         }
+        if (staticTrans != null) return staticTrans
+
+        val targetLang = AiTranslationEngine.SupportedLanguage.entries.find { it.code.equals(langCode, ignoreCase = true) }
+            ?: AiTranslationEngine.SupportedLanguage.EN
+        return AiTranslationEngine.translate(baseDe, targetLang)
     }
 
     fun getCityTranslation(city: String, langCode: String): String {
