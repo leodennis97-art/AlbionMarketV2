@@ -542,11 +542,18 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val hideBm = prefs.bubbleHideBlackMarket || prefs.hideBlackMarket
         val maxZones = prefs.bubbleMaxZones
 
+        val viewModel = try {
+            SharedViewModelProvider.get(context.applicationContext as Application)
+        } catch (_: Exception) { null }
+
+        val silverBudget = viewModel?.uiState?.value?.silverBudget ?: prefs.silverBudget
+        val carryCapacity = viewModel?.uiState?.value?.carryCapacityKg ?: prefs.carryCapacityKg
+
         var rawOpportunities = TradeCalculator.calculateOpportunities(
             resources = filteredResources,
             pricesByItem = priceMap,
-            silverBudget = prefs.silverBudget,
-            carryCapacityKg = prefs.carryCapacityKg,
+            silverBudget = silverBudget,
+            carryCapacityKg = carryCapacity,
             marketTaxPercent = if (prefs.hasPremium) 4.0 else 8.0,
             targetMarginPercent = prefs.bubbleMinMarginPercent,
             avoidDangerousZones = avoidDangerous,
