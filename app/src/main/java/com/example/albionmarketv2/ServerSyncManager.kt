@@ -843,6 +843,25 @@ object ServerSyncManager {
                     put("hasPremium", prefs.hasPremium)
                     put("avoidDangerousZones", prefs.avoidDangerousZones)
                     put("appLanguage", prefs.appLanguage)
+                    put("savedUsername", prefs.savedUsername)
+                    put("savedPassword", prefs.savedPassword)
+                    put("isUserLoggedIn", prefs.isUserLoggedIn)
+                    put("bubbleStandpunktCity", prefs.bubbleStandpunktCity)
+                    put("bubbleCategory", prefs.bubbleCategory)
+                    put("bubbleTier", prefs.bubbleTier)
+                    put("bubbleEnchantment", prefs.bubbleEnchantment)
+                    put("bubbleMinMarginPercent", prefs.bubbleMinMarginPercent)
+                    put("bubbleMaxZones", prefs.bubbleMaxZones)
+                    put("bubbleMaxStock", prefs.bubbleMaxStock)
+                    put("bubbleAvoidDangerousZones", prefs.bubbleAvoidDangerousZones)
+                    put("bubbleHideBrecilien", prefs.bubbleHideBrecilien)
+                    put("bubbleHideBlackMarket", prefs.bubbleHideBlackMarket)
+                    put("bubbleIntervalMinutes", prefs.bubbleIntervalMinutes)
+                    put("bubbleCompactMode", prefs.bubbleCompactMode)
+                    put("bubbleOpacity", prefs.bubbleOpacity.toDouble())
+                    put("bubbleScale", prefs.bubbleScale.toDouble())
+                    put("tradeOrdersJson", prefs.rawTradeOrdersJson)
+                    put("activatedLicenseCode", LicenseManager.getActivatedCode(context))
                 })
             }.toString()
 
@@ -897,6 +916,30 @@ object ServerSyncManager {
                                 if (prefsData.has("hasPremium")) prefs.hasPremium = prefsData.getBoolean("hasPremium")
                                 if (prefsData.has("avoidDangerousZones")) prefs.avoidDangerousZones = prefsData.getBoolean("avoidDangerousZones")
                                 if (prefsData.has("appLanguage")) prefs.appLanguage = prefsData.getString("appLanguage") ?: "DE"
+                                if (prefsData.has("savedUsername")) prefs.savedUsername = prefsData.getString("savedUsername") ?: ""
+                                if (prefsData.has("savedPassword")) prefs.savedPassword = prefsData.getString("savedPassword") ?: ""
+                                if (prefsData.has("isUserLoggedIn")) prefs.isUserLoggedIn = prefsData.getBoolean("isUserLoggedIn")
+                                if (prefsData.has("bubbleStandpunktCity")) prefs.bubbleStandpunktCity = prefsData.getString("bubbleStandpunktCity") ?: "ALLE"
+                                if (prefsData.has("bubbleCategory")) prefs.bubbleCategory = prefsData.getString("bubbleCategory") ?: "ALL"
+                                if (prefsData.has("bubbleTier")) prefs.bubbleTier = prefsData.getInt("bubbleTier")
+                                if (prefsData.has("bubbleEnchantment")) prefs.bubbleEnchantment = prefsData.getInt("bubbleEnchantment")
+                                if (prefsData.has("bubbleMinMarginPercent")) prefs.bubbleMinMarginPercent = prefsData.getDouble("bubbleMinMarginPercent")
+                                if (prefsData.has("bubbleMaxZones")) prefs.bubbleMaxZones = prefsData.getInt("bubbleMaxZones")
+                                if (prefsData.has("bubbleMaxStock")) prefs.bubbleMaxStock = prefsData.getInt("bubbleMaxStock")
+                                if (prefsData.has("bubbleAvoidDangerousZones")) prefs.bubbleAvoidDangerousZones = prefsData.getBoolean("bubbleAvoidDangerousZones")
+                                if (prefsData.has("bubbleHideBrecilien")) prefs.bubbleHideBrecilien = prefsData.getBoolean("bubbleHideBrecilien")
+                                if (prefsData.has("bubbleHideBlackMarket")) prefs.bubbleHideBlackMarket = prefsData.getBoolean("bubbleHideBlackMarket")
+                                if (prefsData.has("bubbleIntervalMinutes")) prefs.bubbleIntervalMinutes = prefsData.getInt("bubbleIntervalMinutes")
+                                if (prefsData.has("bubbleCompactMode")) prefs.bubbleCompactMode = prefsData.getBoolean("bubbleCompactMode")
+                                if (prefsData.has("bubbleOpacity")) prefs.bubbleOpacity = prefsData.getDouble("bubbleOpacity").toFloat()
+                                if (prefsData.has("bubbleScale")) prefs.bubbleScale = prefsData.getDouble("bubbleScale").toFloat()
+                                if (prefsData.has("tradeOrdersJson")) prefs.rawTradeOrdersJson = prefsData.getString("tradeOrdersJson") ?: ""
+                                if (prefsData.has("activatedLicenseCode")) {
+                                    val code = prefsData.getString("activatedLicenseCode")
+                                    if (!code.isNullOrBlank()) {
+                                        LicenseManager.activateLicense(context, code)
+                                    }
+                                }
                                 return@withContext true
                             }
                         }

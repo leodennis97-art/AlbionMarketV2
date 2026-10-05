@@ -380,6 +380,12 @@ class AppPreferences(private val context: Context) {
         }
     }
 
+    var rawTradeOrdersJson: String
+        get() = prefs.getString("trade_orders_json", "[]") ?: "[]"
+        set(value) {
+            prefs.edit().putString("trade_orders_json", value).apply()
+        }
+
     // Gold Purchases Persistence
     fun getGoldPurchases(): List<GoldPurchase> {
         val jsonStr = prefs.getString("gold_purchases_json", "[]") ?: "[]"
