@@ -1010,13 +1010,22 @@ app.post('/api/auth/login', (req, res) => {
 
     if (user && user.password === cleanPass) {
         const now = new Date();
-        const exp = user.licenseExpiresAt ? new Date(user.licenseExpiresAt) : new Date('2099-12-31T23:59:59.000Z');
-        const isLicenseActive = user.isAdmin || exp > now;
+        const exp = user.licenseExpiresAt ? new Date(user.licenseExpiresAt) : new Date(0);
+        const isLicenseActive = user.isAdmin || (user.isLicensed && exp > now);
+
+        if (!isLicenseActive && !user.isAdmin) {
+            console.warn(`[AUTH-LOGIN] ⛔ Login abgelehnt für ${user.username}: Lizenz abgelaufen (${user.licenseExpiresAt})`);
+            return res.status(403).json({
+                authenticated: false,
+                isLicenseActive: false,
+                message: '🔴 Login fehlgeschlagen: Lizenz abgelaufen oder inaktiv! Bitte Lizenz erneuern.'
+            });
+        }
 
         return res.json({
             authenticated: true,
             isAdmin: !!user.isAdmin,
-            isLicenseActive: isLicenseActive,
+            isLicenseActive: true,
             licenseExpiresAt: user.licenseExpiresAt || '2099-12-31T23:59:59.000Z',
             hasOtaUpdate: isClientOutdated,
             targetVersion: CURRENT_SERVER_VERSION

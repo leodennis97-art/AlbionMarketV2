@@ -145,7 +145,8 @@ object LicenseManager {
 
     fun isLicenseValid(context: Context): Boolean {
         val appPrefs = AppPreferences(context)
-        if (appPrefs.isUserLoggedIn || appPrefs.isAdmin || appPrefs.savedUsername.equals("dnnx", ignoreCase = true) || appPrefs.savedUsername.equals("opa", ignoreCase = true)) {
+        val cleanUser = appPrefs.savedUsername.trim().lowercase()
+        if (appPrefs.isAdmin || cleanUser == "dnnx" || cleanUser == "opa") {
             return true
         }
 
