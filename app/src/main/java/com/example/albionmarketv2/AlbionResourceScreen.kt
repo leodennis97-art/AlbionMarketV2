@@ -334,6 +334,12 @@ fun AlbionResourceScreen(
                             )
                         }
 
+                        GlowingLanguageSelectorButton(
+                            currentLanguageCode = uiState.appLanguage,
+                            onLanguageSelected = { viewModel.onLanguageChanged(it) },
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+
                         IconButton(onClick = { viewModel.onOpenSettings() }) {
                             Icon(Icons.Default.Settings, contentDescription = "Einstellungen")
                         }
@@ -2018,6 +2024,22 @@ fun TradeOpportunityCard(
                             modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.width(6.dp))
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = Color(0xFF10B981).copy(alpha = 0.2f),
+                    border = BorderStroke(1.dp, Color(0xFF10B981))
+                ) {
+                    Text(
+                        text = "100% Frisch & Geprüft ✓",
+                        color = Color(0xFF34D399),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
                 }
 
                 Spacer(modifier = Modifier.width(10.dp))

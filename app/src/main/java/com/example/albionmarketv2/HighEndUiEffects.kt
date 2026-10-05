@@ -8,8 +8,17 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
@@ -299,6 +308,131 @@ object ZoneThemeColors {
             isBrecilien(buyCity) || isBrecilien(sellCity) -> Color(0xFF0F2B48) // Dunkelblau für Brecilien
             else -> Color(0xFF1E3A4C)
         }
+    }
+}
+
+@Composable
+fun GlowingLanguageSelectorButton(
+    currentLanguageCode: String,
+    onLanguageSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    val infiniteTransition = rememberInfiniteTransition(label = "LanguageGlow")
+    val alphaGlow by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "GlowAlpha"
+    )
+
+    val currentLang = remember(currentLanguageCode) {
+        LanguageManager.AppLanguage.entries.find { it.code.equals(currentLanguageCode, ignoreCase = true) }
+            ?: LanguageManager.AppLanguage.DE
+    }
+
+    Surface(
+        onClick = { showDialog = true },
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF0F172A),
+        border = BorderStroke(1.5.dp, Color(0xFF00E5FF).copy(alpha = alphaGlow)),
+        shadowElevation = 8.dp,
+        modifier = modifier
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "${currentLang.flag} ${currentLang.code}",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF00E5FF)
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Sprache wählen",
+                tint = Color(0xFF00E5FF),
+                modifier = Modifier.size(16.dp)
+            )
+        }
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = {
+                Text(
+                    text = "🌐 Sprache auswählen / Select Language",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 340.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    LanguageManager.AppLanguage.entries.forEach { lang ->
+                        val isSelected = lang.code.equals(currentLanguageCode, ignoreCase = true)
+                        Surface(
+                            onClick = {
+                                onLanguageSelected(lang.code)
+                                showDialog = false
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B),
+                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF38BDF8) else Color(0xFF334155)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            ) {
+                                Text(text = lang.flag, fontSize = 16.sp)
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = lang.displayName,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Ausgewählt",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                Button(
+                    onClick = { showDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Schließen", fontSize = 12.sp, color = Color.White)
+                }
+            },
+            containerColor = Color(0xFF0F172A)
+        )
     }
 }
 

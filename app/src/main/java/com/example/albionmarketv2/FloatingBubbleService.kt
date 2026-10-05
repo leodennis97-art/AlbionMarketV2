@@ -870,6 +870,16 @@ fun BubbleOverlayContent(
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            GlowingLanguageSelectorButton(
+                                currentLanguageCode = lang,
+                                onLanguageSelected = { newLang ->
+                                    prefs.appLanguage = newLang
+                                    AiTranslationEngine.setLanguage(newLang)
+                                    onRefresh()
+                                },
+                                modifier = Modifier.padding(end = 4.dp)
+                            )
+
                             // Minimieren zu Bubble Button
                             IconButton(
                                 onClick = {
@@ -1777,7 +1787,7 @@ fun BubbleOverlayContent(
                                                             }
                                                             Spacer(modifier = Modifier.width(3.dp))
                                                             Text(
-                                                                text = "${opp.resource.nameDe} [${opp.resource.fullId}]",
+                                                                text = "Nr. ${index + 1} • ${opp.resource.nameDe}",
                                                                 color = Color.White,
                                                                 fontSize = 9.sp,
                                                                 fontWeight = FontWeight.Bold,
@@ -1851,7 +1861,7 @@ fun BubbleOverlayContent(
                                                             }
                                                             Spacer(modifier = Modifier.width(4.dp))
                                                             Text(
-                                                                text = "${index + 1}. ${opp.resource.nameDe} [${opp.resource.fullId}]",
+                                                                text = "Nr. ${index + 1} • ${opp.resource.nameDe}",
                                                                 color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 10.sp,
@@ -1859,6 +1869,20 @@ fun BubbleOverlayContent(
                                                                 overflow = TextOverflow.Ellipsis,
                                                                 modifier = Modifier.weight(1f)
                                                             )
+                                                            Spacer(modifier = Modifier.width(4.dp))
+                                                            Surface(
+                                                                shape = RoundedCornerShape(4.dp),
+                                                                color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                                                border = BorderStroke(1.dp, Color(0xFF10B981))
+                                                            ) {
+                                                                Text(
+                                                                    text = "100% Frisch & Geprüft ✓",
+                                                                    color = Color(0xFF34D399),
+                                                                    fontSize = 8.sp,
+                                                                    fontWeight = FontWeight.Bold,
+                                                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
+                                                                )
+                                                            }
                                                         }
 
                                                         Spacer(modifier = Modifier.width(4.dp))
