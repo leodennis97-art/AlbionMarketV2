@@ -2175,25 +2175,39 @@ app.get(['/admin'], (req, res) => {
         </div>
 
         <div class="card">
-            <h2>👤 Full Account Management (${registeredUsers.length})</h2>
-            <div style="margin-bottom: 16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+                <h2 style="margin:0;">👤 Account- & Anmelde-Übersicht (${registeredUsers.length})</h2>
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <input type="text" id="userSearch" class="input" onkeyup="filterUserTable()" placeholder="🔍 Benutzer suchen..." style="width: 240px;">
+                </div>
+            </div>
+            <div style="margin-bottom: 16px; display:flex; gap:10px; flex-wrap:wrap;">
                 <input type="text" id="newUsername" class="input" placeholder="Neuer Benutzername">
                 <input type="password" id="newPassword" class="input" placeholder="Passwort">
                 <button class="btn" onclick="createUser()">Benutzer erstellen</button>
             </div>
-            <table>
+            <table id="userTable">
                 <thead>
-                    <tr><th>Benutzername</th><th>Lizenz aktiv</th><th>Ablaufdatum</th><th>Aktionen</th></tr>
+                    <tr><th>Benutzername</th><th>Lizenzstatus</th><th>Verknüpfte Geräte (HWID)</th><th>Ablaufdatum</th><th>Aktionen</th></tr>
                 </thead>
                 <tbody>
-                    ${registeredUsers.map(u => `<tr>
-                        <td><strong>${u.username}</strong> ${u.isAdmin ? '👑 (Admin)' : ''}</td>
-                        <td><span class="badge" style="background:#10b981;">Ja</span></td>
-                        <td>${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString()}</td>
-                        <td>
-                            ${!u.isAdmin ? `<button class="btn btn-danger" onclick="deleteUser('${u.username}')">Löschen</button>` : '<em>Geschützt</em>'}
-                        </td>
-                    </tr>`).join('')}
+                    ${registeredUsers.map(u => {
+                        const userDevices = registeredDevices.filter(d => d.username && d.username.toLowerCase() === u.username.toLowerCase());
+                        const devicesStr = userDevices.length > 0 ? userDevices.map(d => `<code>${d.hwId.substring(0, 10)}...</code> (${d.deviceName})`).join(', ') : '<em style="color:#64748b;">Kein Gerät verbunden</em>';
+                        const isExpired = u.licenseExpiresAt && new Date(u.licenseExpiresAt) < new Date() && !u.isAdmin;
+                        const licBadge = u.isAdmin
+                            ? '<span class="badge" style="background:#8b5cf6;">👑 Admin</span>'
+                            : (isExpired ? '<span class="badge" style="background:#ef4444;">🔴 Abgelaufen</span>' : '<span class="badge" style="background:#10b981;">🟢 Aktiv</span>');
+                        return `<tr>
+                            <td><strong>${u.username}</strong></td>
+                            <td>${licBadge}</td>
+                            <td>${devicesStr}</td>
+                            <td>${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString()}</td>
+                            <td>
+                                ${!u.isAdmin ? `<button class="btn btn-danger" onclick="deleteUser('${u.username}')">Löschen</button>` : '<em>Geschützt</em>'}
+                            </td>
+                        </tr>`;
+                    }).join('')}
                 </tbody>
             </table>
         </div>
@@ -2267,6 +2281,24 @@ app.get(['/admin'], (req, res) => {
             });
             if (res.ok) location.reload();
             else alert('Fehler beim Erstellen des Benutzers.');
+        }
+
+        function filterUserTable() {
+            const input = document.getElementById('userSearch');
+            const filter = input.value.toLowerCase();
+            const table = document.getElementById('userTable');
+            const tr = table.getElementsByTagName('tr');
+            for (let i = 1; i < tr.length; i++) {
+                const td = tr[i].getElementsByTagName('td')[0];
+                if (td) {
+                    const txtValue = td.textContent || td.innerText;
+                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
+                        tr[i].style.display = "";
+                    } else {
+                        tr[i].style.display = "none";
+                    }
+                }
+            }
         }
 
         async function deleteUser(username) {
