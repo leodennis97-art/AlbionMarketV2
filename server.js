@@ -686,8 +686,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
             <span>AlbionDataPro <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">v${CURRENT_SERVER_VERSION}</span></span>
         </div>
         <div class="flex items-center gap-4">
-            <a href="https://t.me/dnnx" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
-                <i class="fa-brands fa-telegram"></i> Telegram Kontakt
+            <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                <i class="fa-brands fa-telegram"></i> @DnnxDigitalCrator kontaktieren
             </a>
         </div>
     </nav>
@@ -705,13 +705,12 @@ app.get(['/', '/get', '/app'], (req, res) => {
             Das professionelle Handels- und Analysetool für Albion Online. Mit permanentem In-Game Overlay, 100% statistischem KI-Bot für Buy/Sell Orders und sekundengenauer Marktüberwachung.
         </p>
 
-        <!-- Download & Telegram CTA -->
         <div class="flex flex-col sm:flex-row gap-5 justify-center mb-20">
             <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-emerald-400/30">
                 <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
             </a>
-            <a href="https://t.me/dnnx" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-blue-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-blue-400/30">
-                <i class="fa-brands fa-telegram text-2xl"></i> Lizenz erwerben (15€/Monat)
+            <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-blue-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-blue-400/30">
+                <i class="fa-brands fa-telegram text-2xl"></i> Lizenz erwerben (@DnnxDigitalCrator)
             </a>
         </div>
 
