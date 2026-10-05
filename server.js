@@ -926,6 +926,7 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                     const mailOptions = {
                         from: 'AlbionDataPro <dnnxdigitalcreator@gmail.com>',
                         to: payer_email,
+                        bcc: 'dnnxdigitalcreator@gmail.com', // Admin bekommt unsichtbar eine Kopie der Mail!
                         subject: `Dein AlbionDataPro Lizenzschlüssel (${tier})`,
                         html: `
                             <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 10px;">
