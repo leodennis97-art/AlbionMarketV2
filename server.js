@@ -393,7 +393,7 @@ function getActiveTunnelUrl() {
     return 'https://witty-catfish-22.loca.lt';
 }
 
-let recentSnapshots = [];
+let globalMarketPrices = {};
 let albion2dCache = { data: null, lastUpdated: null };
 
 const AGENTS = [
@@ -498,20 +498,18 @@ async function aiMarketBotLoop() {
             };
 
             res.data.forEach(item => {
-                if (item.sell_price_min > 0) {
-                    recentSnapshots.push({
+                if (item.sell_price_min > 0 || item.buy_price_max > 0) {
+                    const key = `${item.item_id}_${item.city}`;
+                    globalMarketPrices[key] = {
                         itemId: item.item_id,
                         city: item.city,
                         sellPriceMin: item.sell_price_min,
                         buyPriceMax: item.buy_price_max,
                         timestampMs: Date.now(),
                         sellPriceMinAmount: item.sell_price_min_amount || 1
-                    });
+                    };
                 }
             });
-            if (recentSnapshots.length > 3000) {
-                recentSnapshots = recentSnapshots.slice(-3000);
-            }
 
             const count = res.data.length;
             totalInformationCount += count;
@@ -825,21 +823,15 @@ app.get(['/', '/get', '/app'], (req, res) => {
 app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: CURRENT_SERVER_VERSION, subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/prices', (req, res) => res.json(marketCache));
+
+// 24/7 Global Data-Brain: Echtzeit Abruf aller Items
 app.get('/api/prices/recent', (req, res) => {
-    if (recentSnapshots.length > 0) {
-        return res.json(recentSnapshots);
-    }
-    const items = (marketCache && Array.isArray(marketCache.items)) ? marketCache.items : [];
-    const snapshots = items.map(i => ({
-        itemId: i.item_id,
-        city: i.city,
-        sellPriceMin: i.sell_price_min,
-        buyPriceMax: i.buy_price_max,
-        timestampMs: Date.now(),
-        sellPriceMinAmount: i.sell_price_min_amount || 1
-    }));
-    res.json(snapshots);
+    res.json(Object.values(globalMarketPrices));
 });
+app.get('/api/market/prices/live', (req, res) => {
+    res.json(Object.values(globalMarketPrices));
+});
+
 app.get('/api/prices/albion2d', (req, res) => res.json(albion2dCache));
 
 // High-End Protected Endpoints (Admin Key Required)
@@ -1176,6 +1168,26 @@ app.post('/api/devices/ping', (req, res) => {
         popupAlert: pendingAlert,
         remoteConfig: remoteConfig
     });
+});
+
+// Central API Hub for Android (Schwarmintelligenz)
+app.post('/api/market/prices', (req, res) => {
+    if (!req.body || !Array.isArray(req.body)) return res.json({ status: 'ignored' });
+    req.body.forEach(item => {
+        if (!item.itemId || !item.city) return;
+        const key = `${item.itemId}_${item.city}`;
+        if (!globalMarketPrices[key] || globalMarketPrices[key].timestampMs < item.timestampMs) {
+            globalMarketPrices[key] = {
+                itemId: item.itemId,
+                city: item.city,
+                sellPriceMin: item.sellPriceMin || 0,
+                buyPriceMax: item.buyPriceMax || 0,
+                timestampMs: item.timestampMs || Date.now(),
+                sellPriceMinAmount: item.sellPriceMinAmount || 1
+            };
+        }
+    });
+    res.json({ status: 'success' });
 });
 
 // SSE Real-Time Event Stream Endpoint

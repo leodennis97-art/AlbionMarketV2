@@ -18,6 +18,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.Date
+import java.util.Locale
+import java.util.zip.GZIPInputStream
 
 data class HourlyDownloadStat(
     val hour: String,
@@ -447,76 +450,61 @@ object ServerSyncManager {
     }
 
     suspend fun fetchCloudPrices(context: Context): List<PriceSnapshot> = withContext(Dispatchers.IO) {
-        val urlsToTry = getServerBaseUrls(context).map { "$it/api/prices/recent" }
+        val prefs = AppPreferences(context)
+        if (!prefs.isUserLoggedIn) return@withContext emptyList()
+        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/market/prices/live" }
+        for (serverUrl in urlsToTry) {
+            var connection: HttpURLConnection? = null
+            try {
+                CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
+                val url = URL(serverUrl)
+                connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                connection.setRequestProperty("User-Agent", "AlbionDataPro/Pro")
+                connection.setRequestProperty("Accept-Encoding", "gzip")
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
 
-        supervisorScope {
-            val deferredResults = urlsToTry.map { serverUrl ->
-                async(Dispatchers.IO) {
-                    var connection: HttpURLConnection? = null
-                    try {
-                        val url = URL(serverUrl)
-                        connection = url.openConnection() as HttpURLConnection
-                        connection.requestMethod = "GET"
-                        connection.setRequestProperty("Accept", "application/json")
-                        connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
-                        connection.connectTimeout = 8000
-                        connection.readTimeout = 8000
+                if (connection.responseCode == HttpURLConnection.HTTP_OK) {
+                    val stream = if (connection.contentEncoding?.lowercase(Locale.getDefault()) == "gzip") {
+                        GZIPInputStream(connection.inputStream)
+                    } else connection.inputStream
 
-                        if (connection.responseCode == HttpURLConnection.HTTP_OK) {
-                            val response = connection.inputStream.bufferedReader().use { it.readText() }
-                            val list = mutableListOf<PriceSnapshot>()
-                            if (response.trim().startsWith("[")) {
-                                val jsonArray = JSONArray(response)
-                                for (i in 0 until jsonArray.length()) {
-                                    val obj = jsonArray.optJSONObject(i) ?: continue
-                                    list.add(
-                                        PriceSnapshot(
-                                            itemId = obj.optString("itemId", ""),
-                                            city = obj.optString("city", ""),
-                                            sellPriceMin = obj.optInt("sellPriceMin", 0),
-                                            buyPriceMax = obj.optInt("buyPriceMax", 0),
-                                            timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
-                                            sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
-                                        )
+                    val response = stream.bufferedReader().use { it.readText() }
+                    if (response.trim().startsWith("[")) {
+                        val jsonArray = JSONArray(response)
+                        val snapshots = mutableListOf<PriceSnapshot>()
+                        for (i in 0 until jsonArray.length()) {
+                            val obj = jsonArray.optJSONObject(i) ?: continue
+                            val itemId = obj.optString("itemId", obj.optString("item_id", ""))
+                            val city = obj.optString("city", "")
+                            if (itemId.isBlank() || city.isBlank()) continue
+
+                            val sellPriceMin = obj.optInt("sellPriceMin", obj.optInt("sell_price_min", 0))
+                            if (sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(itemId, sellPriceMin)) {
+                                snapshots.add(
+                                    PriceSnapshot(
+                                        itemId = itemId,
+                                        city = city,
+                                        sellPriceMin = sellPriceMin,
+                                        buyPriceMax = obj.optInt("buyPriceMax", obj.optInt("buy_price_max", 0)),
+                                        timestampMs = obj.optLong("timestampMs", Date().time),
+                                        sellPriceMinAmount = obj.optInt("sellPriceMinAmount", obj.optInt("sell_price_min_amount", 1))
                                     )
-                                }
-                            } else if (response.trim().startsWith("{")) {
-                                val jsonObj = JSONObject(response)
-                                val snapshotsArr = jsonObj.optJSONArray("snapshots")
-                                if (snapshotsArr != null) {
-                                    for (i in 0 until snapshotsArr.length()) {
-                                        val obj = snapshotsArr.optJSONObject(i) ?: continue
-                                        list.add(
-                                            PriceSnapshot(
-                                                itemId = obj.optString("itemId", ""),
-                                                city = obj.optString("city", ""),
-                                                sellPriceMin = obj.optInt("sellPriceMin", 0),
-                                                buyPriceMax = obj.optInt("buyPriceMax", 0),
-                                                timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
-                                                sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
-                                            )
-                                        )
-                                    }
-                                }
+                                )
                             }
-                            return@async list
                         }
-                    } catch (_: Exception) {
-                    } finally {
-                        connection?.disconnect()
+                        if (snapshots.isNotEmpty()) return@withContext snapshots
                     }
-                    null
                 }
+            } catch (_: Exception) {
+            } finally {
+                connection?.disconnect()
             }
-
-            for (deferred in deferredResults) {
-                val result = deferred.await()
-                if (!result.isNullOrEmpty()) {
-                    return@supervisorScope result
-                }
-            }
-            emptyList()
         }
+        emptyList()
     }
 
     suspend fun testAndConnectToServer(context: Context, serverUrlInput: String? = null): Boolean = withContext(Dispatchers.IO) {
