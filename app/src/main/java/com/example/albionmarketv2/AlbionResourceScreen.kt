@@ -357,8 +357,7 @@ fun AlbionResourceScreen(
                             Triple(4, Icons.Default.Info, "tab_island"),
                             Triple(5, Icons.Default.Star, "tab_builds"),
                             Triple(6, Icons.Default.Warning, "tab_events"),
-                            Triple(7, Icons.Default.Star, "tab_gold"),
-                            Triple(8, Icons.Default.Place, "tab_map")
+                            Triple(7, Icons.Default.Star, "tab_gold")
                         )
                     }
 
@@ -415,7 +414,6 @@ fun AlbionResourceScreen(
                         5 -> LanguageManager.getString("tab_builds", uiState.appLanguage)
                         6 -> LanguageManager.getString("tab_events", uiState.appLanguage)
                         7 -> LanguageManager.getString("tab_gold", uiState.appLanguage)
-                        8 -> LanguageManager.getString("tab_map", uiState.appLanguage)
                         else -> LanguageManager.getString("app_title", uiState.appLanguage)
                     }
                     Text(
@@ -443,7 +441,6 @@ fun AlbionResourceScreen(
                 5 -> EquipmentBuildsTabContent(viewModel = viewModel, uiState = uiState)
                 6 -> EventsAndMonstersTabContent(uiState = uiState)
                 7 -> GoldMarketTabContent(viewModel = viewModel, uiState = uiState)
-                8 -> WorldMapTabContent(viewModel = viewModel)
             }
         }
 

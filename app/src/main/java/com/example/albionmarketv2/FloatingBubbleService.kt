@@ -713,14 +713,12 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     COMPLETED_ORDERS("Historie", "History", "📜"),
     TOP_MARGIN("Handel & Marge", "Trade Margin", "🔥"),
     SMUGGLER_RADAR("Schwarzmarkt-Radar", "Black Market Radar", "🏴‍☠️"),
-    INVENTORY_ROUTER("Volle-Taschen Route", "Inventory Route", "🎒"),
     CATALOG("Katalog", "Catalog", "📖"),
     CRAFTING("Handwerks-Guide", "Crafting Guide", "⚒️"),
     ISLAND("Insel-Guide", "Island Guide", "🏝️"),
     EVENTS("Event & Boss Loot", "Event & Boss Loot", "⚔️"),
     GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
     BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
-    WORLD_MAP("Weltkarte", "World Map", "🗺️"),
     SETTINGS("Einstellungen", "Settings", "⚙️")
 }
 
@@ -2098,7 +2096,6 @@ fun BubbleOverlayContent(
                         ) {
                             when (selectedTab) {
                                 BubbleTab.SMUGGLER_RADAR -> BubbleSmugglerRadarTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
-                                BubbleTab.INVENTORY_ROUTER -> BubbleInventoryRouterTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.COMPLETED_ORDERS -> BubbleCompletedOrdersTab(context = context, onRefresh = onRefresh, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.CATALOG -> BubbleCatalogTab(
                                     uiState = uiState,
@@ -2112,7 +2109,6 @@ fun BubbleOverlayContent(
                                 BubbleTab.EVENTS -> BubbleEventsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.GOLD_MARKET -> BubbleGoldTab(viewModel = viewModel, uiState = uiState, onFocusModeChanged = onFocusModeChanged, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.BUILDS -> BubbleBuildsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
-                                BubbleTab.WORLD_MAP -> BubbleMapTab(viewModel = viewModel, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab, onRefresh = onRefresh)
                                 else -> {}
                             }
