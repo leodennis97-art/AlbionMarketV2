@@ -7,10 +7,6 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
-const express = require('express');
-const axios = require('axios');
-const path = require('path');
-const fs = require('fs');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const querystring = require('querystring');
@@ -59,15 +55,22 @@ setInterval(() => {
     }
 }, 900000);
 
-// High-End Security Middleware: Require Admin Key
+// High-End Security Middleware: Require Admin Key or Admin Session Cookie
 function requireAdminAuth(req, res, next) {
     const authHeader = req.headers['authorization'] || req.headers['x-admin-key'];
     const queryKey = req.query.adminKey || req.query.key;
     const token = (authHeader && authHeader.startsWith('Bearer ')) ? authHeader.substring(7).trim() : authHeader;
 
-    if (token === ADMIN_API_KEY || queryKey === ADMIN_API_KEY) {
+    // Check for cookie
+    const cookieHeader = req.headers.cookie || '';
+    const match = cookieHeader.match(/admin_auth=([^;]+)/);
+    const clientToken = match ? match[1] : null;
+    const expectedToken = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update('admin_session').digest('hex');
+
+    if (token === ADMIN_API_KEY || queryKey === ADMIN_API_KEY || clientToken === expectedToken) {
         return next();
     }
+
     return res.status(403).json({
         error: 'Forbidden: High-End Security Authentication Required',
         status: 'unauthorized'
@@ -1700,21 +1703,37 @@ app.post('/api/admin/device/delete', requireAdminAuth, (req, res) => {
     res.json({ status: 'success', registeredDevices });
 });
 
+app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
+    const { username, password } = req.body;
+    if (username === 'dnnx' && password === 'Dean3153...') {
+        const token = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update('admin_session').digest('hex');
+        res.setHeader('Set-Cookie', `admin_auth=${token}; HttpOnly; Path=/; Max-Age=864000`);
+        return res.redirect('/admin');
+    }
+    return res.redirect('/admin?error=1');
+});
+
 // Admin Dashboard HTML Page with License Generator (15€ - 250€)
 app.get(['/admin'], (req, res) => {
-    const adminKey = req.query.key || req.query.adminKey || '';
-    if (adminKey !== ADMIN_API_KEY) {
+    const cookieHeader = req.headers.cookie || '';
+    const match = cookieHeader.match(/admin_auth=([^;]+)/);
+    const clientToken = match ? match[1] : null;
+    const expectedToken = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update('admin_session').digest('hex');
+
+    if (clientToken !== expectedToken) {
         return res.status(401).send(`
             <!DOCTYPE html>
             <html lang="de" style="background:#0f172a;color:#f8fafc;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;">
             <head><title>Admin Authentifizierung erforderlich</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
             <body style="text-align:center;padding:20px;">
                 <div style="background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155;max-width:400px;margin:auto;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-                    <h2 style="color:#38bdf8;margin-top:0;">🔒 Admin Authentifizierung</h2>
-                    <p style="color:#94a3b8;font-size:14px;">Zugriff nur mit autorisiertem High-End Admin-Schlüssel gestattet.</p>
-                    <form method="GET" action="/admin" style="margin-top:20px;">
-                        <input type="password" name="key" placeholder="Admin-Schlüssel eingeben..." style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#0f172a;border:1px solid #475569;color:white;margin-bottom:14px;" required autofocus>
-                        <button type="submit" style="width:100%;padding:12px;border-radius:8px;background:#3b82f6;color:white;border:none;font-weight:bold;cursor:pointer;">Entsperren</button>
+                    <h2 style="color:#38bdf8;margin-top:0;">🔒 Admin Control Center</h2>
+                    <p style="color:#94a3b8;font-size:14px;">Zugriff nur für autorisierte Administratoren.</p>
+                    ${req.query.error ? '<p style="color:#ef4444;font-size:14px;font-weight:bold;">❌ Falsche Zugangsdaten!</p>' : ''}
+                    <form method="POST" action="/admin/login" style="margin-top:20px;">
+                        <input type="text" name="username" placeholder="Benutzername" style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#0f172a;border:1px solid #475569;color:white;margin-bottom:14px;" required autofocus>
+                        <input type="password" name="password" placeholder="Passwort" style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#0f172a;border:1px solid #475569;color:white;margin-bottom:14px;" required>
+                        <button type="submit" style="width:100%;padding:12px;border-radius:8px;background:#3b82f6;color:white;border:none;font-weight:bold;cursor:pointer;">Einloggen</button>
                     </form>
                 </div>
             </body>
