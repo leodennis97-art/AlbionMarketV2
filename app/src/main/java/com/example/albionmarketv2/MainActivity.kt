@@ -295,6 +295,7 @@ class MainActivity : ComponentActivity() {
                         var isServerConnected by remember { mutableStateOf<Boolean?>(null) }
                         var isAuthenticating by remember { mutableStateOf(false) }
                         var licenseKeyInput by remember { mutableStateOf("") }
+                        var isRegistrationMode by remember { mutableStateOf(false) }
                         var showLoginUpdatesDialog by remember { mutableStateOf(false) }
                         var isCheckingUpdate by remember { mutableStateOf(false) }
                         var updateCheckResult by remember { mutableStateOf<String?>(null) }
@@ -325,9 +326,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("Willkommen bei AlbionDataPro v1.3.9!", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
-                                        Text("• v1.3.9: Blitzschneller 24/7 Cloud-Sync, Sicherheitssperre & automatisches OTA-Update.", fontSize = 12.sp, color = Color.White)
-                                        Text("• v1.3.4: Live 24/7 Server-Sync, Anti-Cheat Schutz, Echtzeit-Uhrzeit & Gold-Bot Signale.", fontSize = 12.sp, color = Color(0xFF94A3B8))
+                                        Text("Willkommen bei AlbionDataPro v$CURRENT_APP_VERSION!", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                        Text("• v$CURRENT_APP_VERSION: Blitzschneller 24/7 Cloud-Sync, Sicherheitssperre & automatisches OTA-Update.", fontSize = 12.sp, color = Color.White)
+                                        Text("• v3.1.4: Live 24/7 Server-Sync, Anti-Cheat Schutz, Echtzeit-Uhrzeit & Gold-Bot Signale.", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                         Text("Gib deine Zugangsdaten ein und verifiziere dich, um das Spiel zu betreten.", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                     }
                                 },
@@ -389,12 +390,39 @@ class MainActivity : ComponentActivity() {
                                     verticalArrangement = Arrangement.spacedBy(8.dp),
                                 ) {
                                     Text(
-                                        text = "🔒 Login",
+                                        text = if (isRegistrationMode) "📝 Account Registrierung" else "🔒 Login",
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color.White,
                                         textAlign = TextAlign.Center,
                                     )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Button(
+                                            onClick = { isRegistrationMode = false },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (!isRegistrationMode) Color(0xFF3B82F6) else Color(0xFF0F172A)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("🔑 Login", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+
+                                        Button(
+                                            onClick = { isRegistrationMode = true },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = if (isRegistrationMode) Color(0xFF10B981) else Color(0xFF0F172A)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Text("📝 Registrieren", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                        }
+                                    }
 
                                     val statusColor = when (isServerConnected) {
                                         true -> Color(0xFF10B981)
@@ -643,6 +671,28 @@ class MainActivity : ComponentActivity() {
                                             modifier = Modifier.fillMaxWidth(),
                                         )
 
+                                        if (isRegistrationMode) {
+                                            Spacer(modifier = Modifier.height(6.dp))
+
+                                            OutlinedTextField(
+                                                value = licenseKeyInput,
+                                                onValueChange = { licenseKeyInput = it },
+                                                label = { Text("Lizenzschlüssel (z.B. ALBION-1M-...) - Optional", color = Color(0xFF94A3B8), fontSize = 12.sp) },
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(10.dp),
+                                                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFF59E0B)) },
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = Color(0xFF10B981),
+                                                    unfocusedBorderColor = Color(0xFF334155),
+                                                    focusedTextColor = Color.White,
+                                                    unfocusedTextColor = Color.White,
+                                                    focusedContainerColor = Color(0xFF0F172A),
+                                                    unfocusedContainerColor = Color(0xFF0F172A)
+                                                ),
+                                                modifier = Modifier.fillMaxWidth(),
+                                            )
+                                        }
+
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
                                             modifier = Modifier
@@ -667,75 +717,142 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
 
-                                        // Actions: Login Button
-                                        Button(
-                                            onClick = {
-                                                val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
-                                                if (!canLogin) {
-                                                    Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
-                                                    return@Button
-                                                }
+                                        if (isRegistrationMode) {
+                                            Button(
+                                                onClick = {
+                                                    val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
+                                                    if (!canLogin) {
+                                                        Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
+                                                        return@Button
+                                                    }
 
-                                                val uValid = LoginSecurityManager.validateUsername(usernameInput)
-                                                if (!uValid.first) {
-                                                    Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
-                                                    return@Button
-                                                }
+                                                    val uValid = LoginSecurityManager.validateUsername(usernameInput)
+                                                    if (!uValid.first) {
+                                                        Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
 
-                                                val pValid = LoginSecurityManager.validatePassword(passwordInput)
-                                                if (!pValid.first) {
-                                                    Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
-                                                    return@Button
-                                                }
+                                                    val pValid = LoginSecurityManager.validatePassword(passwordInput, isRegistration = true)
+                                                    if (!pValid.first) {
+                                                        Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
 
-                                                isAuthenticating = true
-                                                lifecycleScope.launch {
-                                                    val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
-                                                    isAuthenticating = false
-                                                    if (success) {
-                                                        LoginSecurityManager.resetFailedAttempts(context)
-                                                        prefs.isUserLoggedIn = true
-                                                        prefs.savedUsername = usernameInput.trim()
-                                                        if (savePasswordLocally) {
-                                                            prefs.savedPassword = passwordInput.trim()
+                                                    isAuthenticating = true
+                                                    lifecycleScope.launch {
+                                                        val (regSuccess, regMsg) = ServerSyncManager.registerUser(context, usernameInput, passwordInput, licenseKeyInput)
+                                                        if (regSuccess) {
+                                                            if (licenseKeyInput.isNotBlank()) {
+                                                                LicenseManager.activateLicense(context, licenseKeyInput)
+                                                            }
+                                                            val loginSuccess = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
+                                                            isAuthenticating = false
+                                                            if (loginSuccess) {
+                                                                LoginSecurityManager.resetFailedAttempts(context)
+                                                                prefs.isUserLoggedIn = true
+                                                                prefs.savedUsername = usernameInput.trim()
+                                                                if (savePasswordLocally) {
+                                                                    prefs.savedPassword = passwordInput.trim()
+                                                                } else {
+                                                                    prefs.savedPassword = ""
+                                                                }
+                                                                if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                                                    prefs.isAdmin = true
+                                                                }
+                                                                isUserLoggedInState = true
+                                                                isUnlockedForSession = true
+                                                                Toast.makeText(context, "🟢 Account & Lizenz erfolgreich auf Server registriert & freigeschaltet!", Toast.LENGTH_LONG).show()
+                                                            } else {
+                                                                Toast.makeText(context, "🟢 Account registriert! Bitte jetzt anmelden.", Toast.LENGTH_LONG).show()
+                                                                isRegistrationMode = false
+                                                            }
                                                         } else {
-                                                            prefs.savedPassword = ""
+                                                            isAuthenticating = false
+                                                            Toast.makeText(context, "❌ Registrierungsfehler: $regMsg", Toast.LENGTH_LONG).show()
                                                         }
-                                                        if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
-                                                            prefs.isAdmin = true
-                                                        }
-                                                        isUserLoggedInState = true
-                                                        isUnlockedForSession = true
-                                                        Toast.makeText(context, "🟢 Login verifiziert & freigeschaltet!", Toast.LENGTH_SHORT).show()
-                                                    } else {
-                                                        val lockout = LoginSecurityManager.recordFailedAttempt(context)
-                                                        prefs.isUserLoggedIn = false
-                                                        isUserLoggedInState = false
-                                                        isUnlockedForSession = false
-                                                        if (lockout > 0) {
-                                                            Toast.makeText(context, "🔴 Login fehlgeschlagen! Für $lockout Sekunden gesperrt.", Toast.LENGTH_LONG).show()
+                                                    }
+                                                },
+                                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                shape = RoundedCornerShape(10.dp),
+                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                                            ) {
+                                                if (isAuthenticating) {
+                                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                                } else {
+                                                    Text("📝 Account Registrieren & Freischalten", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                                }
+                                            }
+                                        } else {
+                                            Button(
+                                                onClick = {
+                                                    val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
+                                                    if (!canLogin) {
+                                                        Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
+                                                        return@Button
+                                                    }
+
+                                                    val uValid = LoginSecurityManager.validateUsername(usernameInput)
+                                                    if (!uValid.first) {
+                                                        Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+
+                                                    val pValid = LoginSecurityManager.validatePassword(passwordInput)
+                                                    if (!pValid.first) {
+                                                        Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
+                                                        return@Button
+                                                    }
+
+                                                    isAuthenticating = true
+                                                    lifecycleScope.launch {
+                                                        val success = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
+                                                        isAuthenticating = false
+                                                        if (success) {
+                                                            LoginSecurityManager.resetFailedAttempts(context)
+                                                            prefs.isUserLoggedIn = true
+                                                            prefs.savedUsername = usernameInput.trim()
+                                                            if (savePasswordLocally) {
+                                                                prefs.savedPassword = passwordInput.trim()
+                                                            } else {
+                                                                prefs.savedPassword = ""
+                                                            }
+                                                            if (usernameInput.trim().equals("dnnx", ignoreCase = true)) {
+                                                                prefs.isAdmin = true
+                                                            }
+                                                            isUserLoggedInState = true
+                                                            isUnlockedForSession = true
+                                                            Toast.makeText(context, "🟢 Login verifiziert & freigeschaltet!", Toast.LENGTH_SHORT).show()
                                                         } else {
-                                                            val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
-                                                            Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
-                                                        }
-                                                        if (ServerSyncManager.isOtaUpdateAvailable || ServerSyncManager.latestTargetVersion != null) {
-                                                            Toast.makeText(context, "🚀 Installiere neuste Version automatisch...", Toast.LENGTH_SHORT).show()
-                                                            lifecycleScope.launch(Dispatchers.IO) {
-                                                                OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
+                                                            val lockout = LoginSecurityManager.recordFailedAttempt(context)
+                                                            prefs.isUserLoggedIn = false
+                                                            isUserLoggedInState = false
+                                                            isUnlockedForSession = false
+                                                            if (lockout > 0) {
+                                                                Toast.makeText(context, "🔴 Login fehlgeschlagen! Für $lockout Sekunden gesperrt.", Toast.LENGTH_LONG).show()
+                                                            } else {
+                                                                val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
+                                                                Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
+                                                            }
+                                                            if (ServerSyncManager.isOtaUpdateAvailable || ServerSyncManager.latestTargetVersion != null) {
+                                                                Toast.makeText(context, "🚀 Installiere neuste Version automatisch...", Toast.LENGTH_SHORT).show()
+                                                                lifecycleScope.launch(Dispatchers.IO) {
+                                                                    OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
+                                                                }
                                                             }
                                                         }
                                                     }
+                                                },
+                                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                                shape = RoundedCornerShape(10.dp),
+                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                                            ) {
+                                                if (isAuthenticating) {
+                                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                                                } else {
+                                                    Text("🔑 Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                                                 }
-                                            },
-                                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                            shape = RoundedCornerShape(10.dp),
-                                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
-                                        ) {
-                                            if (isAuthenticating) {
-                                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                                            } else {
-                                                Text("🔑 Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                                             }
                                         }
                                         
@@ -855,7 +972,7 @@ class MainActivity : ComponentActivity() {
 
                                         Spacer(modifier = Modifier.height(6.dp))
 
-                                        Text(text = "🚀 Neueste Enterprise-Updates v1.3.5:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
+                                        Text(text = "🚀 Neueste Enterprise-Updates v$CURRENT_APP_VERSION:", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.primary)
                                         Text(text = "• 45.000 Global Market Preismatrix Sync", fontSize = 11.sp)
                                         Text(text = "• Echtzeit WebSocket & GZIP Komprimierung", fontSize = 11.sp)
                                         Text(text = "• Anti-Debugging & Anti-Cheat Schutz aktiv", fontSize = 11.sp)

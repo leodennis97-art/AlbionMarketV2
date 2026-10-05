@@ -941,7 +941,7 @@ object ServerSyncManager {
         false
     }
 
-    suspend fun registerUser(context: Context, username: String, pass: String): Pair<Boolean, String> = withContext(Dispatchers.IO) {
+    suspend fun registerUser(context: Context, username: String, pass: String, licenseKey: String? = null): Pair<Boolean, String> = withContext(Dispatchers.IO) {
         val registerUrls = getServerBaseUrls(context).map { "$it/api/auth/register" }
         var lastError = "Verbindungsfehler"
 
@@ -962,6 +962,10 @@ object ServerSyncManager {
                 val json = JSONObject().apply {
                     put("username", username.trim())
                     put("password", pass.trim())
+                    if (!licenseKey.isNullOrBlank()) {
+                        put("licenseKey", licenseKey.trim())
+                        put("activatedLicenseCode", licenseKey.trim())
+                    }
                 }
 
                 conn.outputStream.use { os ->

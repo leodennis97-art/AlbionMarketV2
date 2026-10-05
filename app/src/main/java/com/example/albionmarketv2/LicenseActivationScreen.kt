@@ -365,10 +365,10 @@ fun TelegramLicensePurchaseSection(context: Context) {
         )
 
         val plans = listOf(
-            Triple("1 Monat", "15 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+1+Monat+Lizenz&amount=15.00&currency_code=EUR"),
-            Triple("3 Monate", "30 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+3+Monate+Lizenz&amount=30.00&currency_code=EUR"),
-            Triple("6 Monate (Bestseller)", "50 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+6+Monate+Lizenz&amount=50.00&currency_code=EUR"),
-            Triple("12 Monate", "100 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+12+Monate+Lizenz&amount=100.00&currency_code=EUR")
+            Triple("1 Monat", "15 €", "https://www.paypal.me/dnnxdigitalcreator/15EUR"),
+            Triple("3 Monate", "30 €", "https://www.paypal.me/dnnxdigitalcreator/30EUR"),
+            Triple("6 Monate (Bestseller)", "50 €", "https://www.paypal.me/dnnxdigitalcreator/50EUR"),
+            Triple("12 Monate", "100 €", "https://www.paypal.com/paypalme/dnnxdigitalcreator/100EUR")
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {

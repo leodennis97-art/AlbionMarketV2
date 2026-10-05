@@ -1,5 +1,5 @@
 {
-  "total": 576580,
+  "total": 591780,
   "hourly": [
     {
       "hour": "00:00",
@@ -67,7 +67,7 @@
     },
     {
       "hour": "16:00",
-      "itemsCollected": 887
+      "itemsCollected": 16087
     },
     {
       "hour": "17:00",

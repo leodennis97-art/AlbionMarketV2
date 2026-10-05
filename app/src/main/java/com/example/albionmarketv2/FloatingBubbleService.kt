@@ -24,9 +24,6 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.LinearOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -84,7 +81,6 @@ import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
-import kotlin.math.round
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
 
@@ -747,7 +743,6 @@ fun BubbleOverlayContent(
 
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-    var isMaximized by remember { mutableStateOf(value = false) }
     var isCompactMode by remember { mutableStateOf(value = true) }
     var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
     var bubbleScale by remember { mutableFloatStateOf(prefs.bubbleScale) }
@@ -1698,13 +1693,11 @@ fun BubbleOverlayContent(
                                 }
                             }
 
-                            val sortedBubbleOpportunities = filteredBubbleOpportunities
-
-                            if (isLoadingOpps && sortedBubbleOpportunities.isEmpty()) {
+                            if (isLoadingOpps && filteredBubbleOpportunities.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(color = Color(0xFF81D4FA), modifier = Modifier.size(24.dp))
                                 }
-                            } else if (sortedBubbleOpportunities.isEmpty()) {
+                            } else if (filteredBubbleOpportunities.isEmpty()) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
                                     color = Color(0xFF1E3A4C),
@@ -1715,7 +1708,7 @@ fun BubbleOverlayContent(
                                     }
                                 }
                             } else {
-                                sortedBubbleOpportunities.forEachIndexed { index, opp ->
+                                filteredBubbleOpportunities.forEachIndexed { index, opp ->
                                     key("${opp.resource.fullId}_${opp.buyCity}_${opp.sellCity}") {
                                         val buyTrans = LanguageManager.getCityTranslation(opp.buyCity, lang)
                                         val sellTrans = LanguageManager.getCityTranslation(opp.sellCity, lang)
