@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.Locale
 
 class AppPreferences(private val context: Context) {
 
@@ -101,7 +102,25 @@ class AppPreferences(private val context: Context) {
         set(value) = prefs.edit().putBoolean("gold_notifications_enabled", value).apply()
 
     var appLanguage: String
-        get() = prefs.getString("app_language", "DE") ?: "DE"
+        get() {
+            val saved = prefs.getString("app_language", null)
+            if (saved != null) return saved
+            val sysLang = Locale.getDefault().language.uppercase()
+            return when (sysLang) {
+                "DE" -> "DE"
+                "ES" -> "ES"
+                "FR" -> "FR"
+                "PT" -> "PT"
+                "RU" -> "RU"
+                "ZH" -> "ZH"
+                "JA" -> "JA"
+                "KO" -> "KO"
+                "TR" -> "TR"
+                "ID" -> "ID"
+                "PL" -> "PL"
+                else -> "EN"
+            }
+        }
         set(value) = prefs.edit().putString("app_language", value).apply()
 
     var dismissedOtaVersion: String

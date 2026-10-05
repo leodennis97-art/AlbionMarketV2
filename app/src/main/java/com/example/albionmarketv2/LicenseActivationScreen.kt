@@ -75,6 +75,8 @@ fun LicenseActivationScreen(
     var isAuthenticating by remember { mutableStateOf(value = false) }
     var statusText by remember { mutableStateOf("Bitte Server-Zugangsdaten eingeben") }
 
+    var currentAppLang by remember { mutableStateOf(prefs.appLanguage) }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -98,6 +100,29 @@ fun LicenseActivationScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                // Top Header Row with Language Button on Login Screen
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🌐 ${LanguageManager.getString("lang_select", currentAppLang)}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF38BDF8)
+                    )
+
+                    GlowingLanguageSelectorButton(
+                        currentLanguageCode = currentAppLang,
+                        onLanguageSelected = { newLang ->
+                            prefs.appLanguage = newLang
+                            currentAppLang = newLang
+                            AiTranslationEngine.setLanguage(newLang)
+                        }
+                    )
+                }
+
                 Icon(
                     imageVector = Icons.Default.Lock,
                     contentDescription = "Lock",

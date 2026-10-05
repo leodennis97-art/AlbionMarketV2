@@ -324,11 +324,7 @@ object LanguageManager {
             "ZH" -> zhMap[key]
             else -> null
         }
-        if (staticTrans != null) return staticTrans
-
-        val targetLang = AiTranslationEngine.SupportedLanguage.entries.find { it.code.equals(langCode, ignoreCase = true) }
-            ?: AiTranslationEngine.SupportedLanguage.EN
-        return AiTranslationEngine.translate(baseDe, targetLang)
+        return staticTrans ?: enMap[key] ?: baseDe
     }
 
     fun getCityTranslation(city: String, langCode: String): String {
