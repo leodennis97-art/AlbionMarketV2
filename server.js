@@ -939,7 +939,8 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                 else if (mc_gross === 100.00) { months = 12; tier = '12 Monate'; }
 
                 if (months > 0) {
-                    const key = 'ALBION-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                    const prefix = (months === 12) ? '12M-' : ((months === 6) ? '6M-' : ((months === 3) ? '3M-' : '1M-'));
+                    const key = 'ALBION-' + prefix + Math.random().toString(36).substring(2, 10).toUpperCase();
                     const newLicense = {
                         key,
                         tier,
@@ -1560,24 +1561,24 @@ app.post('/api/auth/register', (req, res) => {
     const keyInput = (licenseKey || activatedLicenseCode || '').trim().toUpperCase();
     const defaultExp = new Date();
 
-    if (keyInput.startsWith('ALBION-1M-')) {
-        defaultExp.setDate(defaultExp.getDate() + 30);
-    } else if (keyInput.startsWith('ALBION-3M-')) {
-        defaultExp.setDate(defaultExp.getDate() + 90);
-    } else if (keyInput.startsWith('ALBION-6M-')) {
-        defaultExp.setDate(defaultExp.getDate() + 180);
-    } else if (keyInput.startsWith('ALBION-12M-')) {
+    if (keyInput.startsWith('ALBION-12M-') || keyInput.includes('12M')) {
         defaultExp.setDate(defaultExp.getDate() + 365);
-    } else if (keyInput.startsWith('ALBION-LIFETIME') || keyInput === 'ALBION-PRO-LIFETIME') {
+    } else if (keyInput.startsWith('ALBION-6M-') || keyInput.includes('6M')) {
+        defaultExp.setDate(defaultExp.getDate() + 180);
+    } else if (keyInput.startsWith('ALBION-3M-') || keyInput.includes('3M')) {
+        defaultExp.setDate(defaultExp.getDate() + 90);
+    } else if (keyInput.startsWith('ALBION-1M-') || keyInput.includes('1M')) {
+        defaultExp.setDate(defaultExp.getDate() + 30);
+    } else if (keyInput.startsWith('ALBION-LIFETIME') || keyInput.includes('LIFETIME') || keyInput === 'ALBION-PRO-LIFETIME') {
         defaultExp.setFullYear(2099);
     } else if (keyInput.length > 0) {
         // Search in generatedLicenses array
         const foundLicIdx = generatedLicenses.findIndex(l => l.key.toUpperCase() === keyInput);
         if (foundLicIdx !== -1) {
             const lic = generatedLicenses[foundLicIdx];
-            if (lic.tier.includes('3')) defaultExp.setDate(defaultExp.getDate() + 90);
-            else if (lic.tier.includes('6')) defaultExp.setDate(defaultExp.getDate() + 180);
-            else if (lic.tier.includes('12')) defaultExp.setDate(defaultExp.getDate() + 365);
+            if (lic.tier.includes('12') || lic.key.includes('12M')) defaultExp.setDate(defaultExp.getDate() + 365);
+            else if (lic.tier.includes('6') || lic.key.includes('6M')) defaultExp.setDate(defaultExp.getDate() + 180);
+            else if (lic.tier.includes('3') || lic.key.includes('3M')) defaultExp.setDate(defaultExp.getDate() + 90);
             else defaultExp.setDate(defaultExp.getDate() + 30);
             generatedLicenses.splice(foundLicIdx, 1);
             saveLicenses();
@@ -1671,14 +1672,20 @@ app.post('/api/admin/send-alert', requireAdminAuth, (req, res) => {
 // License Generation Endpoint
 app.post('/api/admin/license/generate', requireAdminAuth, (req, res) => {
     const { tier, customerNote } = req.body;
+    const cleanTier = (tier || '').toString().trim().toLowerCase();
     let prefix = 'ALBION-1M-';
     let price = '15 €';
     let durationDays = 30;
 
-    if (tier === '3m') { prefix = 'ALBION-3M-'; price = '30 €'; durationDays = 90; }
-    else if (tier === '6m') { prefix = 'ALBION-6M-'; price = '50 €'; durationDays = 180; }
-    else if (tier === '12m') { prefix = 'ALBION-12M-'; price = '100 €'; durationDays = 365; }
-    else if (tier === 'lifetime') { prefix = 'ALBION-LIFETIME-'; price = '250 €'; durationDays = 36500; }
+    if (cleanTier === '3m' || cleanTier.includes('3 monat') || cleanTier.includes('3m')) {
+        prefix = 'ALBION-3M-'; price = '30 €'; durationDays = 90;
+    } else if (cleanTier === '6m' || cleanTier.includes('6 monat') || cleanTier.includes('6m')) {
+        prefix = 'ALBION-6M-'; price = '50 €'; durationDays = 180;
+    } else if (cleanTier === '12m' || cleanTier.includes('12 monat') || cleanTier.includes('12m') || cleanTier.includes('jahr')) {
+        prefix = 'ALBION-12M-'; price = '100 €'; durationDays = 365;
+    } else if (cleanTier === 'lifetime' || cleanTier.includes('lifetime')) {
+        prefix = 'ALBION-LIFETIME-'; price = '250 €'; durationDays = 36500;
+    }
 
     const randomPart = crypto.randomBytes(3).toString('hex').toUpperCase();
     const licenseKey = `${prefix}DNNX-${randomPart}`;
