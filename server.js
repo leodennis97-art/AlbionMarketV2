@@ -734,17 +734,9 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-sm text-slate-400">Starter</div>
                     <div class="text-2xl">1 Monat</div>
                     <div class="text-3xl text-blue-400 my-1">15€</div>
-                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_donations">
-                        <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
-                        <input type="hidden" name="item_name" value="AlbionDataPro 1 Monat Lizenz">
-                        <input type="hidden" name="amount" value="15.00">
-                        <input type="hidden" name="currency_code" value="EUR">
-                        <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                            <i class="fa-brands fa-paypal"></i> PayPal Kaufen (15€)
-                        </button>
-                    </form>
+                    <a href="https://www.paypal.com/ncp/payment/FK8JDAFFUGYMA" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
+                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (15€)
+                    </a>
                 </div>
 
                 <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
