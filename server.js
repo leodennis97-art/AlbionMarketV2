@@ -703,8 +703,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
             <span>AlbionDataPro <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">v${CURRENT_SERVER_VERSION}</span></span>
         </div>
         <div class="flex items-center gap-4">
-            <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
-                <i class="fa-brands fa-telegram"></i> @DnnxDigitalCrator kontaktieren
+            <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg">
+                <i class="fa-brands fa-telegram"></i> Support (@DnnxDigitalCrator)
             </a>
         </div>
     </nav>
