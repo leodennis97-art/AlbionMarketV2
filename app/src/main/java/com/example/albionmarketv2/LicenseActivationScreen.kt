@@ -367,6 +367,31 @@ fun WebsiteLicensePurchaseSection(context: Context) {
         Button(
             onClick = {
                 try {
+                    val intent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/GB4DKRADU46SL".toUri())
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "PayPal konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "💳 Hier Lizenz erwerben (PayPal)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Button(
+            onClick = {
+                try {
                     val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
                     context.startActivity(intent)
                 } catch (_: Exception) {
