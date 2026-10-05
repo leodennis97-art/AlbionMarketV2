@@ -7,8 +7,13 @@
 const express = require('express');
 const axios = require('axios');
 const path = require('path');
+const express = require('express');
+const axios = require('axios');
+const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+const querystring = require('querystring');
 
 const app = express();
 app.set('trust proxy', true);
@@ -92,6 +97,15 @@ function verifySignedDownloadToken(token) {
         return false;
     }
 }
+
+// Mailer Setup für vollautomatischen Lizenz-Versand
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'dnnxdigitalcreator@gmail.com',
+        pass: process.env.GMAIL_APP_PASSWORD || 'bitte_app_passwort_im_render_dashboard_eintragen'
+    }
+});
 
 let marketCache = { items: [], lastUpdated: null };
 let registeredDevices = [];
@@ -705,13 +719,43 @@ app.get(['/', '/get', '/app'], (req, res) => {
             Das professionelle Handels- und Analysetool für Albion Online. Mit permanentem In-Game Overlay, 100% statistischem KI-Bot für Buy/Sell Orders und sekundengenauer Marktüberwachung.
         </p>
 
-        <div class="flex flex-col sm:flex-row gap-5 justify-center mb-20">
-            <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-emerald-400/30">
+        <div class="flex flex-col gap-6 justify-center mb-16 items-center">
+            <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-emerald-400/30 max-w-md w-full">
                 <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
             </a>
-            <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-blue-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-blue-400/30">
-                <i class="fa-brands fa-telegram text-2xl"></i> Lizenz erwerben (@DnnxDigitalCrator)
-            </a>
+
+            <div class="text-slate-300 mt-4 font-bold text-lg">Wähle dein Lizenz-Abo aus (Zahlung via PayPal):</div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
+                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+1+Monat+Lizenz&amount=15.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                    <div class="text-sm text-slate-400">Starter</div>
+                    <div class="text-2xl">1 Monat</div>
+                    <div class="text-3xl text-blue-400 my-2">15€</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                </a>
+
+                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+3+Monate+Lizenz&amount=30.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                    <div class="text-sm text-slate-400">Basic</div>
+                    <div class="text-2xl">3 Monate</div>
+                    <div class="text-3xl text-blue-400 my-2">30€</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                </a>
+
+                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+6+Monate+Lizenz&amount=50.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-400/50 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-bl-lg">Bestseller</div>
+                    <div class="text-sm text-blue-200">Pro</div>
+                    <div class="text-2xl">6 Monate</div>
+                    <div class="text-3xl text-white my-2">50€</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                </a>
+
+                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+12+Monate+Lizenz&amount=100.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                    <div class="text-sm text-slate-400">Elite</div>
+                    <div class="text-2xl">12 Monate</div>
+                    <div class="text-3xl text-blue-400 my-2">100€</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                </a>
+            </div>
+            <p class="text-sm text-slate-400 mt-2">Nach dem Kauf senden Sie uns eine kurze Bestätigung via Telegram an <a href="https://t.me/DnnxDigitalCrator" class="text-blue-400 hover:underline">@DnnxDigitalCrator</a>, um Ihren Freischaltcode sofort zu erhalten.</p>
         </div>
 
         <!-- App Features & Categories Explanation -->
@@ -801,7 +845,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <li>Klicke oben auf den grünen Button <strong class="text-white">"APK Herunterladen (v${CURRENT_SERVER_VERSION})"</strong>.</li>
                     <li>Öffne die heruntergeladene <code class="bg-slate-800 px-2 py-0.5 rounded text-sky-400">AlbionDataPro.apk</code> Datei auf deinem Android-Gerät.</li>
                     <li>Erlaube bei der Installation die Option <strong class="text-white">"Aus diesen Quellen zulassen" (Unbekannte Quellen)</strong>.</li>
-                    <li>Öffne die App, logge dich mit deiner Telegram-Lizenz ein und starte das In-Game Overlay!</li>
+                    <li>Erwerbe eine Lizenz über PayPal, sende einen Nachweis an <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="text-blue-400 font-bold hover:underline">@DnnxDigitalCrator</a> auf Telegram und logge dich in der App ein.</li>
                 </ol>
             </div>
         </div>
@@ -832,6 +876,83 @@ app.get('/api/market/prices/live', (req, res) => {
 });
 
 app.get('/api/prices/albion2d', (req, res) => res.json(albion2dCache));
+
+// PayPal IPN (Instant Payment Notification) Webhook - Automatische Lizenzausgabe
+app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) => {
+    res.status(200).send('OK'); // PayPal expects immediate 200 OK
+
+    let body = req.body || {};
+    let postreq = 'cmd=_notify-validate';
+    for (let key in body) {
+        if (body.hasOwnProperty(key)) {
+            postreq += `&${key}=${encodeURIComponent(body[key])}`;
+        }
+    }
+
+    axios.post('https://ipnpb.paypal.com/cgi-bin/webscr', postreq, {
+        headers: { 'Content-Length': postreq.length }
+    }).then(response => {
+        if (response.data === 'VERIFIED') {
+            const payment_status = body.payment_status;
+            const receiver_email = body.receiver_email;
+            const mc_gross = parseFloat(body.mc_gross);
+            const payer_email = body.payer_email;
+
+            if (payment_status === 'Completed' && receiver_email === 'dnnxdigitalcreator@gmail.com') {
+                let months = 0;
+                let tier = '';
+
+                if (mc_gross === 15.00) { months = 1; tier = '1 Monat'; }
+                else if (mc_gross === 30.00) { months = 3; tier = '3 Monate'; }
+                else if (mc_gross === 50.00) { months = 6; tier = '6 Monate'; }
+                else if (mc_gross === 100.00) { months = 12; tier = '12 Monate'; }
+
+                if (months > 0) {
+                    const key = 'ALBION-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+                    const newLicense = {
+                        key,
+                        tier,
+                        price: `${mc_gross}€`,
+                        note: `Auto-Generated (PayPal: ${payer_email})`,
+                        createdAt: new Date().toISOString()
+                    };
+                    generatedLicenses.push(newLicense);
+                    saveLicenses();
+                    console.log(`[PayPal Auto-License] Lizenz ${key} generiert für ${payer_email}`);
+
+                    const mailOptions = {
+                        from: 'AlbionDataPro <dnnxdigitalcreator@gmail.com>',
+                        to: payer_email,
+                        subject: `Dein AlbionDataPro Lizenzschlüssel (${tier})`,
+                        html: `
+                            <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 10px;">
+                                <h2 style="color: #38bdf8;">Vielen Dank für deinen Kauf!</h2>
+                                <p>Deine Zahlung über ${mc_gross}€ war erfolgreich.</p>
+                                <p>Hier ist dein exklusiver Lizenzschlüssel für <strong>${tier}</strong>:</p>
+                                <div style="background-color: #1e293b; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; border: 1px solid #38bdf8;">
+                                    <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
+                                </div>
+                                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
+                                <p>Support via Telegram: <a href="https://t.me/DnnxDigitalCrator" style="color: #38bdf8;">@DnnxDigitalCrator</a></p>
+                                <p style="font-size: 12px; color: #64748b; margin-top: 30px;">Dies ist eine automatisch generierte E-Mail.</p>
+                            </div>
+                        `
+                    };
+
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.error('[PayPal Auto-License] Fehler beim Mail-Versand:', error);
+                        } else {
+                            console.log('[PayPal Auto-License] E-Mail erfolgreich an', payer_email, 'gesendet.');
+                        }
+                    });
+                }
+            }
+        }
+    }).catch(err => {
+        console.error('[PayPal Auto-License] IPN Validierung fehlgeschlagen:', err.message);
+    });
+});
 
 // High-End Protected Endpoints (Admin Key Required)
 app.get('/api/devices', requireAdminAuth, (req, res) => res.json(registeredDevices));

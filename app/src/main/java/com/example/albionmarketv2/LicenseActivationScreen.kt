@@ -365,11 +365,10 @@ fun TelegramLicensePurchaseSection(context: Context) {
         )
 
         val plans = listOf(
-            Triple("1 Monat", "15 €", "Hi, ich möchte eine 1-Monat Lizenz (15€) für AlbionDataPro erwerben."),
-            Triple("3 Monate", "30 €", "Hi, ich möchte eine 3-Monat Lizenz (30€) für AlbionDataPro erwerben."),
-            Triple("6 Monate", "50 €", "Hi, ich möchte eine 6-Monat Lizenz (50€) für AlbionDataPro erwerben."),
-            Triple("12 Monate", "100 €", "Hi, ich möchte eine 12-Monat Lizenz (100€) für AlbionDataPro erwerben."),
-            Triple("👑 Lifetime", "250 €", "Hi, ich möchte eine Lifetime Lizenz (250€) für AlbionDataPro erwerben.")
+            Triple("1 Monat", "15 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+1+Monat+Lizenz&amount=15.00&currency_code=EUR"),
+            Triple("3 Monate", "30 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+3+Monate+Lizenz&amount=30.00&currency_code=EUR"),
+            Triple("6 Monate (Bestseller)", "50 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+6+Monate+Lizenz&amount=50.00&currency_code=EUR"),
+            Triple("12 Monate", "100 €", "https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+12+Monate+Lizenz&amount=100.00&currency_code=EUR")
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
@@ -419,17 +418,6 @@ fun TelegramLicensePurchaseSection(context: Context) {
                 ) {
                     Text("$t3 • $p3", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                 }
-            }
-
-            val (t4, p4, m4) = plans[4]
-            Button(
-                onClick = { openTelegramChat(context, m4) },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFD700)),
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier.fillMaxWidth().height(42.dp),
-                contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
-            ) {
-                Text("$t4 • $p4 (Lebenslang)", fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = Color.Black)
             }
         }
 
