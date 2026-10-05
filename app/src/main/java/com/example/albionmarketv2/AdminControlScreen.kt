@@ -2039,7 +2039,7 @@ fun SendAlertDialog(
         "⚠️ Wichtiger Server-Wartungshinweis: Bitte App neustarten.",
         "🚀 Neues Update v$CURRENT_APP_VERSION verfügbar! Bitte jetzt aktualisieren.",
         "🚨 Sicherheits-Überprüfung gestartet.",
-        "💬 Bitte kontaktiere den Support via Telegram."
+        "🌐 Besuche unsere Webseite: https://albionmarketv2-1.onrender.com"
     )
 
     AlertDialog(

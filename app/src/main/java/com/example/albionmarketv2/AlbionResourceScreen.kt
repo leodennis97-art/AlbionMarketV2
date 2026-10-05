@@ -5539,30 +5539,23 @@ fun AppSettingsDialog(
                 // Rainbow Animated Banner
                 RainbowMadeByDnnxText()
 
-                // Support Button directly under MadeByDnnx
+                // Website & Support Button directly under MadeByDnnx
                 Button(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, "https://t.me/DnnxDigitalCreator".toUri())
+                            val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
                             context.startActivity(intent)
                         } catch (_: Exception) {
-                            Toast.makeText(context, "Telegram konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Webseite konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
                         }
                     },
                     shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF29B6F6)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
-                        contentDescription = null,
-                        tint = Color.Black,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "💬 Support",
-                        color = Color.Black,
+                        text = "🌐 Webseite: albionmarketv2-1.onrender.com",
+                        color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )

@@ -704,8 +704,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
             <span>AlbionDataPro <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">v${CURRENT_SERVER_VERSION}</span></span>
         </div>
         <div class="flex items-center gap-4">
-            <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg">
-                <i class="fa-brands fa-telegram"></i> Support (@DnnxDigitalCrator)
+            <a href="https://albionmarketv2-1.onrender.com" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg">
+                <i class="fa-solid fa-globe"></i> Offizielle Webseite
             </a>
         </div>
     </nav>
@@ -849,7 +849,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <li>Klicke oben auf den grünen Button <strong class="text-white">"APK Herunterladen (v${CURRENT_SERVER_VERSION})"</strong>.</li>
                     <li>Öffne die heruntergeladene <code class="bg-slate-800 px-2 py-0.5 rounded text-sky-400">AlbionDataPro.apk</code> Datei auf deinem Android-Gerät.</li>
                     <li>Erlaube bei der Installation die Option <strong class="text-white">"Aus diesen Quellen zulassen" (Unbekannte Quellen)</strong>.</li>
-                    <li>Erwerbe eine Lizenz über PayPal, sende einen Nachweis an <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="text-blue-400 font-bold hover:underline">@DnnxDigitalCrator</a> auf Telegram und logge dich in der App ein.</li>
+                    <li>Erwerbe eine Lizenz direkt über die <a href="https://albionmarketv2-1.onrender.com" class="text-blue-400 font-bold hover:underline">Webseite</a> und logge dich in der App ein.</li>
                 </ol>
             </div>
         </div>
@@ -938,7 +938,7 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                                     <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
                                 </div>
                                 <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
-                                <p>Support via Telegram: <a href="https://t.me/DnnxDigitalCrator" style="color: #38bdf8;">@DnnxDigitalCrator</a></p>
+                                <p>Besuche unsere <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> für Support.</p>
                                 <p style="font-size: 12px; color: #64748b; margin-top: 30px;">Dies ist eine automatisch generierte E-Mail.</p>
                             </div>
                         `
