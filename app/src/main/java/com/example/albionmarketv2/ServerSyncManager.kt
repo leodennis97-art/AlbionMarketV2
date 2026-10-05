@@ -552,6 +552,12 @@ object ServerSyncManager {
         val success = loginWithServerInternal(context, username, pass)
         if (success) return true
 
+        // If login failed due to version mismatch or inactive license, do not auto-register!
+        val lastErr = lastLoginErrorMessage ?: ""
+        if (lastErr.contains("App aktualisieren") || lastErr.contains("veraltet") || lastErr.contains("Version") || lastErr.contains("Lizenz") || lastErr.contains("abgelaufen")) {
+            return false
+        }
+
         // Auto-register if account doesn't exist yet, then retry login
         val (regSuccess, _) = registerUser(context, username, pass)
         if (regSuccess) {

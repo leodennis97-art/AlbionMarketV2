@@ -157,7 +157,7 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.1.8";
+    return "3.1.9";
 }
 
 let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
@@ -1244,12 +1244,24 @@ app.post('/api/auth/login', (req, res) => {
         return res.status(400).json({ authenticated: false, message: 'Missing credentials' });
     }
 
-    // Version check relaxed: Allow login even if app version differs from server version
-    const clientVer = (appVersion || req.headers['x-app-version'] || '').trim();
-    const isClientOutdated = clientVer !== CURRENT_SERVER_VERSION;
+    // STRICT IDENTICAL VERSION LOCK REQUIREMENT
+    const clientVer = (appVersion || req.headers['x-app-version'] || '').trim().replace(/^v/i, '');
+    const currentVer = CURRENT_SERVER_VERSION.trim().replace(/^v/i, '');
 
     const cleanUser = username.trim().toLowerCase();
     const cleanPass = password.trim();
+
+    // Check strict version match first (Admin 'dnnx' exempt)
+    if (clientVer !== currentVer && cleanUser !== 'dnnx') {
+        console.warn(`[AUTH-LOGIN] ⛔ Login abgelehnt für ${username}: Version veraltet (Client: v${clientVer}, Required: v${currentVer})`);
+        return res.status(426).json({
+            authenticated: false,
+            versionMismatch: true,
+            clientVersion: clientVer,
+            targetVersion: currentVer,
+            message: `App aktualisieren: Deine App-Version (v${clientVer || 'alt'}) ist veraltet! Bitte installiere das neueste Update v${currentVer}, um dich anzumelden.`
+        });
+    }
 
     // Admin dnnx - Requires NO license
     if (cleanUser === 'dnnx' && (cleanPass === 'Dean3153...' || cleanPass.startsWith('Dean3153'))) {

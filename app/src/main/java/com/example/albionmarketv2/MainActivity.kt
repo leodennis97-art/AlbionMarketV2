@@ -768,6 +768,14 @@ class MainActivity : ComponentActivity() {
                                                             } else {
                                                                 val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
                                                                 Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
+
+                                                                if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
+                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "3.1.9"
+                                                                    Toast.makeText(context, "🚀 App aktualisieren: Installiere neueste Version v$targetV...", Toast.LENGTH_LONG).show()
+                                                                    lifecycleScope.launch(Dispatchers.IO) {
+                                                                        OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
+                                                                    }
+                                                                }
                                                             }
                                                         }
                                                     }
