@@ -1691,11 +1691,40 @@ fun BubbleOverlayContent(
                                 }
                             }
 
-                            if (isLoadingOpps && filteredBubbleOpportunities.isEmpty()) {
+                            val displayedOpps = remember(filteredBubbleOpportunities) { filteredBubbleOpportunities.take(50) }
+
+                            // Counter Header Badge for 50 Scanned Opportunities
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF0F172A),
+                                border = BorderStroke(1.dp, Color(0xFF10B981).copy(alpha = 0.5f)),
+                                modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "📊 Gescannte Handelschancen (${displayedOpps.size} von 50)",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF34D399)
+                                    )
+                                    Text(
+                                        text = "Live KI-Sync ⚡",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF38BDF8)
+                                    )
+                                }
+                            }
+
+                            if (isLoadingOpps && displayedOpps.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
                                     CircularProgressIndicator(color = Color(0xFF81D4FA), modifier = Modifier.size(24.dp))
                                 }
-                            } else if (filteredBubbleOpportunities.isEmpty()) {
+                            } else if (displayedOpps.isEmpty()) {
                                 Surface(
                                     shape = RoundedCornerShape(10.dp),
                                     color = Color(0xFF1E3A4C),
@@ -1706,7 +1735,7 @@ fun BubbleOverlayContent(
                                     }
                                 }
                             } else {
-                                filteredBubbleOpportunities.forEachIndexed { index, opp ->
+                                displayedOpps.forEachIndexed { index, opp ->
                                     key("${opp.resource.fullId}_${opp.buyCity}_${opp.sellCity}") {
                                         val buyTrans = LanguageManager.getCityTranslation(opp.buyCity, lang)
                                         val sellTrans = LanguageManager.getCityTranslation(opp.sellCity, lang)
@@ -1749,7 +1778,7 @@ fun BubbleOverlayContent(
                                                             }
                                                             Spacer(modifier = Modifier.width(3.dp))
                                                             Text(
-                                                                text = opp.resource.nameDe,
+                                                                text = "${opp.resource.nameDe} [${opp.resource.fullId}]",
                                                                 color = Color.White,
                                                                 fontSize = 9.sp,
                                                                 fontWeight = FontWeight.Bold,
@@ -1823,7 +1852,7 @@ fun BubbleOverlayContent(
                                                             }
                                                             Spacer(modifier = Modifier.width(4.dp))
                                                             Text(
-                                                                text = "${index + 1}. ${opp.resource.nameDe}",
+                                                                text = "${index + 1}. ${opp.resource.nameDe} [${opp.resource.fullId}]",
                                                                 color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 10.sp,
