@@ -1384,6 +1384,10 @@ fun BubbleOverlayContent(
                         ) {
                             val prefsForCity = remember { AppPreferences(context) }
                             var currentBubbleCity by remember { mutableStateOf(prefsForCity.bubbleStandpunktCity) }
+                            var currentBubbleCategory by remember { mutableStateOf(prefsForCity.bubbleCategory) }
+                            var currentBubbleTier by remember { mutableIntStateOf(prefsForCity.bubbleTier) }
+                            var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
+                            var searchInputText by remember { mutableStateOf(prefsForCity.bubbleSearchQuery) }
                             val bubbleCities = remember { listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien", "Black Market") }
 
                             // 📊 SMART DASHBOARD
@@ -1416,7 +1420,6 @@ fun BubbleOverlayContent(
                             }
 
                             // 🔍 Real-Time Category & Item Search Input (Always visible)
-                            var searchInputText by remember { mutableStateOf(prefsForCity.bubbleSearchQuery) }
                             OutlinedTextField(
                                 value = searchInputText,
                                 onValueChange = { str ->
@@ -1440,7 +1443,6 @@ fun BubbleOverlayContent(
                                 "GASTRO" to "🧪 Gastro",
                                 "LUXUS" to "🐎 Luxus"
                             )
-                            var currentBubbleCategory by remember { mutableStateOf(prefsForCity.bubbleCategory) }
                             LazyRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
@@ -1752,14 +1754,42 @@ fun BubbleOverlayContent(
                                 }
                             }
 
-                            val sortedBubbleOpportunities = remember(topOpportunities, currentBubbleSort) {
-                                val (freshBotOpps, olderOpps) = topOpportunities.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
+                            val filteredBubbleOpportunities = remember(
+                                topOpportunities,
+                                currentBubbleCity,
+                                currentBubbleCategory,
+                                currentBubbleTier,
+                                currentBubbleEnchantment,
+                                searchInputText,
+                                currentBubbleSort
+                            ) {
+                                val searchQ = searchInputText.trim().lowercase()
+                                val filtered = topOpportunities.filter { opp ->
+                                    val matchesCity = currentBubbleCity == "ALLE" || TradeCalculator.citiesMatch(opp.buyCity, currentBubbleCity)
+                                    val matchesCat = when (currentBubbleCategory) {
+                                        "ALL" -> true
+                                        "SAMMLER" -> opp.resource.category == ResourceCategory.RESOURCES || opp.resource.category == ResourceCategory.REFINED
+                                        "GEAR" -> opp.resource.category == ResourceCategory.WEAPONS || opp.resource.category == ResourceCategory.ARMOR || opp.resource.category == ResourceCategory.HELMETS || opp.resource.category == ResourceCategory.SHOES || opp.resource.category == ResourceCategory.OFFHAND || opp.resource.category == ResourceCategory.BAG || opp.resource.category == ResourceCategory.CAPE
+                                        "GASTRO" -> opp.resource.category == ResourceCategory.FOOD || opp.resource.category == ResourceCategory.POTIONS
+                                        "LUXUS" -> opp.resource.category == ResourceCategory.MOUNTS || opp.resource.category == ResourceCategory.ARTIFACTS
+                                        else -> opp.resource.category.name.equals(currentBubbleCategory, ignoreCase = true) || opp.resource.category.displayName.equals(currentBubbleCategory, ignoreCase = true)
+                                    }
+                                    val matchesTier = currentBubbleTier == 0 || opp.resource.tier == currentBubbleTier
+                                    val matchesEnc = currentBubbleEnchantment < 0 || opp.resource.enchantment == currentBubbleEnchantment
+                                    val matchesSearch = searchQ.isBlank() || opp.resource.nameDe.lowercase().contains(searchQ) || opp.resource.nameEn.lowercase().contains(searchQ) || opp.resource.id.lowercase().contains(searchQ)
+
+                                    matchesCity && matchesCat && matchesTier && matchesEnc && matchesSearch
+                                }
+
+                                val (freshBotOpps, olderOpps) = filtered.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
                                 when (currentBubbleSort) {
                                     "NEWEST" -> freshBotOpps.sortedByDescending { it.updatedTimestamp } + olderOpps.sortedByDescending { it.updatedTimestamp }
                                     "FEWEST_STOCK" -> freshBotOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent }) + olderOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
                                     else -> freshBotOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit }) + olderOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
                                 }
                             }
+
+                            val sortedBubbleOpportunities = filteredBubbleOpportunities
 
                             if (isLoadingOpps && sortedBubbleOpportunities.isEmpty()) {
                                 Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
