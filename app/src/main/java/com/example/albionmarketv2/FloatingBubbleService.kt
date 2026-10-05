@@ -269,7 +269,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                             activeOrder = activeOrder,
                             topOpportunities = topOpportunities,
                             isLoadingOpps = isLoadingOpps,
-                            onRefresh = { loadTopOpportunities(forceRefresh = false) },
+                            onRefresh = { loadData(forceRefreshPrices = true) },
                             onAcceptOpportunity = { opp -> acceptOpportunity(opp) },
                             onDrag = { dx, dy ->
                                 try {
@@ -467,7 +467,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val aiVerifiedPrices = rawCombined.filter { p ->
             val isNotZero = p.sellPriceMin > 0
             val isNotUnrealistic = !AlbionMarketApi.isUnrealisticPrice(p.itemId, p.sellPriceMin)
-            val isWithinBounds = p.sellPriceMin in 5..500_000_000
+            val isWithinBounds = (p.sellPriceMin in 5..500_000_000)
             val isBuyOrderValid = p.buyPriceMax == 0 || p.buyPriceMax < (p.sellPriceMin * 3)
 
             isNotZero && isNotUnrealistic && isWithinBounds && isBuyOrderValid
@@ -806,11 +806,11 @@ fun BubbleOverlayContent(
                                 color = Color(0xFFEF4444),
                                 modifier = Modifier
                                     .align(Alignment.TopEnd)
-                                    .size(16.dp)
+                                    .size(16.dp),
                             ) {
                                 Box(contentAlignment = Alignment.Center) {
                                     Text(
-                                        text = "${topOpportunities.size}",
+                                        text = topOpportunities.size.toString(),
                                         color = Color.White,
                                         fontSize = 8.sp,
                                         fontWeight = FontWeight.Bold
@@ -998,9 +998,11 @@ fun BubbleOverlayContent(
                         val availableTabs = remember(prefs.isAdmin, prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
                             val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket
                             BubbleTab.entries.filter { tab ->
-                                if (tab == BubbleTab.ADMIN && !prefs.isAdmin) false
-                                else if (tab == BubbleTab.SMUGGLER_RADAR && hideBm) false
-                                else true
+                                when (tab) {
+                                    BubbleTab.ADMIN -> prefs.isAdmin
+                                    BubbleTab.SMUGGLER_RADAR -> !hideBm
+                                    else -> true
+                                }
                             }
                         }
                         LazyRow(
@@ -1365,7 +1367,7 @@ fun BubbleOverlayContent(
                         } else if (selectedTab == BubbleTab.TOP_MARGIN) {
                         val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
                         val uiState by viewModel.uiState.collectAsState()
-                        var showAdvancedFilters by remember { mutableStateOf(false) }
+                        var showAdvancedFilters by remember { mutableStateOf(value = false) }
 
                         Column(
                             modifier = Modifier
@@ -1665,23 +1667,31 @@ fun BubbleOverlayContent(
                                     var currentBubbleAvoidDangerous by remember { mutableStateOf(prefsForCity.bubbleAvoidDangerousZones || prefsForCity.avoidDangerousZones) }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
                                         Text("🔴 Rote / PvP Zonen ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        Switch(checked = currentBubbleAvoidDangerous, onCheckedChange = {
-                                            currentBubbleAvoidDangerous = it
-                                            prefsForCity.bubbleAvoidDangerousZones = it
-                                            prefsForCity.avoidDangerousZones = it
-                                            onRefresh()
-                                        }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444)))
+                                        Switch(
+                                            checked = currentBubbleAvoidDangerous,
+                                            onCheckedChange = {
+                                                currentBubbleAvoidDangerous = it
+                                                prefsForCity.bubbleAvoidDangerousZones = it
+                                                prefsForCity.avoidDangerousZones = it
+                                                onRefresh()
+                                            },
+                                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444)),
+                                        )
                                     }
 
                                     var currentBubbleHideBrecilien by remember { mutableStateOf(prefsForCity.bubbleHideBrecilien || prefsForCity.hideBrecilien) }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
                                         Text("✨ Brecilien ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        Switch(checked = currentBubbleHideBrecilien, onCheckedChange = {
-                                            currentBubbleHideBrecilien = it
-                                            prefsForCity.bubbleHideBrecilien = it
-                                            prefsForCity.hideBrecilien = it
-                                            onRefresh()
-                                        }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF38BDF8)))
+                                        Switch(
+                                            checked = currentBubbleHideBrecilien,
+                                            onCheckedChange = {
+                                                currentBubbleHideBrecilien = it
+                                                prefsForCity.bubbleHideBrecilien = it
+                                                prefsForCity.hideBrecilien = it
+                                                onRefresh()
+                                            },
+                                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFF38BDF8)),
+                                        )
                                     }
 
                                     var currentBubbleHideBlackMarket by remember { mutableStateOf(prefsForCity.bubbleHideBlackMarket || prefsForCity.hideBlackMarket) }
@@ -2151,7 +2161,7 @@ fun BubbleOverlayContent(
 
 @Composable
 fun BubbleSmugglerRadarTab(
-    viewModel: AlbionResourceViewModel,
+    @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
     maxHeight: Dp
 ) {
@@ -2208,7 +2218,7 @@ fun BubbleSmugglerRadarTab(
 
 @Composable
 fun BubbleInventoryRouterTab(
-    viewModel: AlbionResourceViewModel,
+    @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
     maxHeight: Dp
 ) {
@@ -3517,7 +3527,7 @@ fun BubbleMapTab(
 
     val avgCost = remember(matchingRes, cityName, uiState.marketPrices) {
         if (matchingRes.isNotEmpty()) {
-            matchingRes.map { res ->
+            matchingRes.asSequence().map { res ->
                 val recipe = CraftingRepository.getRecipeFor(res)
                 recipe.ingredients.sumOf { ing ->
                     ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
@@ -3528,7 +3538,7 @@ fun BubbleMapTab(
 
     val avgNetProfit = remember(matchingRes, cityName, uiState.marketPrices) {
         if (matchingRes.isNotEmpty()) {
-            matchingRes.map { res ->
+            matchingRes.asSequence().map { res ->
                 val recipe = CraftingRepository.getRecipeFor(res)
                 val cost = recipe.ingredients.sumOf { ing ->
                     ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, cityName, uiState.marketPrices).toLong()
