@@ -1054,27 +1054,26 @@ fun BubbleOverlayContent(
                                     }
                                 }
 
-                                    // Row 3: Compact Action Buttons (Buchen / Stornieren)
+                                    // Row 3: Prominent Action Buttons (Buchen / Stornieren)
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                                     ) {
                                         Button(
                                             onClick = {
                                                 isBookingMode = true
                                                 onFocusModeChanged(true)
                                             },
-                                            shape = RoundedCornerShape(6.dp),
+                                            shape = RoundedCornerShape(8.dp),
                                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                            modifier = Modifier.weight(1f).height(26.dp)
+                                            modifier = Modifier.weight(1f).height(36.dp)
                                         ) {
-                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(13.dp))
-                                            Spacer(modifier = Modifier.width(3.dp))
-                                            Text(if (lang == "DE") "Buchen" else "Book", fontWeight = FontWeight.Bold, color = Color.Black, fontSize = 9.5.sp)
+                                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (lang == "DE") "✅ Buchen" else "Book", fontWeight = FontWeight.ExtraBold, color = Color.Black, fontSize = 11.sp)
                                         }
 
-                                        OutlinedButton(
+                                        Button(
                                             onClick = {
                                                 try {
                                                     val prefs = AppPreferences(context)
@@ -1082,17 +1081,19 @@ fun BubbleOverlayContent(
                                                     val updatedOrders = orders.filter { it.id != activeOrder.id }
                                                     prefs.saveTradeOrders(updatedOrders)
                                                     prefs.clearDraftOrderInput(activeOrder.id)
-                                                    Toast.makeText(context, if (lang == "DE") "Auftrag storniert!" else "Order cancelled!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, if (lang == "DE") "❌ Auftrag storniert!" else "Order cancelled!", Toast.LENGTH_SHORT).show()
                                                     onOrderBooked()
                                                 } catch (e: Exception) {
                                                     e.printStackTrace()
                                                 }
                                             },
-                                            shape = RoundedCornerShape(6.dp),
-                                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-                                            modifier = Modifier.weight(1f).height(26.dp)
+                                            shape = RoundedCornerShape(8.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                            modifier = Modifier.weight(1f).height(36.dp)
                                         ) {
-                                            Text(if (lang == "DE") "Stornieren" else "Cancel", fontSize = 9.sp, color = Color.LightGray)
+                                            Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (lang == "DE") "❌ Stornieren" else "Cancel", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 11.sp)
                                         }
                                     }
                                 }
