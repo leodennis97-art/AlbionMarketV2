@@ -735,13 +735,13 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-2xl">1 Monat</div>
                     <div class="text-3xl text-blue-400 my-1">15€</div>
                     <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_xclick">
+                        <input type="hidden" name="cmd" value="_donations">
                         <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
                         <input type="hidden" name="item_name" value="AlbionDataPro 1 Monat Lizenz">
                         <input type="hidden" name="amount" value="15.00">
                         <input type="hidden" name="currency_code" value="EUR">
                         <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
                             <i class="fa-brands fa-paypal"></i> PayPal Kaufen (15€)
                         </button>
                     </form>
@@ -752,13 +752,13 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-2xl">3 Monate</div>
                     <div class="text-3xl text-blue-400 my-1">30€</div>
                     <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_xclick">
+                        <input type="hidden" name="cmd" value="_donations">
                         <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
                         <input type="hidden" name="item_name" value="AlbionDataPro 3 Monate Lizenz">
                         <input type="hidden" name="amount" value="30.00">
                         <input type="hidden" name="currency_code" value="EUR">
                         <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
                             <i class="fa-brands fa-paypal"></i> PayPal Kaufen (30€)
                         </button>
                     </form>
@@ -770,13 +770,13 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-2xl">6 Monate</div>
                     <div class="text-3xl text-yellow-400 my-1">50€</div>
                     <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_xclick">
+                        <input type="hidden" name="cmd" value="_donations">
                         <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
                         <input type="hidden" name="item_name" value="AlbionDataPro 6 Monate Lizenz">
                         <input type="hidden" name="amount" value="50.00">
                         <input type="hidden" name="currency_code" value="EUR">
                         <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
                             <i class="fa-brands fa-paypal"></i> PayPal Kaufen (50€)
                         </button>
                     </form>
@@ -787,13 +787,13 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-2xl">12 Monate</div>
                     <div class="text-3xl text-blue-400 my-1">100€</div>
                     <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_xclick">
+                        <input type="hidden" name="cmd" value="_donations">
                         <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
                         <input type="hidden" name="item_name" value="AlbionDataPro 12 Monate Lizenz">
                         <input type="hidden" name="amount" value="100.00">
                         <input type="hidden" name="currency_code" value="EUR">
                         <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1">
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
                             <i class="fa-brands fa-paypal"></i> PayPal Kaufen (100€)
                         </button>
                     </form>
