@@ -1912,6 +1912,8 @@ app.get(['/admin'], (req, res) => {
     }
 
     const tunnelUrl = getActiveTunnelUrl();
+    const nowTime = Date.now();
+    const onlineDevicesCount = registeredDevices.filter(d => d.lastSeen && (nowTime - new Date(d.lastSeen).getTime() < 120000)).length;
     const maxItems = Math.max(...hourlyData24h.map(h => h.itemsCollected), 100);
 
     res.send(`<!DOCTYPE html>
@@ -1963,6 +1965,10 @@ app.get(['/admin'], (req, res) => {
 
             <div class="stat-box">
                 <div class="stat-card">
+                    <div>🟢 Gerade online (App aktiv)</div>
+                    <div class="stat-number" style="color: #34d399;">${onlineDevicesCount}</div>
+                </div>
+                <div class="stat-card">
                     <div>📊 Gesamte Informationen (API geholt)</div>
                     <div class="stat-number">${totalInformationCount.toLocaleString('de-DE')}</div>
                 </div>
@@ -1971,7 +1977,7 @@ app.get(['/admin'], (req, res) => {
                     <div class="stat-number">${generatedLicenses.length}</div>
                 </div>
                 <div class="stat-card">
-                    <div>📱 Verbundene Geräte</div>
+                    <div>📱 Registrierte Geräte</div>
                     <div class="stat-number">${registeredDevices.length}</div>
                 </div>
             </div>
