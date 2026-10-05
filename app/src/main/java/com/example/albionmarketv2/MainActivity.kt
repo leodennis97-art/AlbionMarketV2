@@ -15,6 +15,8 @@ import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -371,326 +373,249 @@ class MainActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .background(Color(0xFF0F172A))
+                                .background(Color(0xFF0B1120))
                                 .verticalScroll(rememberScrollState()),
                             contentAlignment = Alignment.Center,
                         ) {
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth(0.92f)
-                                    .padding(8.dp),
+                                    .padding(vertical = 16.dp, horizontal = 8.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
-                                shape = RoundedCornerShape(16.dp),
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(1.dp, Color(0xFF334155))
                             ) {
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(14.dp),
+                                        .padding(20.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp),
                                 ) {
-                                    Text(
-                                        text = if (isRegistrationMode) "📝 Account Registrierung" else "🔒 Login",
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.White,
-                                        textAlign = TextAlign.Center,
+                                    // 1. BRANDING LOGO HEADER
+                                    Image(
+                                        painter = painterResource(id = R.drawable.adp_logo),
+                                        contentDescription = "AlbionDataPro Logo",
+                                        modifier = Modifier.size(72.dp)
                                     )
 
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
                                     ) {
-                                        Button(
-                                            onClick = { isRegistrationMode = false },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (!isRegistrationMode) Color(0xFF3B82F6) else Color(0xFF0F172A)
-                                            ),
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.weight(1f)
+                                        Text(
+                                            text = "AlbionDataPro",
+                                            fontSize = 22.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF38BDF8)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                            border = BorderStroke(1.dp, Color(0xFF10B981))
                                         ) {
-                                            Text("🔑 Login", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                        }
-
-                                        Button(
-                                            onClick = { isRegistrationMode = true },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (isRegistrationMode) Color(0xFF10B981) else Color(0xFF0F172A)
-                                            ),
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.weight(1f)
-                                        ) {
-                                            Text("📝 Registrieren", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                            Text(
+                                                text = "v$CURRENT_APP_VERSION",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF34D399),
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
                                         }
                                     }
 
+                                    Text(
+                                        text = "Echtzeit Markt-Analysen & In-Game Overlay Bot",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF94A3B8),
+                                        textAlign = TextAlign.Center
+                                    )
+
+                                    Spacer(modifier = Modifier.height(2.dp))
+
+                                    // 2. SEGMENTED TAB SWITCHER
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = Color(0xFF0F172A),
+                                        border = BorderStroke(1.dp, Color(0xFF334155)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(4.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Button(
+                                                onClick = { isRegistrationMode = false },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = if (!isRegistrationMode) Color(0xFF2563EB) else Color.Transparent
+                                                ),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = PaddingValues(vertical = 10.dp)
+                                            ) {
+                                                Text(
+                                                    text = "🔑 Anmelden",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (!isRegistrationMode) Color.White else Color(0xFF94A3B8)
+                                                )
+                                            }
+
+                                            Button(
+                                                onClick = { isRegistrationMode = true },
+                                                colors = ButtonDefaults.buttonColors(
+                                                    containerColor = if (isRegistrationMode) Color(0xFF10B981) else Color.Transparent
+                                                ),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = PaddingValues(vertical = 10.dp)
+                                            ) {
+                                                Text(
+                                                    text = "📝 Registrieren",
+                                                    fontSize = 13.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isRegistrationMode) Color.White else Color(0xFF94A3B8)
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // 3. SERVER STATUS BADGE
                                     val statusColor = when (isServerConnected) {
                                         true -> Color(0xFF10B981)
                                         false -> Color(0xFFEF4444)
                                         null -> Color(0xFFF59E0B)
                                     }
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = statusColor.copy(alpha = 0.12f),
+                                        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.6f)),
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Surface(
-                                            shape = RoundedCornerShape(8.dp),
-                                            color = statusColor.copy(alpha = 0.15f),
-                                            border = BorderStroke(1.dp, statusColor),
-                                            modifier = Modifier.fillMaxWidth(),
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 12.dp)
                                         ) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.Center,
-                                                modifier = Modifier.padding(vertical = 6.dp, horizontal = 10.dp),
-                                            ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Surface(
-                                                    shape = RoundedCornerShape(6.dp),
+                                                    shape = CircleShape,
                                                     color = statusColor,
-                                                    modifier = Modifier.size(8.dp),
+                                                    modifier = Modifier.size(8.dp)
                                                 ) {}
-                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     text = when (isServerConnected) {
-                                                        true -> "🟢 Server-Verbindung aktiv (Cloud)"
-                                                        false -> "🔴 Keine Verbindung zur Cloud"
-                                                        null -> "🟡 Suche Cloud-Server (Verbinde...)"
+                                                        true -> "Cloud Server Online"
+                                                        false -> "Keine Cloud Verbindung"
+                                                        null -> "Verbinde mit Cloud..."
                                                     },
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = statusColor,
+                                                    color = statusColor
                                                 )
                                             }
-                                        }
 
-                                        // Buttons nebeneinander oder kompakter ohne großen Abstand
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Button(
-                                                onClick = {
+                                            Text(
+                                                text = "🔄 Server prüfen",
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF38BDF8),
+                                                modifier = Modifier.clickable {
                                                     isServerConnected = null
-                                                    Toast.makeText(context, "📡 Kontaktiere Render Cloud & wecke Server...", Toast.LENGTH_SHORT).show()
                                                     coroutineScope.launch(Dispatchers.IO) {
-                                                        try {
-                                                            val stats = ServerSyncManager.pingServer(context)
-                                                            withContext(Dispatchers.Main) {
-                                                                isServerConnected = (stats != null)
-                                                                if (isServerConnected == true) {
-                                                                    Toast.makeText(context, "🟢 Cloud-Verbindung erfolgreich hergestellt!", Toast.LENGTH_SHORT).show()
-                                                                } else {
-                                                                    Toast.makeText(context, "🔴 Cloud-Server nicht erreichbar. Bitte Internetverbindung prüfen.", Toast.LENGTH_LONG).show()
-                                                                }
-                                                            }
-                                                        } catch (e: Exception) {
-                                                            e.printStackTrace()
-                                                            withContext(Dispatchers.Main) {
-                                                                isServerConnected = false
-                                                                Toast.makeText(context, "❌ Fehler: ${e.javaClass.simpleName} - ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-                                                            }
+                                                        val stats = ServerSyncManager.pingServer(context)
+                                                        withContext(Dispatchers.Main) {
+                                                            isServerConnected = (stats != null)
                                                         }
                                                     }
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0D9488)),
-                                                shape = RoundedCornerShape(8.dp),
-                                                modifier = Modifier.weight(1f),
-                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                                            ) {
-                                                Text("📡 Verbindung prüfen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                            }
-
-                                            Button(
-                                                onClick = {
-                                                    try {
-                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri()).apply {
-                                                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                        }
-                                                        context.startActivity(webIntent)
-                                                    } catch (e: Exception) {
-                                                        e.printStackTrace()
-                                                        Toast.makeText(context, "❌ Fehler beim Öffnen der Website", Toast.LENGTH_SHORT).show()
-                                                    }
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
-                                                shape = RoundedCornerShape(8.dp),
-                                                modifier = Modifier.weight(1f),
-                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 6.dp)
-                                            ) {
-                                                Text("🌐 Download (v$CURRENT_APP_VERSION)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                            }
+                                                }
+                                            )
                                         }
                                     }
 
-                                    // Live Version Check & Update Section on Lockscreen
-                                    val currentAppVer = remember { OtaUpdateManager.getInstalledVersionName(context) }
-                                    val targetVer = ServerSyncManager.latestTargetVersion ?: currentAppVer
-                                    val isUpdateAvailableOnLockscreen = (!targetVer.isBlank()) && (OtaUpdateManager.compareVersionStrings(targetVer, currentAppVer) > 0)
-
-                                    LaunchedEffect(Unit) {
-                                        coroutineScope.launch(Dispatchers.IO) {
-                                            try {
-                                                ServerSyncManager.pingServer(context)
-                                            } catch (_: Exception) {}
-                                        }
-                                    }
-
-                                    Surface(
-                                        shape = RoundedCornerShape(10.dp),
-                                        color = if (isUpdateAvailableOnLockscreen) Color(0xFF065F46) else Color(0xFF0F172A),
-                                        border = BorderStroke(1.dp, if (isUpdateAvailableOnLockscreen) Color(0xFF10B981) else Color(0xFF334155)),
-                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
-                                    ) {
-                                        Column(
-                                            modifier = Modifier.padding(10.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            verticalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Column(modifier = Modifier.weight(1f)) {
-                                                    Text(
-                                                        text = "📱 App-Version: v$currentAppVer",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color.White
-                                                    )
-                                                }
-
-                                                Button(
-                                                    onClick = {
-                                                        isCheckingUpdate = true
-                                                        ServerSyncManager.dismissedOtaVersion = null
-                                                        coroutineScope.launch(Dispatchers.IO) {
-                                                            val stats = ServerSyncManager.pingServer(context)
-                                                            withContext(Dispatchers.Main) {
-                                                                isCheckingUpdate = false
-                                                                val current = OtaUpdateManager.getInstalledVersionName(context)
-                                                                val target = ServerSyncManager.latestTargetVersion
-                                                                if ((!target.isNullOrBlank()) && (OtaUpdateManager.compareVersionStrings(target, current) > 0)) {
-                                                                    updateCheckResult = "🚀 Neue Version v$target verfügbar!"
-                                                                    Toast.makeText(context, "🚀 Neue Version v$target verfügbar!", Toast.LENGTH_SHORT).show()
-                                                                } else if (stats != null) {
-                                                                    updateCheckResult = "✅ App ist auf dem neuesten Stand (v$current)."
-                                                                    Toast.makeText(context, "✅ App ist auf dem neuesten Stand (v$current)", Toast.LENGTH_SHORT).show()
-                                                                } else {
-                                                                    updateCheckResult = "❌ Keine Verbindung zum Server."
-                                                                    Toast.makeText(context, "❌ Server nicht erreichbar.", Toast.LENGTH_SHORT).show()
-                                                                }
-                                                            }
-                                                        }
-                                                    },
-                                                    enabled = !isCheckingUpdate,
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3B82F6)),
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                                                ) {
-                                                    if (isCheckingUpdate) {
-                                                        CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(14.dp))
-                                                    } else {
-                                                        Text("🔄 Updates suchen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                                    }
-                                                }
-                                            }
-
-                                            if (isUpdateAvailableOnLockscreen) {
-                                                Button(
-                                                    onClick = {
-                                                        coroutineScope.launch {
-                                                            Toast.makeText(context, "📥 Lade Update v$targetVer herunter...", Toast.LENGTH_SHORT).show()
-                                                            val success = OtaUpdateManager.downloadAndInstallUpdate(context)
-                                                            if (!success) {
-                                                                Toast.makeText(context, "❌ Download fehlgeschlagen. Bitte Server-Verbindung prüfen.", Toast.LENGTH_LONG).show()
-                                                            }
-                                                        }
-                                                    },
-                                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Text("⚡ Jetzt v$targetVer installieren & aktualisieren", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
-                                                }
-                                            } else if (updateCheckResult != null) {
-                                                Text(
-                                                    text = updateCheckResult!!,
-                                                    fontSize = 10.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = if (updateCheckResult!!.contains("✅")) Color(0xFF34D399) else Color(0xFFF87171)
-                                                )
-                                            }
-                                        }
-                                    }
-
+                                    // 4. FORM INPUT FIELDS
                                     if (!isAuthenticating) {
-                                        var passwordVisible by remember { mutableStateOf(false) }
-
                                         OutlinedTextField(
                                             value = usernameInput,
                                             onValueChange = { usernameInput = it },
                                             label = { Text("Benutzername", color = Color(0xFF94A3B8), fontSize = 12.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(10.dp),
-                                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF94A3B8)) },
+                                            shape = RoundedCornerShape(12.dp),
+                                            leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF38BDF8)) },
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = Color(0xFF3B82F6),
+                                                focusedBorderColor = Color(0xFF38BDF8),
                                                 unfocusedBorderColor = Color(0xFF334155),
                                                 focusedTextColor = Color.White,
                                                 unfocusedTextColor = Color.White,
                                                 focusedContainerColor = Color(0xFF0F172A),
                                                 unfocusedContainerColor = Color(0xFF0F172A)
                                             ),
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier.fillMaxWidth()
                                         )
 
-                                        Spacer(modifier = Modifier.height(6.dp))
+                                        var passwordVisible by remember { mutableStateOf(false) }
 
                                         OutlinedTextField(
                                             value = passwordInput,
                                             onValueChange = { passwordInput = it },
                                             label = { Text("Passwort", color = Color(0xFF94A3B8), fontSize = 12.sp) },
                                             singleLine = true,
-                                            shape = RoundedCornerShape(10.dp),
+                                            shape = RoundedCornerShape(12.dp),
                                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF94A3B8)) },
+                                            leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF38BDF8)) },
                                             trailingIcon = {
                                                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
                                                     Text(if (passwordVisible) "👁️" else "🙈", fontSize = 14.sp)
                                                 }
                                             },
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = Color(0xFF3B82F6),
+                                                focusedBorderColor = Color(0xFF38BDF8),
                                                 unfocusedBorderColor = Color(0xFF334155),
                                                 focusedTextColor = Color.White,
                                                 unfocusedTextColor = Color.White,
                                                 focusedContainerColor = Color(0xFF0F172A),
                                                 unfocusedContainerColor = Color(0xFF0F172A)
                                             ),
-                                            modifier = Modifier.fillMaxWidth(),
+                                            modifier = Modifier.fillMaxWidth()
                                         )
 
                                         if (isRegistrationMode) {
-                                            Spacer(modifier = Modifier.height(6.dp))
-
                                             OutlinedTextField(
                                                 value = licenseKeyInput,
                                                 onValueChange = { licenseKeyInput = it },
-                                                label = { Text("Lizenzschlüssel (z.B. ALBION-1M-...) - Optional", color = Color(0xFF94A3B8), fontSize = 12.sp) },
+                                                label = { Text("Lizenzschlüssel (falls vorhanden) - Optional", color = Color(0xFF94A3B8), fontSize = 11.sp) },
                                                 singleLine = true,
-                                                shape = RoundedCornerShape(10.dp),
+                                                shape = RoundedCornerShape(12.dp),
                                                 leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFFF59E0B)) },
                                                 colors = OutlinedTextFieldDefaults.colors(
-                                                    focusedBorderColor = Color(0xFF10B981),
+                                                    focusedBorderColor = Color(0xFFF59E0B),
                                                     unfocusedBorderColor = Color(0xFF334155),
                                                     focusedTextColor = Color.White,
                                                     unfocusedTextColor = Color.White,
                                                     focusedContainerColor = Color(0xFF0F172A),
                                                     unfocusedContainerColor = Color(0xFF0F172A)
                                                 ),
-                                                modifier = Modifier.fillMaxWidth(),
+                                                modifier = Modifier.fillMaxWidth()
                                             )
+
+                                            // REGISTRATION NOTICE CARD
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = Color(0xFFF59E0B).copy(alpha = 0.1f),
+                                                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text(
+                                                    text = "💳 Nach der Registrierung wirst du zu PayPal weitergeleitet, um deinen Account freizuschalten.",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFFFBBF24),
+                                                    modifier = Modifier.padding(10.dp)
+                                                )
+                                            }
                                         }
 
                                         Row(
@@ -710,13 +635,14 @@ class MainActivity : ComponentActivity() {
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "💾 Gerät merken (Auto-Login)",
+                                                text = "💾 Zugangsdaten merken (Auto-Login)",
                                                 fontSize = 12.sp,
                                                 color = Color(0xFFE2E8F0),
                                                 fontWeight = FontWeight.Medium
                                             )
                                         }
 
+                                        // 5. ACTION BUTTONS
                                         if (isRegistrationMode) {
                                             Button(
                                                 onClick = {
@@ -742,7 +668,6 @@ class MainActivity : ComponentActivity() {
                                                     lifecycleScope.launch {
                                                         val (regSuccess, regMsg) = ServerSyncManager.registerUser(context, usernameInput, passwordInput, licenseKeyInput)
                                                         if (regSuccess) {
-                                                            // Redirect to PayPal Payment page so user can purchase a license
                                                             try {
                                                                 val paypalIntent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/GB4DKRADU46SL".toUri())
                                                                 context.startActivity(paypalIntent)
@@ -786,16 +711,12 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                                modifier = Modifier.fillMaxWidth().height(50.dp),
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                                shape = RoundedCornerShape(10.dp),
-                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                                                shape = RoundedCornerShape(12.dp),
+                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                                             ) {
-                                                if (isAuthenticating) {
-                                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                                                } else {
-                                                    Text("📝 Account Registrieren & Freischalten", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                                                }
+                                                Text("🚀 Account Erstellen & Zu PayPal", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                                             }
                                         } else {
                                             Button(
@@ -848,43 +769,78 @@ class MainActivity : ComponentActivity() {
                                                                 val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
                                                                 Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
                                                             }
-                                                            if (ServerSyncManager.isOtaUpdateAvailable || ServerSyncManager.latestTargetVersion != null) {
-                                                                Toast.makeText(context, "🚀 Installiere neuste Version automatisch...", Toast.LENGTH_SHORT).show()
-                                                                lifecycleScope.launch(Dispatchers.IO) {
-                                                                    OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
-                                                                }
-                                                            }
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(48.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                                shape = RoundedCornerShape(10.dp),
-                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp)
+                                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                                                shape = RoundedCornerShape(12.dp),
+                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                                             ) {
-                                                if (isAuthenticating) {
-                                                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                                                } else {
-                                                    Text("🔑 Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
-                                                }
+                                                Text("🔑 In Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                                             }
                                         }
-                                        
-                                        Spacer(modifier = Modifier.height(16.dp))
-                                        HorizontalDivider(color = Color(0xFF334155), thickness = 1.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp))
-                                        Spacer(modifier = Modifier.height(16.dp))
 
-                                        Text(
-                                            text = "Du hast noch kein Konto?",
-                                            fontSize = 12.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color(0xFF94A3B8),
-                                            textAlign = TextAlign.Center
-                                        )
-                                        
                                         Spacer(modifier = Modifier.height(4.dp))
 
-                                        WebsiteLicensePurchaseSection(context = context)
+                                        // DIRECT PAYPAL PURCHASE BUTTON
+                                        Button(
+                                            onClick = {
+                                                try {
+                                                    val intent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/GB4DKRADU46SL".toUri())
+                                                    context.startActivity(intent)
+                                                } catch (_: Exception) {
+                                                    Toast.makeText(context, "PayPal konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E40AF)),
+                                            shape = RoundedCornerShape(10.dp),
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentPadding = PaddingValues(vertical = 10.dp)
+                                        ) {
+                                            Text(
+                                                text = "💳 Hier Lizenz erwerben (PayPal)",
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color.White
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(
+                                                text = "🚀 News & Updates",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF38BDF8),
+                                                modifier = Modifier.clickable { showLoginUpdatesDialog = true }
+                                            )
+
+                                            Text(
+                                                text = "🌐 Offizielle Website",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF94A3B8),
+                                                modifier = Modifier.clickable {
+                                                    try {
+                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
+                                                        context.startActivity(webIntent)
+                                                    } catch (_: Exception) {}
+                                                }
+                                            )
+                                        }
+                                    } else {
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                                            modifier = Modifier.padding(24.dp)
+                                        ) {
+                                            CircularProgressIndicator(color = Color(0xFF38BDF8), modifier = Modifier.size(36.dp))
+                                            Text("Verifiziere Daten mit Cloud Server...", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
                                     }
                                 }
                             }
