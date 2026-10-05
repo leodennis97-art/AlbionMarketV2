@@ -548,6 +548,12 @@ async function aiMarketBotLoop() {
                 if (hourlyData24h.length > 24) hourlyData24h.shift();
             }
             saveData24h();
+
+            // Broadcast real-time SSE update to connected devices
+            broadcastSSE('prices_updated', {
+                count,
+                timestamp: new Date().toISOString()
+            });
         }
     } catch (e) {
         console.log('[KI Market Bot] ℹ️ Status:', e.message);

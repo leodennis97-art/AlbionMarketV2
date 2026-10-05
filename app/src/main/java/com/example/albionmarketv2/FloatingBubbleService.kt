@@ -2325,7 +2325,12 @@ fun BubbleCatalogTab(
                     } else {
                         rawPrices
                     }
-                    val validPrices = prices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }
+                    val validPrices = prices.filter { 
+                        it.sellPriceMin > 0 && 
+                        !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) && 
+                        it.city != "BlackMarket" && 
+                        it.city != "Brecilien" 
+                    }
                     val bestBuy = validPrices.minByOrNull { it.sellPriceMin }
                     val bestSell = validPrices.maxByOrNull { it.sellPriceMin }
 
