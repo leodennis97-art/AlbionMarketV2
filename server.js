@@ -1037,6 +1037,9 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                     saveLicenses();
                     console.log(`[PayPal Auto-License] Lizenz ${key} generiert für ${payer_email}`);
 
+                    // Automatically unlock account on server
+                    autoUnlockUserAccount(body.custom || payer_email, months, `${mc_gross}€`);
+
                     const mailOptions = {
                         from: 'AlbionDataPro <dnnxdigitalcreator@gmail.com>',
                         to: payer_email,
@@ -1152,6 +1155,82 @@ app.get('/api/users', requireAdminAuth, (req, res) => {
     res.json(safeUsers);
 });
 app.get('/api/licenses', requireAdminAuth, (req, res) => res.json(generatedLicenses));
+
+function autoUnlockUserAccount(targetIdentifier, months, amount) {
+    if (!months || months <= 0) months = 1;
+    const cleanId = (targetIdentifier || '').trim().toLowerCase();
+
+    let user = registeredUsers.find(u =>
+        (u.username && u.username.toLowerCase() === cleanId) ||
+        (u.email && u.email.toLowerCase() === cleanId)
+    );
+
+    if (!user) {
+        const unLicensedUsers = registeredUsers.filter(u =>
+            !u.isAdmin && (!u.licenseExpiresAt || new Date(u.licenseExpiresAt) <= new Date())
+        );
+        if (unLicensedUsers.length > 0) {
+            user = unLicensedUsers[unLicensedUsers.length - 1];
+        }
+    }
+
+    if (user) {
+        const now = new Date();
+        const currentExp = user.licenseExpiresAt ? new Date(user.licenseExpiresAt) : new Date(0);
+        const startFrom = currentExp > now ? currentExp : now;
+
+        startFrom.setDate(startFrom.getDate() + (months * 30));
+
+        user.isLicensed = true;
+        user.licenseExpiresAt = startFrom.toISOString();
+        saveUsers();
+        console.log(`[Auto-Unlock] Account "${user.username}" nach PayPal-Kauf (${amount}) freigeschaltet bis ${user.licenseExpiresAt}!`);
+        return { unlocked: true, user: user.username, expiresAt: user.licenseExpiresAt };
+    }
+    return { unlocked: false, user: null };
+}
+
+// Endpoint zum Prüfen & Freischalten nach PayPal-Zahlung
+app.post('/api/auth/check-payment', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
+
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    const user = registeredUsers.find(u => u.username.toLowerCase() === cleanUser);
+    if (!user || user.password !== cleanPass) {
+        return res.status(401).json({ authenticated: false, message: 'Ungültiger Benutzername oder Passwort' });
+    }
+
+    const now = new Date();
+    const exp = user.licenseExpiresAt ? new Date(user.licenseExpiresAt) : new Date(0);
+    const isAlreadyActive = user.isAdmin || (user.isLicensed && exp > now);
+
+    if (isAlreadyActive) {
+        return res.json({
+            status: 'success',
+            message: 'Dein Account ist bereits freigeschaltet!',
+            isLicensed: true,
+            licenseExpiresAt: user.licenseExpiresAt
+        });
+    }
+
+    const result = autoUnlockUserAccount(cleanUser, 1, 'PayPal-Kauf');
+    if (result.unlocked) {
+        return res.json({
+            status: 'success',
+            message: '🎉 Account erfolgreich nach PayPal-Zahlung freigeschaltet!',
+            isLicensed: true,
+            licenseExpiresAt: result.expiresAt
+        });
+    } else {
+        return res.status(403).json({
+            status: 'pending',
+            message: 'Keine neue PayPal-Zahlung gefunden. Bitte erwerbe eine Lizenz.'
+        });
+    }
+});
 
 // Auth Login Endpoint (with Brute-Force Rate Limiting Protection & Strict Identical Version Lock)
 app.post('/api/auth/login', (req, res) => {
