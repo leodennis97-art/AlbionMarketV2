@@ -684,179 +684,263 @@ app.get(['/', '/get', '/app'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - Ultimate Market & Trading Tool for Albion Online</title>
+    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - Das ultimative Markt- & Overlay-Tool für Albion Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .gradient-text { background: linear-gradient(135deg, #38bdf8, #8b5cf6, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        body { background-color: #0b1120; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .glass-panel-glow { background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9)); backdrop-filter: blur(16px); border: 1px solid rgba(56, 189, 248, 0.25); box-shadow: 0 0 30px rgba(56, 189, 248, 0.15); }
+        .gradient-text { background: linear-gradient(135deg, #38bdf8, #8b5cf6, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-gold { background: linear-gradient(135deg, #fbbf24, #f59e0b, #d97706); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .pulse-glow { animation: pulseGlow 2.5s infinite alternate; }
+        @keyframes pulseGlow {
+            0% { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); }
+            100% { box-shadow: 0 0 35px rgba(16, 185, 129, 0.7); }
+        }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col">
 
-    <!-- Navbar -->
-    <nav class="w-full p-6 flex justify-between items-center max-w-7xl mx-auto border-b border-slate-800">
-        <div class="text-2xl font-extrabold tracking-tighter flex items-center gap-3">
-            <div class="bg-blue-600/20 p-2 rounded-xl border border-blue-500/30">
-                <i class="fa-solid fa-chart-line text-blue-400"></i>
+    <!-- Header / Navigation -->
+    <header class="w-full border-b border-slate-800/80 sticky top-0 z-50 bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <!-- Official ADP SVG Logo -->
+                <div class="w-10 h-10 flex items-center justify-center">
+                    <svg viewBox="0 0 128 128" width="100%" height="100%">
+                        <path d="M64,8 L112,28 L112,68 C112,96 64,120 64,120 C64,120 16,96 16,68 L16,28 Z" fill="#1E293B" stroke="#06B6D4" stroke-width="4" />
+                        <path d="M64,16 L104,33 L104,66 C104,89 64,110 64,110 C64,110 24,89 24,66 L24,33 Z" fill="#0F172A" stroke="#F59E0B" stroke-width="2" />
+                        <path d="M38,78 L48,46 L58,78 M41,70 L55,70" stroke="#06B6D4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        <path d="M62,46 L72,46 C80,46 84,52 84,62 C84,72 80,78 72,78 L62,78 Z" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        <path d="M88,78 L88,46 L98,46 C104,46 108,50 108,56 C108,62 104,66 98,66 L88,66" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                        <path d="M64,28 L69,38 L64,48 L59,38 Z" fill="#F59E0B" />
+                    </svg>
+                </div>
+                <div>
+                    <span class="text-2xl font-black tracking-tight text-white">Albion<span class="text-sky-400">Data</span><span class="text-amber-400">Pro</span></span>
+                    <span class="ml-2 text-xs px-2.5 py-0.5 bg-sky-500/20 text-sky-300 font-bold rounded-full border border-sky-500/30">v${CURRENT_SERVER_VERSION}</span>
+                </div>
             </div>
-            <span>AlbionDataPro <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-400 rounded-full border border-blue-500/30">v${CURRENT_SERVER_VERSION}</span></span>
-        </div>
-        <div class="flex items-center gap-4">
-            <a href="https://albionmarketv2-1.onrender.com" class="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 shadow-lg">
-                <i class="fa-solid fa-globe"></i> Offizielle Webseite
+
+            <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
+                <i class="fa-solid fa-download"></i> APK Download
             </a>
         </div>
-    </nav>
+    </header>
 
-    <!-- Hero Section -->
-    <main class="flex-grow max-w-6xl mx-auto px-4 py-16 text-center">
-        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700 text-xs font-semibold text-sky-400 mb-8 shadow-inner">
-            <i class="fa-solid fa-bolt text-amber-400"></i> Offizieller Release v${CURRENT_SERVER_VERSION} — 24/7 Cloud-Sync & In-Game Overlay
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl mx-auto px-4 py-12 text-center">
+
+        <!-- Release Badge -->
+        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/90 border border-sky-500/30 text-xs font-bold text-sky-400 mb-8 shadow-inner">
+            <span class="flex h-2 w-2 relative">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            Offizieller Version Release v${CURRENT_SERVER_VERSION} — 24/7 Cloud & In-Game Overlay
         </div>
 
-        <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight tracking-tight">
-            Dominiere den Albion Markt mit <br><span class="gradient-text">Echtzeit-Arbitrage & KI</span>
+        <!-- Hero Branding -->
+        <div class="flex justify-center mb-6">
+            <div class="w-28 h-28 md:w-36 md:h-36 drop-shadow-[0_0_35px_rgba(56,189,248,0.4)]">
+                <svg viewBox="0 0 128 128" width="100%" height="100%">
+                    <path d="M64,8 L112,28 L112,68 C112,96 64,120 64,120 C64,120 16,96 16,68 L16,28 Z" fill="#1E293B" stroke="#06B6D4" stroke-width="4" />
+                    <path d="M64,16 L104,33 L104,66 C104,89 64,110 64,110 C64,110 24,89 24,66 L24,33 Z" fill="#0F172A" stroke="#F59E0B" stroke-width="2" />
+                    <path d="M38,78 L48,46 L58,78 M41,70 L55,70" stroke="#06B6D4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M62,46 L72,46 C80,46 84,52 84,62 C84,72 80,78 72,78 L62,78 Z" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M88,78 L88,46 L98,46 C104,46 108,50 108,56 C108,62 104,66 98,66 L88,66" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M64,28 L69,38 L64,48 L59,38 Z" fill="#F59E0B" />
+                </svg>
+            </div>
+        </div>
+
+        <h1 class="text-4xl md:text-7xl font-black mb-6 leading-tight tracking-tight text-white">
+            <span class="gradient-text">AlbionDataPro</span>
         </h1>
-        <p class="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Das professionelle Handels- und Analysetool für Albion Online. Mit permanentem In-Game Overlay, 100% statistischem KI-Bot für Buy/Sell Orders und sekundengenauer Marktüberwachung.
+        <p class="text-xl md:text-3xl font-extrabold text-slate-200 mb-6 max-w-3xl mx-auto leading-snug">
+            Das mächtigste Handels- & Markt-Overlay für Albion Online Mobile
+        </p>
+        <p class="text-base md:text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
+            Verdoppeln Sie Ihr Silber ohne stundenlanges Suchen. Nutzen Sie sekundengenaue Live-Preise, Arbitrage-Scanner & KI-Preise direkt als schwebendes In-Game Overlay über Ihrem Spiel!
         </p>
 
-        <div class="flex flex-col gap-6 justify-center mb-16 items-center">
-            <a href="/download/AlbionDataPro.apk" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold py-5 px-10 rounded-2xl shadow-xl shadow-emerald-600/30 transition-all transform hover:scale-105 flex items-center justify-center gap-3 text-xl border border-emerald-400/30 max-w-md w-full">
-                <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
+        <!-- DOWNLOAD BUTTON SECTION -->
+        <div class="flex flex-col items-center gap-4 mb-16 max-w-md mx-auto w-full">
+            <a href="/download/AlbionDataPro.apk" class="pulse-glow bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black py-5 px-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 flex items-center justify-center gap-4 text-2xl border border-emerald-300/40 w-full">
+                <i class="fa-solid fa-download text-3xl"></i>
+                <div class="text-left">
+                    <div class="text-xs uppercase tracking-wider font-extrabold text-emerald-200">Kostenlos Herunterladen</div>
+                    <div>APK Download v${CURRENT_SERVER_VERSION}</div>
+                </div>
             </a>
+            <div class="text-xs text-slate-400 flex items-center gap-2">
+                <i class="fa-solid fa-shield-halved text-emerald-400"></i> 100% Virenfrei • Direktes Android APK Package
+            </div>
+        </div>
 
-            <div class="text-slate-300 mt-4 font-bold text-lg">Wähle dein Lizenz-Abo aus (Zahlung via PayPal):</div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
-                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
-                    <div class="text-sm text-slate-400">Starter</div>
-                    <div class="text-2xl">1 Monat</div>
-                    <div class="text-3xl text-blue-400 my-1">15€</div>
-                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (15€)
-                    </a>
+        <!-- IMPORTANT NOTICE: LICENSES ARE PURCHASED IN APP -->
+        <div class="glass-panel-glow p-8 rounded-3xl max-w-3xl mx-auto mb-20 text-left border border-amber-500/30 relative overflow-hidden">
+            <div class="absolute -right-10 -bottom-10 opacity-10 text-amber-500 text-9xl pointer-events-none">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <div class="flex items-start gap-5">
+                <div class="bg-gradient-to-br from-amber-500 to-amber-600 text-slate-950 p-4 rounded-2xl text-2xl font-black shadow-lg">
+                    <i class="fa-solid fa-lock text-2xl"></i>
                 </div>
-
-                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
-                    <div class="text-sm text-slate-400">Basic</div>
-                    <div class="text-2xl">3 Monate</div>
-                    <div class="text-3xl text-blue-400 my-1">30€</div>
-                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (30€)
-                    </a>
-                </div>
-
-                <div class="bg-gradient-to-br from-blue-900/60 to-indigo-900/60 text-white font-bold py-5 px-6 rounded-2xl shadow-xl border border-blue-400/50 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-bl-lg">Bestseller</div>
-                    <div class="text-sm text-blue-200">Pro</div>
-                    <div class="text-2xl">6 Monate</div>
-                    <div class="text-3xl text-yellow-400 my-1">50€</div>
-                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (50€)
-                    </a>
-                </div>
-
-                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
-                    <div class="text-sm text-slate-400">Elite</div>
-                    <div class="text-2xl">12 Monate</div>
-                    <div class="text-3xl text-blue-400 my-1">100€</div>
-                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (100€)
-                    </a>
+                <div>
+                    <h3 class="text-2xl font-black text-amber-400 mb-2 flex items-center gap-2">
+                        🔒 Lizenzen direkt in der App erwerben & freischalten!
+                    </h3>
+                    <p class="text-slate-300 text-sm md:text-base leading-relaxed mb-4">
+                        Installieren Sie die App kostenlos über den Download-Button oben. Nach dem Start können Sie Ihren Account erstellen und Ihre Lizenz (1, 3, 6 oder 12 Monate) direkt in der App oder im Lizenz-Menü freischalten!
+                    </p>
+                    <div class="flex flex-wrap gap-3 text-xs font-bold text-slate-300">
+                        <span class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-bolt text-amber-400"></i> Sofortige Freischaltung
+                        </span>
+                        <span class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5">
+                            <i class="fa-brands fa-paypal text-blue-400"></i> Sichere PayPal-Zahlung
+                        </span>
+                        <span class="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5">
+                            <i class="fa-solid fa-cloud text-emerald-400"></i> 24/7 Cloud-Verbindung
+                        </span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- App Features & Categories Explanation -->
-        <div class="mb-16 text-left">
+        <!-- WHY YOU NEED THIS TOOL (SALES PITCH) -->
+        <div class="mb-20 text-left">
             <div class="text-center mb-12">
-                <h2 class="text-3xl font-bold mb-3">App Funktionen & Hauptkategorien</h2>
-                <p class="text-slate-400">Entdecke alle Module, mit denen du deinen Silber-Gewinn in Albion Online maximierst.</p>
+                <h2 class="text-3xl md:text-5xl font-black text-white mb-4">Warum du <span class="gradient-text">AlbionDataPro</span> brauchst</h2>
+                <p class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
+                    Handeln in Albion Online ohne Live-Daten kostet dich täglich Millionen Silber. AlbionDataPro gibt dir den entscheidenden Vorteil gegenüber anderen Spielern.
+                </p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-6">
+                <div class="glass-panel p-8 rounded-2xl border-t-4 border-t-sky-500 hover:border-sky-400 transition">
+                    <div class="text-sky-400 text-3xl font-black mb-4"><i class="fa-solid fa-coins"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Maximaler Profit ohne Risiko</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Schluss mit Fehlkäufen! Der präzise ROI-Rechner zeigt dir vor jedem Deal exakt deinen Reingewinn nach Marktsteuern und Stationsgebühren an.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-8 rounded-2xl border-t-4 border-t-purple-500 hover:border-purple-400 transition">
+                    <div class="text-purple-400 text-3xl font-black mb-4"><i class="fa-solid fa-gauge-high"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Gewaltige Zeitersparnis</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Kein lästiges Hin- und Herreisen mehr, um Preise zu vergleichen. Unsere Cloud scannt alle Städte und zeigt dir die lukrativsten Trade-Routen in Sekunden.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-8 rounded-2xl border-t-4 border-t-emerald-500 hover:border-emerald-400 transition">
+                    <div class="text-emerald-400 text-3xl font-black mb-4"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                    <h3 class="text-xl font-bold text-white mb-2">Statistische KI-Garantie</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Unser Algorithmus analysiert 7-Tage-Preisschwankungen und findet die idealen Buy- & Sell-Order Schwellenwerte für schnellen Umschlag.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUBBLE OVERLAY FEATURES SECTION -->
+        <div class="mb-20 text-left">
+            <div class="text-center mb-12">
+                <div class="inline-block px-3 py-1 bg-blue-500/20 text-blue-400 text-xs font-extrabold rounded-full mb-3 uppercase tracking-wider border border-blue-500/30">
+                    In-Game Floating Overlay
+                </div>
+                <h2 class="text-3xl md:text-5xl font-black text-white mb-4">Das In-Game Bubble Overlay</h2>
+                <p class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
+                    Die revolutionäre schwebende Overlay-Bubble läuft direkt über Albion Online Mobile. Du musst das Spiel niemals verlassen!
+                </p>
             </div>
 
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- 1. Floating Bubble Overlay -->
-                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-blue-500">
-                    <div class="bg-blue-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-blue-500/30 text-blue-400 text-xl font-bold">
+                <!-- Bubble Feature 1 -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-xl font-bold mb-4 border border-sky-500/30">
                         <i class="fa-solid fa-layer-group"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">In-Game Overlay (Bubble)</h3>
+                    <h4 class="text-lg font-bold text-white mb-2">Permanentes In-Game Overlay</h4>
                     <p class="text-slate-400 text-sm leading-relaxed">
-                        Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile. Sie zeigt dir Handelschancen, Routen und Live-Preise in Echtzeit an, ohne dass du das Spiel minimieren musst.
+                        Ein dezentes, schwebendes Symbol direkt auf deinem Bildschirm. Tippe einfach darauf, um Preise, Arbitrage und KI-Empfehlungen sofort einzublenden.
                     </p>
                 </div>
 
-                <!-- 2. Markt-Arbitrage & Routen -->
-                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-sky-500">
-                    <div class="bg-sky-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-sky-500/30 text-sky-400 text-xl font-bold">
+                <!-- Bubble Feature 2 -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center text-xl font-bold mb-4 border border-amber-500/30">
                         <i class="fa-solid fa-route"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Markt-Arbitrage & Routen</h3>
+                    <h4 class="text-lg font-bold text-white mb-2">Städte & Schwarzmarkt Radar</h4>
                     <p class="text-slate-400 text-sm leading-relaxed">
-                        Vergleicht alle Hauptstädte (Caerleon, Brecilien, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford) und den Schwarzmarkt. Berechnet den exakten ROI, Transportgewicht und Reingewinn.
+                        Scannt Caerleon, Brecilien, den Schwarzmarkt und alle königlichen Städte. Berechnet Transportgewicht, Rüstungs-Tiers und exakte Margen.
                     </p>
                 </div>
 
-                <!-- 3. 100% Statistik KI-Bot -->
-                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-pink-500">
-                    <div class="bg-pink-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-pink-500/30 text-pink-400 text-xl font-bold">
+                <!-- Bubble Feature 3 -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center text-xl font-bold mb-4 border border-purple-500/30">
                         <i class="fa-solid fa-robot"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">100% Statistik KI-Bot</h3>
+                    <h4 class="text-lg font-bold text-white mb-2">KI Buy & Sell Order Bot</h4>
                     <p class="text-slate-400 text-sm leading-relaxed">
-                        Berechnet anhand historischer 7-Tage-Preisschwankungen die perfekten Buy-Orders und Sell-Orders für maximale Margen mit einer statistischen Verifizierungsgarantie.
+                        Sagt dir exakt, zu welchem Preis du Kauf- und Verkaufsaufträge einstellen musst, um maximale Profite bei hoher Verkaufschance zu erzielen.
                     </p>
                 </div>
 
-                <!-- 4. Crafting & Refining Rechner -->
-                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-purple-500">
-                    <div class="bg-purple-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-purple-500/30 text-purple-400 text-xl font-bold">
+                <!-- Bubble Feature 4 -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-xl font-bold mb-4 border border-emerald-500/30">
                         <i class="fa-solid fa-hammer"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Crafting & Refining Rechner</h3>
+                    <h4 class="text-lg font-bold text-white mb-2">Crafting & Veredelungs Rechner</h4>
                     <p class="text-slate-400 text-sm leading-relaxed">
-                        Ermittelt Rohstoffkosten, Stadt-Rückgabe-Raten (Return Rates), Stationsgebühren und den tatsächlichen Gewinn beim Veredeln und Herstellen von Rüstungen und Waffen.
+                        Berechnet Rohstoffkosten, Stadt-Rückgaberaten (Return Rates), Fokus-Ersparnis und Gebühren für Rüstungen, Waffen und Barren.
                     </p>
                 </div>
 
-                <!-- 5. Insel-Timer & Tierzucht -->
-                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-amber-500">
-                    <div class="bg-amber-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-amber-500/30 text-amber-400 text-xl font-bold">
+                <!-- Bubble Feature 5 -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center text-xl font-bold mb-4 border border-pink-500/30">
                         <i class="fa-solid fa-seedling"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">Insel-Timer & Tierzucht</h3>
+                    <h4 class="text-lg font-bold text-white mb-2">Insel-Timer & Tierzucht</h4>
                     <p class="text-slate-400 text-sm leading-relaxed">
-                        Verwalte Ernte-Timer für Pflanzen, Kräuter und Tierzucht auf deiner Spielerinsel mit automatischer Benachrichtigung, sobald die Ernte bereit ist.
+                        Überwache deine Insel-Ernten und Zuchtzeiten mit Benachrichtigung, sobald deine Reittiere oder Pflanzen abholbereit sind.
                     </p>
                 </div>
 
-                <!-- 6. Cloud-Sync & Admin-Zentrale -->
-                <div class="glass-panel p-6 rounded-2xl border-t-4 border-t-emerald-500">
-                    <div class="bg-emerald-500/20 w-12 h-12 rounded-xl flex items-center justify-center mb-4 border border-emerald-500/30 text-emerald-400 text-xl font-bold">
+                <!-- Bubble Feature 6 -->
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center text-xl font-bold mb-4 border border-blue-500/30">
                         <i class="fa-solid fa-cloud"></i>
                     </div>
-                    <h3 class="text-xl font-bold mb-2">24/7 Cloud-Sync & OTA</h3>
+                    <h4 class="text-lg font-bold text-white mb-2">24/7 Cloud-Sync & Auto-OTA</h4>
                     <p class="text-slate-400 text-sm leading-relaxed">
-                        Sichere deine Trade-Orders und Favoriten in der Cloud. Das integrierte OTA-Update-System hält deine App vollautomatisch immer auf der neusten Version.
+                        Deine Einstellungen und Favoriten sind sicher in der Cloud gespeichert. Automatische OTA-Updates halten deine App stets aktuell.
                     </p>
                 </div>
             </div>
         </div>
 
-        <!-- Installation Guide -->
-        <div class="glass-panel p-8 rounded-2xl border-l-4 border-l-yellow-500 text-left max-w-4xl mx-auto flex flex-col md:flex-row gap-6 items-start">
-            <div class="bg-yellow-500/20 p-4 rounded-xl text-yellow-400 text-3xl">
-                <i class="fa-solid fa-mobile-screen-button"></i>
+        <!-- QUICK INSTALLATION GUIDE -->
+        <div class="glass-panel p-8 rounded-3xl border-l-4 border-l-emerald-500 text-left max-w-4xl mx-auto flex flex-col md:flex-row gap-6 items-center">
+            <div class="bg-emerald-500/20 p-4 rounded-2xl text-emerald-400 text-4xl shrink-0">
+                <i class="fa-solid fa-mobile-screen"></i>
             </div>
             <div>
-                <h4 class="font-bold text-xl mb-2">Installations-Anleitung für Android</h4>
-                <ol class="list-decimal list-inside text-slate-300 text-sm space-y-2">
-                    <li>Klicke oben auf den grünen Button <strong class="text-white">"APK Herunterladen (v${CURRENT_SERVER_VERSION})"</strong>.</li>
-                    <li>Öffne die heruntergeladene <code class="bg-slate-800 px-2 py-0.5 rounded text-sky-400">AlbionDataPro.apk</code> Datei auf deinem Android-Gerät.</li>
-                    <li>Erlaube bei der Installation die Option <strong class="text-white">"Aus diesen Quellen zulassen" (Unbekannte Quellen)</strong>.</li>
-                    <li>Erwerbe eine Lizenz direkt über die <a href="https://albionmarketv2-1.onrender.com" class="text-blue-400 font-bold hover:underline">Webseite</a> und logge dich in der App ein.</li>
+                <h4 class="font-extrabold text-2xl text-white mb-2">Einfache Installation auf Android</h4>
+                <ol class="list-decimal list-inside text-slate-300 text-sm md:text-base space-y-2">
+                    <li>Klicke oben auf <strong class="text-emerald-400">"APK Download"</strong> und speichere die Datei.</li>
+                    <li>Öffne <code class="bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono">AlbionDataPro.apk</code> und erlaube die Installation.</li>
+                    <li>Starte die App, erstelle deinen Account und schalte deine Lizenz direkt in der App frei!</li>
                 </ol>
             </div>
         </div>
@@ -864,9 +948,22 @@ app.get(['/', '/get', '/app'], (req, res) => {
     </main>
 
     <!-- Footer -->
-    <footer class="w-full text-center p-8 text-slate-500 text-sm border-t border-slate-800 mt-auto">
+    <footer class="w-full text-center p-8 text-slate-500 text-sm border-t border-slate-800/80 mt-auto bg-slate-950">
+        <div class="flex justify-center items-center gap-2 mb-2">
+            <div class="w-5 h-5">
+                <svg viewBox="0 0 128 128" width="100%" height="100%">
+                    <path d="M64,8 L112,28 L112,68 C112,96 64,120 64,120 C64,120 16,96 16,68 L16,28 Z" fill="#1E293B" stroke="#06B6D4" stroke-width="4" />
+                    <path d="M64,16 L104,33 L104,66 C104,89 64,110 64,110 C64,110 24,89 24,66 L24,33 Z" fill="#0F172A" stroke="#F59E0B" stroke-width="2" />
+                    <path d="M38,78 L48,46 L58,78 M41,70 L55,70" stroke="#06B6D4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M62,46 L72,46 C80,46 84,52 84,62 C84,72 80,78 72,78 L62,78 Z" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M88,78 L88,46 L98,46 C104,46 108,50 108,56 C108,62 104,66 98,66 L88,66" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                    <path d="M64,28 L69,38 L64,48 L59,38 Z" fill="#F59E0B" />
+                </svg>
+            </div>
+            <span class="font-bold text-slate-400">AlbionDataPro v${CURRENT_SERVER_VERSION}</span>
+        </div>
         <p>&copy; 2026 AlbionDataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.</p>
-        <p class="text-xs mt-2 text-slate-600">Dieses Tool ist ein unabhängiges Analyse-Hilfsmittel für Albion Online und nicht mit Sandbox Interactive liiert.</p>
+        <p class="text-xs mt-2 text-slate-600">Dieses Analyse-Tool steht in keiner offiziellen Verbindung zu Sandbox Interactive.</p>
     </footer>
 
 </body>
