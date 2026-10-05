@@ -986,6 +986,71 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
     });
 });
 
+// Simulated/Test Endpoint for PayPal Purchase & License E-Mail Dispatch
+app.post('/api/test/paypal-purchase', async (req, res) => {
+    const payer_email = req.body.email || 'dnnxdigitalcreator@gmail.com';
+    const amount = parseFloat(req.body.amount || 15.00);
+    let months = 1;
+    let tier = '1 Monat';
+
+    if (amount === 30.00) { months = 3; tier = '3 Monate'; }
+    else if (amount === 50.00) { months = 6; tier = '6 Monate'; }
+    else if (amount === 100.00) { months = 12; tier = '12 Monate'; }
+
+    const prefix = amount === 100.00 ? '12M-' : (amount === 50.00 ? '6M-' : (amount === 30.00 ? '3M-' : '1M-'));
+    const key = 'ALBION-' + prefix + Math.random().toString(36).substring(2, 10).toUpperCase();
+
+    const newLicense = {
+        key,
+        tier,
+        price: `${amount}€`,
+        note: `Auto-Generated (Test Purchase: ${payer_email})`,
+        createdAt: new Date().toISOString()
+    };
+
+    generatedLicenses.push(newLicense);
+    saveLicenses();
+
+    let emailSent = false;
+    let emailError = null;
+
+    const mailOptions = {
+        from: 'AlbionDataPro <dnnxdigitalcreator@gmail.com>',
+        to: payer_email,
+        bcc: 'dnnxdigitalcreator@gmail.com',
+        subject: `Dein AlbionDataPro Lizenzschlüssel (${tier})`,
+        html: `
+            <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 10px;">
+                <h2 style="color: #38bdf8;">Vielen Dank für deinen Kauf!</h2>
+                <p>Deine Zahlung über ${amount}€ war erfolgreich.</p>
+                <p>Hier ist dein exklusiver Lizenzschlüssel für <strong>${tier}</strong>:</p>
+                <div style="background-color: #1e293b; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; border: 1px solid #38bdf8;">
+                    <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
+                </div>
+                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
+                <p>Support via Telegram: <a href="https://t.me/DnnxDigitalCrator" style="color: #38bdf8;">@DnnxDigitalCrator</a></p>
+            </div>
+        `
+    };
+
+    try {
+        await transporter.sendMail(mailOptions);
+        emailSent = true;
+    } catch (err) {
+        emailError = err.message;
+    }
+
+    res.json({
+        status: 'success',
+        licenseKey: key,
+        tier,
+        payerEmail: payer_email,
+        emailSent,
+        emailError,
+        message: emailSent ? 'Lizenz generiert & per E-Mail gesendet!' : `Lizenz ${key} generiert (E-Mail Info: ${emailError || 'Versand vorbereitet'})`
+    });
+});
+
 // High-End Protected Endpoints (Admin Key Required)
 app.get('/api/devices', requireAdminAuth, (req, res) => res.json(registeredDevices));
 app.get('/api/users', requireAdminAuth, (req, res) => {
