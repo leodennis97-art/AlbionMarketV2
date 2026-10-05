@@ -444,9 +444,6 @@ async function fetchAlbion2DData() {
         }
     }
 }
-        console.log('[Albion 2D Sync] ℹ️ Status:', e.message);
-    }
-}
 
 // Autonomous KI Market Bot Loop for Cloud Data Persistence & Enchantments (.0 - .4)
 async function aiMarketBotLoop() {
