@@ -728,38 +728,65 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
             </a>
 
-            <div class="text-slate-300 mt-4 font-bold text-lg">Wähle dein Lizenz-Abo aus (Direkte Zahlung via PayPal):</div>
+            <div class="text-slate-300 mt-4 font-bold text-lg">Wähle dein Lizenz-Abo aus (Zahlung via PayPal oder Telegram):</div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
-                <a href="https://www.paypal.me/dnnxdigitalcreator/15EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Starter</div>
                     <div class="text-2xl">1 Monat</div>
-                    <div class="text-3xl text-blue-400 my-2">15€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
-                </a>
+                    <div class="text-3xl text-blue-400 my-1">15€</div>
+                    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+1+Monat+Lizenz&amount=15.00&currency_code=EUR" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 mt-1">
+                        <i class="fa-brands fa-paypal"></i> PayPal (15€)
+                    </a>
+                </div>
 
-                <a href="https://www.paypal.me/dnnxdigitalcreator/30EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Basic</div>
                     <div class="text-2xl">3 Monate</div>
-                    <div class="text-3xl text-blue-400 my-2">30€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
-                </a>
+                    <div class="text-3xl text-blue-400 my-1">30€</div>
+                    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+3+Monate+Lizenz&amount=30.00&currency_code=EUR" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 mt-1">
+                        <i class="fa-brands fa-paypal"></i> PayPal (30€)
+                    </a>
+                </div>
 
-                <a href="https://www.paypal.me/dnnxdigitalcreator/50EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-400/50 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+                <div class="bg-gradient-to-br from-blue-900/60 to-indigo-900/60 text-white font-bold py-5 px-6 rounded-2xl shadow-xl border border-blue-400/50 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
                     <div class="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-bl-lg">Bestseller</div>
                     <div class="text-sm text-blue-200">Pro</div>
                     <div class="text-2xl">6 Monate</div>
-                    <div class="text-3xl text-white my-2">50€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
-                </a>
+                    <div class="text-3xl text-yellow-400 my-1">50€</div>
+                    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+6+Monate+Lizenz&amount=50.00&currency_code=EUR" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 mt-1">
+                        <i class="fa-brands fa-paypal"></i> PayPal (50€)
+                    </a>
+                </div>
 
-                <a href="https://www.paypal.me/dnnxdigitalcreator/100EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Elite</div>
                     <div class="text-2xl">12 Monate</div>
-                    <div class="text-3xl text-blue-400 my-2">100€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
-                </a>
+                    <div class="text-3xl text-blue-400 my-1">100€</div>
+                    <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+12+Monate+Lizenz&amount=100.00&currency_code=EUR" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 mt-1">
+                        <i class="fa-brands fa-paypal"></i> PayPal (100€)
+                    </a>
+                </div>
             </div>
-            <p class="text-sm text-slate-400 mt-2">Alternativ können Sie den Betrag auch direkt bei PayPal an <strong>dnnxdigitalcreator@gmail.com</strong> senden. Nach der Zahlung senden Sie eine Bestätigung via Telegram an <a href="https://t.me/DnnxDigitalCrator" class="text-blue-400 hover:underline font-bold">@DnnxDigitalCrator</a>, um Ihren Freischaltcode sofort zu erhalten.</p>
+
+            <!-- Direct PayPal Instructions Panel -->
+            <div class="glass-panel p-6 rounded-2xl max-w-3xl w-full mx-auto my-4 border border-emerald-500/40 text-center">
+                <div class="text-emerald-400 font-extrabold text-lg mb-2 flex items-center justify-center gap-2">
+                    <i class="fa-brands fa-paypal text-2xl"></i> Direct PayPal Überweisungs-Info
+                </div>
+                <p class="text-slate-300 text-sm leading-relaxed mb-3">
+                    Sie können den Betrag (15€, 30€, 50€ oder 100€) direkt über PayPal an folgende Empfänger-Adresse senden:<br>
+                    <span class="inline-block bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-2 rounded-xl font-mono text-base my-2 font-bold select-all">dnnxdigitalcreator@gmail.com</span>
+                </p>
+                <div class="flex flex-wrap gap-4 justify-center items-center">
+                    <a href="https://www.paypal.com/myaccount/transfer/homepage" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2">
+                        <i class="fa-brands fa-paypal"></i> PayPal Überweisung Öffnen
+                    </a>
+                    <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2">
+                        <i class="fa-brands fa-telegram"></i> Telegram Support (@DnnxDigitalCrator)
+                    </a>
+                </div>
+                <p class="text-xs text-slate-400 mt-3">Nach der Zahlung senden Sie uns kurz eine Bestätigung auf Telegram oder per E-Mail für die sofortige Freischaltung!</p>
+            </div>
         </div>
 
         <!-- App Features & Categories Explanation -->

@@ -375,10 +375,42 @@ fun WebsiteLicensePurchaseSection(context: Context) {
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
             shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().height(42.dp),
-            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
         ) {
-            Text("🌐 Webseite besuchen: albionmarketv2-1.onrender.com", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
+            Text(
+                text = "🌐 Offizielle Webseite besuchen:\nalbionmarketv2-1.onrender.com",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center,
+                lineHeight = 16.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        Button(
+            onClick = {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, "https://t.me/DnnxDigitalCrator".toUri())
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Telegram konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0088CC)),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "💬 Telegram Support & Kauf (@DnnxDigitalCrator)",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = TextAlign.Center
+            )
         }
 
         Spacer(modifier = Modifier.height(8.dp))

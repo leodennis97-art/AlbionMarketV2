@@ -5551,13 +5551,16 @@ fun AppSettingsDialog(
                     },
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     Text(
-                        text = "🌐 Webseite: albionmarketv2-1.onrender.com",
+                        text = "🌐 Offizielle Webseite:\nalbionmarketv2-1.onrender.com",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        fontSize = 12.sp,
+                        textAlign = TextAlign.Center,
+                        lineHeight = 16.sp
                     )
                 }
 
