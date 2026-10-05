@@ -2371,6 +2371,7 @@ app.get(['/admin'], (req, res) => {
 
 const server = app.listen(PORT, () => {
     console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v${CURRENT_SERVER_VERSION}) läuft auf Port ${PORT}`);
+    triggerAutoOtaUpdateForAllDevices(`Server gestartet / Globaler OTA-Impuls v${CURRENT_SERVER_VERSION}`);
 });
 server.keepAliveTimeout = 65000;
 server.headersTimeout = 66000;
