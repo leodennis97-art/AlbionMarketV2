@@ -995,9 +995,12 @@ fun BubbleOverlayContent(
                     Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
 
                     if (!isBookingMode) {
-                        val availableTabs = remember(prefs.isAdmin) {
+                        val availableTabs = remember(prefs.isAdmin, prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
+                            val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket
                             BubbleTab.entries.filter { tab ->
-                                if (tab == BubbleTab.ADMIN) prefs.isAdmin else true
+                                if (tab == BubbleTab.ADMIN && !prefs.isAdmin) false
+                                else if (tab == BubbleTab.SMUGGLER_RADAR && hideBm) false
+                                else true
                             }
                         }
                         LazyRow(
@@ -1688,6 +1691,9 @@ fun BubbleOverlayContent(
                                             currentBubbleHideBlackMarket = it
                                             prefsForCity.bubbleHideBlackMarket = it
                                             prefsForCity.hideBlackMarket = it
+                                            if (it && selectedTab == BubbleTab.SMUGGLER_RADAR) {
+                                                selectedTab = BubbleTab.TOP_MARGIN
+                                            }
                                             onRefresh()
                                         }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFFB74D)))
                                     }
