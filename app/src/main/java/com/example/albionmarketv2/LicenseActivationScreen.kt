@@ -340,7 +340,7 @@ fun LicenseActivationScreen(
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    TelegramLicensePurchaseSection(context = context)
+                    WebsiteLicensePurchaseSection(context = context)
                 }
             }
         }
@@ -348,7 +348,7 @@ fun LicenseActivationScreen(
 }
 
 @Composable
-fun TelegramLicensePurchaseSection(context: Context) {
+fun WebsiteLicensePurchaseSection(context: Context) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -357,68 +357,28 @@ fun TelegramLicensePurchaseSection(context: Context) {
         HorizontalDivider(color = Color(0xFF334155))
 
         Text(
-            text = "🛒 Lizenz erwerben / Telegram Support",
+            text = "🛒 Lizenz erwerben & Support",
             fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF38BDF8),
             textAlign = TextAlign.Center
         )
 
-        val plans = listOf(
-            Triple("1 Monat", "15 €", "https://www.paypal.me/dnnxdigitalcreator/15EUR"),
-            Triple("3 Monate", "30 €", "https://www.paypal.me/dnnxdigitalcreator/30EUR"),
-            Triple("6 Monate (Bestseller)", "50 €", "https://www.paypal.me/dnnxdigitalcreator/50EUR"),
-            Triple("12 Monate", "100 €", "https://www.paypal.com/paypalme/dnnxdigitalcreator/100EUR")
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                val (t0, p0, m0) = plans[0]
-                Button(
-                    onClick = { openTelegramChat(context, m0) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0088cc)),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
-                ) {
-                    Text("$t0 • $p0", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        Button(
+            onClick = {
+                try {
+                    val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
+                    context.startActivity(intent)
+                } catch (_: Exception) {
+                    Toast.makeText(context, "Webseite konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
                 }
-
-                val (t1, p1, m1) = plans[1]
-                Button(
-                    onClick = { openTelegramChat(context, m1) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0088cc)),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
-                ) {
-                    Text("$t1 • $p1", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                val (t2, p2, m2) = plans[2]
-                Button(
-                    onClick = { openTelegramChat(context, m2) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0088cc)),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
-                ) {
-                    Text("$t2 • $p2", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-
-                val (t3, p3, m3) = plans[3]
-                Button(
-                    onClick = { openTelegramChat(context, m3) },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0088cc)),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).height(40.dp),
-                    contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp)
-                ) {
-                    Text("$t3 • $p3", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                }
-            }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().height(42.dp),
+            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
+        ) {
+            Text("🌐 Webseite besuchen: albionmarketv2-1.onrender.com", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White, textAlign = TextAlign.Center)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -582,16 +542,5 @@ fun FeatureItemCard(
 
         Spacer(modifier = Modifier.height(4.dp))
         HorizontalDivider(color = Color(0xFF1E293B).copy(alpha = 0.6f))
-    }
-}
-
-fun openTelegramChat(context: Context, message: String) {
-    try {
-        val encodedMsg = URLEncoder.encode(message, "UTF-8")
-        val url = "https://t.me/DnnxDigitalCreator?text=$encodedMsg"
-        val intent = Intent(Intent.ACTION_VIEW, url.toUri())
-        context.startActivity(intent)
-    } catch (_: Exception) {
-        Toast.makeText(context, "Telegram konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
     }
 }

@@ -870,7 +870,7 @@ class MainActivity : ComponentActivity() {
                                         
                                         Spacer(modifier = Modifier.height(4.dp))
 
-                                        TelegramLicensePurchaseSection(context = context)
+                                        WebsiteLicensePurchaseSection(context = context)
                                     }
                                 }
                             }
