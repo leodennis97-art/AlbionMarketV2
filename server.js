@@ -253,6 +253,14 @@ app.post('/api/admin/cleanup-apks', requireAdminAuth, (req, res) => {
     }
 });
 
+// Endpoint zum Neustart des Servers
+app.post('/api/admin/restart', requireAdminAuth, (req, res) => {
+    res.json({ status: 'success', message: 'Server wird jetzt neu gestartet...' });
+    setTimeout(() => {
+        process.exit(0);
+    }, 500);
+});
+
 function syncLatestApk() {
     try {
         const apkPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
