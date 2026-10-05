@@ -742,9 +742,18 @@ class MainActivity : ComponentActivity() {
                                                     lifecycleScope.launch {
                                                         val (regSuccess, regMsg) = ServerSyncManager.registerUser(context, usernameInput, passwordInput, licenseKeyInput)
                                                         if (regSuccess) {
+                                                            // Redirect to PayPal Payment page so user can purchase a license
+                                                            try {
+                                                                val paypalIntent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/GB4DKRADU46SL".toUri())
+                                                                context.startActivity(paypalIntent)
+                                                            } catch (_: Exception) {
+                                                                Toast.makeText(context, "PayPal konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                                                            }
+
                                                             if (licenseKeyInput.isNotBlank()) {
                                                                 LicenseManager.activateLicense(context, licenseKeyInput)
                                                             }
+
                                                             val loginSuccess = ServerSyncManager.loginWithServer(context, usernameInput, passwordInput)
                                                             isAuthenticating = false
                                                             if (loginSuccess) {
@@ -761,10 +770,15 @@ class MainActivity : ComponentActivity() {
                                                                 }
                                                                 isUserLoggedInState = true
                                                                 isUnlockedForSession = true
-                                                                Toast.makeText(context, "🟢 Account & Lizenz erfolgreich auf Server registriert & freigeschaltet!", Toast.LENGTH_LONG).show()
+                                                                Toast.makeText(context, "🟢 Account & Lizenz erfolgreich registriert & freigeschaltet!", Toast.LENGTH_LONG).show()
                                                             } else {
-                                                                Toast.makeText(context, "🟢 Account registriert! Bitte jetzt anmelden.", Toast.LENGTH_LONG).show()
+                                                                prefs.savedUsername = usernameInput.trim()
                                                                 isRegistrationMode = false
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    "🟢 Account registriert! Du wirst zu PayPal weitergeleitet. Bitte erwerbe eine Lizenz, um dich anzumelden.",
+                                                                    Toast.LENGTH_LONG
+                                                                ).show()
                                                             }
                                                         } else {
                                                             isAuthenticating = false

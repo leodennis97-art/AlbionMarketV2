@@ -1644,34 +1644,41 @@ app.post('/api/auth/register', (req, res) => {
     }
 
     const keyInput = (licenseKey || activatedLicenseCode || '').trim().toUpperCase();
-    const defaultExp = new Date();
+    let isLicensed = false;
+    const defaultExp = new Date(0); // Default: Expired / Epoch 0 (NO FREE LICENSE)
 
-    if (keyInput.startsWith('ALBION-12M-') || keyInput.includes('12M')) {
-        defaultExp.setDate(defaultExp.getDate() + 365);
-    } else if (keyInput.startsWith('ALBION-6M-') || keyInput.includes('6M')) {
-        defaultExp.setDate(defaultExp.getDate() + 180);
-    } else if (keyInput.startsWith('ALBION-3M-') || keyInput.includes('3M')) {
-        defaultExp.setDate(defaultExp.getDate() + 90);
-    } else if (keyInput.startsWith('ALBION-1M-') || keyInput.includes('1M')) {
-        defaultExp.setDate(defaultExp.getDate() + 30);
-    } else if (keyInput.startsWith('ALBION-LIFETIME') || keyInput.includes('LIFETIME') || keyInput === 'ALBION-PRO-LIFETIME') {
-        defaultExp.setFullYear(2099);
-    } else if (keyInput.length > 0) {
-        // Search in generatedLicenses array
-        const foundLicIdx = generatedLicenses.findIndex(l => l.key.toUpperCase() === keyInput);
-        if (foundLicIdx !== -1) {
-            const lic = generatedLicenses[foundLicIdx];
-            if (lic.tier.includes('12') || lic.key.includes('12M')) defaultExp.setDate(defaultExp.getDate() + 365);
-            else if (lic.tier.includes('6') || lic.key.includes('6M')) defaultExp.setDate(defaultExp.getDate() + 180);
-            else if (lic.tier.includes('3') || lic.key.includes('3M')) defaultExp.setDate(defaultExp.getDate() + 90);
-            else defaultExp.setDate(defaultExp.getDate() + 30);
-            generatedLicenses.splice(foundLicIdx, 1);
-            saveLicenses();
+    if (keyInput.length > 0) {
+        if (keyInput.startsWith('ALBION-12M-') || keyInput.includes('12M')) {
+            defaultExp.setTime(Date.now() + 365 * 24 * 60 * 60 * 1000);
+            isLicensed = true;
+        } else if (keyInput.startsWith('ALBION-6M-') || keyInput.includes('6M')) {
+            defaultExp.setTime(Date.now() + 180 * 24 * 60 * 60 * 1000);
+            isLicensed = true;
+        } else if (keyInput.startsWith('ALBION-3M-') || keyInput.includes('3M')) {
+            defaultExp.setTime(Date.now() + 90 * 24 * 60 * 60 * 1000);
+            isLicensed = true;
+        } else if (keyInput.startsWith('ALBION-1M-') || keyInput.includes('1M')) {
+            defaultExp.setTime(Date.now() + 30 * 24 * 60 * 60 * 1000);
+            isLicensed = true;
+        } else if (keyInput.startsWith('ALBION-LIFETIME') || keyInput.includes('LIFETIME') || keyInput === 'ALBION-PRO-LIFETIME') {
+            defaultExp.setFullYear(2099);
+            isLicensed = true;
         } else {
-            defaultExp.setDate(defaultExp.getDate() + 30);
+            // Search in generatedLicenses array
+            const foundLicIdx = generatedLicenses.findIndex(l => l.key.toUpperCase() === keyInput);
+            if (foundLicIdx !== -1) {
+                const lic = generatedLicenses[foundLicIdx];
+                if (lic.tier.includes('12') || lic.key.includes('12M')) defaultExp.setTime(Date.now() + 365 * 24 * 60 * 60 * 1000);
+                else if (lic.tier.includes('6') || lic.key.includes('6M')) defaultExp.setTime(Date.now() + 180 * 24 * 60 * 60 * 1000);
+                else if (lic.tier.includes('3') || lic.key.includes('3M')) defaultExp.setTime(Date.now() + 90 * 24 * 60 * 60 * 1000);
+                else defaultExp.setTime(Date.now() + 30 * 24 * 60 * 60 * 1000);
+                isLicensed = true;
+                generatedLicenses.splice(foundLicIdx, 1);
+                saveLicenses();
+            } else {
+                return res.status(400).json({ error: 'Ungültiger Lizenzschlüssel. Bitte erwerben Sie eine gültige Lizenz.' });
+            }
         }
-    } else {
-        defaultExp.setDate(defaultExp.getDate() + 30);
     }
 
     const nowIso = new Date().toISOString();
@@ -1680,16 +1687,17 @@ app.post('/api/auth/register', (req, res) => {
         username: cleanUser,
         password: password.trim(),
         isAdmin: false,
-        isLicensed: true,
+        isLicensed: isLicensed,
         licenseExpiresAt: defaultExp.toISOString(),
         registeredAt: nowIso
     };
     registeredUsers.push(newUser);
     saveUsers();
-    console.log(`[AUTH-REGISTER] Neuer Account registriert & freigeschaltet: ${cleanUser} (${nowIso}, Key: ${keyInput || 'Standart'})`);
+    console.log(`[AUTH-REGISTER] Account registriert: ${cleanUser} (Freigeschaltet: ${isLicensed}, Key: ${keyInput || 'Keiner'})`);
     res.json({
         status: 'success',
-        message: 'Account erfolgreich registriert & freigeschaltet.',
+        message: isLicensed ? 'Account erfolgreich registriert & freigeschaltet.' : 'Account registriert. Bitte erwerben Sie eine Lizenz.',
+        isLicensed: isLicensed,
         licenseExpiresAt: defaultExp.toISOString()
     });
 });

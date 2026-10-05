@@ -721,8 +721,7 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
     BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
     WORLD_MAP("Weltkarte", "World Map", "🗺️"),
-    SETTINGS("Einstellungen", "Settings", "⚙️"),
-    ADMIN("Admin", "Admin", "👑")
+    SETTINGS("Einstellungen", "Settings", "⚙️")
 }
 
 @Composable
@@ -895,11 +894,10 @@ fun BubbleOverlayContent(
                     Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
 
                     if (!isBookingMode) {
-                        val availableTabs = remember(prefs.isAdmin, prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
+                        val availableTabs = remember(prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
                             val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket
                             BubbleTab.entries.filter { tab ->
                                 when (tab) {
-                                    BubbleTab.ADMIN -> prefs.isAdmin
                                     BubbleTab.SMUGGLER_RADAR -> !hideBm
                                     else -> true
                                 }
@@ -2087,11 +2085,6 @@ fun BubbleOverlayContent(
                                 BubbleTab.BUILDS -> BubbleBuildsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.WORLD_MAP -> BubbleMapTab(viewModel = viewModel, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab, onRefresh = onRefresh)
-                                BubbleTab.ADMIN -> {
-                                    if (prefs.isAdmin) {
-                                        BubbleAdminTab(context = context, maxHeight = maxBubbleHeightTab, onFocusModeChanged = onFocusModeChanged)
-                                    }
-                                }
                                 else -> {}
                             }
                         }
