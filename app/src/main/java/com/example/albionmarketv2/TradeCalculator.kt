@@ -428,7 +428,9 @@ object TradeCalculator {
                         if (candSellPrice <= buyPrice) continue
                         if (candSellPrice > buyPrice * 5.0) continue // Anomaly check
 
-                        val bestMarketPriceForCity = cityPrices.firstOrNull() ?: continue
+                        val bestMarketPriceForCity = cityPrices.find { 
+                            it.sellPriceMin == candSellPrice || it.buyPriceMax == candSellPrice 
+                        } ?: cityPrices.firstOrNull() ?: continue
 
                         // Für Schwarzmarkt keine Einstellungsgebühr (0%), da Direktverkauf an Kauforder
                         val setupFeeRate = if (isBm) 0.0 else 0.025
