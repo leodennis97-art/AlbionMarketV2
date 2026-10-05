@@ -734,7 +734,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-sm text-slate-400">Starter</div>
                     <div class="text-2xl">1 Monat</div>
                     <div class="text-3xl text-blue-400 my-1">15€</div>
-                    <a href="https://www.paypal.com/ncp/payment/FK8JDAFFUGYMA" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
+                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
                         <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (15€)
                     </a>
                 </div>
@@ -743,17 +743,9 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-sm text-slate-400">Basic</div>
                     <div class="text-2xl">3 Monate</div>
                     <div class="text-3xl text-blue-400 my-1">30€</div>
-                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_donations">
-                        <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
-                        <input type="hidden" name="item_name" value="AlbionDataPro 3 Monate Lizenz">
-                        <input type="hidden" name="amount" value="30.00">
-                        <input type="hidden" name="currency_code" value="EUR">
-                        <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                            <i class="fa-brands fa-paypal"></i> PayPal Kaufen (30€)
-                        </button>
-                    </form>
+                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
+                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (30€)
+                    </a>
                 </div>
 
                 <div class="bg-gradient-to-br from-blue-900/60 to-indigo-900/60 text-white font-bold py-5 px-6 rounded-2xl shadow-xl border border-blue-400/50 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
@@ -761,55 +753,19 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <div class="text-sm text-blue-200">Pro</div>
                     <div class="text-2xl">6 Monate</div>
                     <div class="text-3xl text-yellow-400 my-1">50€</div>
-                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_donations">
-                        <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
-                        <input type="hidden" name="item_name" value="AlbionDataPro 6 Monate Lizenz">
-                        <input type="hidden" name="amount" value="50.00">
-                        <input type="hidden" name="currency_code" value="EUR">
-                        <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                            <i class="fa-brands fa-paypal"></i> PayPal Kaufen (50€)
-                        </button>
-                    </form>
+                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
+                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (50€)
+                    </a>
                 </div>
 
                 <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white font-bold py-5 px-6 rounded-2xl shadow-lg border border-slate-700 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Elite</div>
                     <div class="text-2xl">12 Monate</div>
                     <div class="text-3xl text-blue-400 my-1">100€</div>
-                    <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_blank" class="w-full">
-                        <input type="hidden" name="cmd" value="_donations">
-                        <input type="hidden" name="business" value="dnnxdigitalcreator@gmail.com">
-                        <input type="hidden" name="item_name" value="AlbionDataPro 12 Monate Lizenz">
-                        <input type="hidden" name="amount" value="100.00">
-                        <input type="hidden" name="currency_code" value="EUR">
-                        <input type="hidden" name="no_shipping" value="1">
-                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
-                            <i class="fa-brands fa-paypal"></i> PayPal Kaufen (100€)
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Direct PayPal Instructions Panel -->
-            <div class="glass-panel p-6 rounded-2xl max-w-3xl w-full mx-auto my-4 border border-emerald-500/40 text-center">
-                <div class="text-emerald-400 font-extrabold text-lg mb-2 flex items-center justify-center gap-2">
-                    <i class="fa-brands fa-paypal text-2xl"></i> Direkte PayPal-Überweisung (Sichere Alternative)
-                </div>
-                <p class="text-slate-300 text-sm leading-relaxed mb-3">
-                    Falls bei der PayPal-Weiterleitung ein Fehler auftritt, senden Sie den Betrag (15€, 30€, 50€ oder 100€) einfach direkt über PayPal ("Geld an Freunde/Familie senden") an folgende Adresse:<br>
-                    <span class="inline-block bg-slate-900 border border-emerald-500/50 text-emerald-300 px-4 py-2 rounded-xl font-mono text-base my-2 font-bold select-all">dnnxdigitalcreator@gmail.com</span>
-                </p>
-                <div class="flex flex-wrap gap-4 justify-center items-center">
-                    <a href="https://www.paypal.com/myaccount/transfer/homepage" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2">
-                        <i class="fa-brands fa-paypal"></i> PayPal Überweisung Öffnen
-                    </a>
-                    <a href="https://t.me/DnnxDigitalCrator" target="_blank" class="bg-teal-600 hover:bg-teal-500 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition flex items-center gap-2">
-                        <i class="fa-brands fa-telegram"></i> Telegram Support (@DnnxDigitalCrator)
+                    <a href="https://www.paypal.com/ncp/payment/GB4DKRADU46SL" target="_blank" rel="noopener noreferrer" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-3 rounded-xl text-xs font-bold transition text-center flex items-center justify-center gap-1 shadow-md">
+                        <i class="fa-brands fa-paypal"></i> Jetzt PayPal Kaufen (100€)
                     </a>
                 </div>
-                <p class="text-xs text-slate-400 mt-3">Senden Sie uns nach der Überweisung kurz eine Nachricht auf Telegram oder per E-Mail für die sofortige Freischaltung!</p>
             </div>
         </div>
 
