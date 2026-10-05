@@ -728,38 +728,38 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 <i class="fa-solid fa-download text-2xl"></i> APK Herunterladen (v${CURRENT_SERVER_VERSION})
             </a>
 
-            <div class="text-slate-300 mt-4 font-bold text-lg">Wähle dein Lizenz-Abo aus (Zahlung via PayPal):</div>
+            <div class="text-slate-300 mt-4 font-bold text-lg">Wähle dein Lizenz-Abo aus (Direkte Zahlung via PayPal):</div>
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-5xl">
-                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+1+Monat+Lizenz&amount=15.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                <a href="https://www.paypal.me/dnnxdigitalcreator/15EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Starter</div>
                     <div class="text-2xl">1 Monat</div>
                     <div class="text-3xl text-blue-400 my-2">15€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
                 </a>
 
-                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+3+Monate+Lizenz&amount=30.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                <a href="https://www.paypal.me/dnnxdigitalcreator/30EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Basic</div>
                     <div class="text-2xl">3 Monate</div>
                     <div class="text-3xl text-blue-400 my-2">30€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
                 </a>
 
-                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+6+Monate+Lizenz&amount=50.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-400/50 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+                <a href="https://www.paypal.me/dnnxdigitalcreator/50EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-xl shadow-blue-900/50 border border-blue-400/50 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
                     <div class="absolute top-0 right-0 bg-yellow-500 text-black text-xs font-black px-3 py-1 rounded-bl-lg">Bestseller</div>
                     <div class="text-sm text-blue-200">Pro</div>
                     <div class="text-2xl">6 Monate</div>
                     <div class="text-3xl text-white my-2">50€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
                 </a>
 
-                <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=dnnxdigitalcreator@gmail.com&item_name=AlbionDataPro+12+Monate+Lizenz&amount=100.00&currency_code=EUR" target="_blank" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
+                <a href="https://www.paypal.me/dnnxdigitalcreator/100EUR" target="_blank" rel="noopener noreferrer" class="bg-gradient-to-br from-slate-800 to-slate-900 hover:from-blue-600 hover:to-indigo-600 text-white font-bold py-4 px-6 rounded-2xl shadow-lg border border-slate-700 transition-all transform hover:scale-105 flex flex-col items-center justify-center gap-2">
                     <div class="text-sm text-slate-400">Elite</div>
                     <div class="text-2xl">12 Monate</div>
                     <div class="text-3xl text-blue-400 my-2">100€</div>
-                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt kaufen</div>
+                    <div class="flex items-center gap-2 mt-1 text-sm"><i class="fa-brands fa-paypal"></i> Jetzt via PayPal kaufen</div>
                 </a>
             </div>
-            <p class="text-sm text-slate-400 mt-2">Nach dem Kauf senden Sie uns eine kurze Bestätigung via Telegram an <a href="https://t.me/DnnxDigitalCrator" class="text-blue-400 hover:underline">@DnnxDigitalCrator</a>, um Ihren Freischaltcode sofort zu erhalten.</p>
+            <p class="text-sm text-slate-400 mt-2">Alternativ können Sie den Betrag auch direkt bei PayPal an <strong>dnnxdigitalcreator@gmail.com</strong> senden. Nach der Zahlung senden Sie eine Bestätigung via Telegram an <a href="https://t.me/DnnxDigitalCrator" class="text-blue-400 hover:underline font-bold">@DnnxDigitalCrator</a>, um Ihren Freischaltcode sofort zu erhalten.</p>
         </div>
 
         <!-- App Features & Categories Explanation -->
@@ -1448,7 +1448,7 @@ app.post('/api/admin/trigger-ota', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/auth/register', (req, res) => {
-    const { username, password } = req.body;
+    const { username, password, licenseKey, activatedLicenseCode } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
 
     const cleanUser = username.trim();
@@ -1456,8 +1456,36 @@ app.post('/api/auth/register', (req, res) => {
         return res.status(400).json({ error: 'Benutzer existiert bereits' });
     }
 
+    const keyInput = (licenseKey || activatedLicenseCode || '').trim().toUpperCase();
     const defaultExp = new Date();
-    defaultExp.setMonth(defaultExp.getMonth() + 1);
+
+    if (keyInput.startsWith('ALBION-1M-')) {
+        defaultExp.setDate(defaultExp.getDate() + 30);
+    } else if (keyInput.startsWith('ALBION-3M-')) {
+        defaultExp.setDate(defaultExp.getDate() + 90);
+    } else if (keyInput.startsWith('ALBION-6M-')) {
+        defaultExp.setDate(defaultExp.getDate() + 180);
+    } else if (keyInput.startsWith('ALBION-12M-')) {
+        defaultExp.setDate(defaultExp.getDate() + 365);
+    } else if (keyInput.startsWith('ALBION-LIFETIME') || keyInput === 'ALBION-PRO-LIFETIME') {
+        defaultExp.setFullYear(2099);
+    } else if (keyInput.length > 0) {
+        // Search in generatedLicenses array
+        const foundLicIdx = generatedLicenses.findIndex(l => l.key.toUpperCase() === keyInput);
+        if (foundLicIdx !== -1) {
+            const lic = generatedLicenses[foundLicIdx];
+            if (lic.tier.includes('3')) defaultExp.setDate(defaultExp.getDate() + 90);
+            else if (lic.tier.includes('6')) defaultExp.setDate(defaultExp.getDate() + 180);
+            else if (lic.tier.includes('12')) defaultExp.setDate(defaultExp.getDate() + 365);
+            else defaultExp.setDate(defaultExp.getDate() + 30);
+            generatedLicenses.splice(foundLicIdx, 1);
+            saveLicenses();
+        } else {
+            defaultExp.setDate(defaultExp.getDate() + 30);
+        }
+    } else {
+        defaultExp.setDate(defaultExp.getDate() + 30);
+    }
 
     const nowIso = new Date().toISOString();
     const newUser = {
@@ -1465,16 +1493,16 @@ app.post('/api/auth/register', (req, res) => {
         username: cleanUser,
         password: password.trim(),
         isAdmin: false,
-        isLicensed: false,
+        isLicensed: true,
         licenseExpiresAt: defaultExp.toISOString(),
         registeredAt: nowIso
     };
     registeredUsers.push(newUser);
     saveUsers();
-    console.log(`[AUTH-REGISTER] Neuer Account registriert: ${cleanUser} (${nowIso})`);
+    console.log(`[AUTH-REGISTER] Neuer Account registriert & freigeschaltet: ${cleanUser} (${nowIso}, Key: ${keyInput || 'Standart'})`);
     res.json({
         status: 'success',
-        message: 'Account erstellt.',
+        message: 'Account erfolgreich registriert & freigeschaltet.',
         licenseExpiresAt: defaultExp.toISOString()
     });
 });
