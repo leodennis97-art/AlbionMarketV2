@@ -1764,6 +1764,10 @@ fun BubbleOverlayContent(
                                 currentBubbleSort
                             ) {
                                 val searchQ = searchInputText.trim().lowercase()
+                                val hideBm = prefsForCity.hideBlackMarket || prefsForCity.bubbleHideBlackMarket
+                                val hideBrec = prefsForCity.hideBrecilien || prefsForCity.bubbleHideBrecilien
+                                val avoidDanger = prefsForCity.avoidDangerousZones || prefsForCity.bubbleAvoidDangerousZones
+
                                 val filtered = topOpportunities.filter { opp ->
                                     val matchesCity = currentBubbleCity == "ALLE" || TradeCalculator.citiesMatch(opp.buyCity, currentBubbleCity)
                                     val matchesCat = when (currentBubbleCategory) {
@@ -1778,7 +1782,11 @@ fun BubbleOverlayContent(
                                     val matchesEnc = currentBubbleEnchantment < 0 || opp.resource.enchantment == currentBubbleEnchantment
                                     val matchesSearch = searchQ.isBlank() || opp.resource.nameDe.lowercase().contains(searchQ) || opp.resource.nameEn.lowercase().contains(searchQ) || opp.resource.id.lowercase().contains(searchQ)
 
-                                    matchesCity && matchesCat && matchesTier && matchesEnc && matchesSearch
+                                    val notBm = !hideBm || (!TradeCalculator.isBlackMarket(opp.buyCity) && !TradeCalculator.isBlackMarket(opp.sellCity))
+                                    val notBrec = !hideBrec || (!TradeCalculator.isBrecilien(opp.buyCity) && !TradeCalculator.isBrecilien(opp.sellCity))
+                                    val notDanger = !avoidDanger || (!TradeCalculator.isDangerousCity(opp.buyCity) && !TradeCalculator.isDangerousCity(opp.sellCity))
+
+                                    matchesCity && matchesCat && matchesTier && matchesEnc && matchesSearch && notBm && notBrec && notDanger
                                 }
 
                                 val (freshBotOpps, olderOpps) = filtered.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
