@@ -412,6 +412,13 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
     private suspend fun fetchAndVerifyPricesWithAi(context: Context, forceRefresh: Boolean = false): Map<String, List<MarketPrice>> {
         val prefs = AppPreferences(context)
 
+        try {
+            val dynamicItems = AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds()
+            if (dynamicItems.isNotEmpty()) {
+                AlbionResourceRepository.addDynamicResources(dynamicItems)
+            }
+        } catch (_: Exception) {}
+
         var fetchedPrices = emptyList<MarketPrice>()
         if (forceRefresh || (cachedPriceMap == null)) {
             val resources = AlbionResourceRepository.resources
@@ -949,35 +956,6 @@ fun BubbleOverlayContent(
                                     text = "📲",
                                     fontSize = if (isCompactMode) 10.sp else 12.sp,
                                 )
-                            }
-
-                            // Auffälliger kreisförmiger Beenden / Exit Button mit "X" in Title Bar
-                            Surface(
-                                shape = CircleShape,
-                                color = Color(0xFFEF4444),
-                                modifier = Modifier
-                                    .padding(horizontal = 2.dp)
-                                    .size(if (isCompactMode) 22.dp else 26.dp)
-                                    .clickable {
-                                        Toast.makeText(context, "🛑 Floating Bubble beendet", Toast.LENGTH_SHORT).show()
-                                        Handler(Looper.getMainLooper()).post {
-                                            try {
-                                                FloatingBubbleService.stopService(context)
-                                            } catch (_: Exception) {}
-                                        }
-                                    },
-                            ) {
-                                Box(
-                                    contentAlignment = Alignment.Center,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Beenden",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(if (isCompactMode) 13.dp else 16.dp)
-                                    )
-                                }
                             }
 
                             // Minimieren zu Bubble Button
