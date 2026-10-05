@@ -877,87 +877,6 @@ fun BubbleOverlayContent(
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Ghost Mode (Hide) Button
-                            IconButton(
-                                onClick = { isGhostMode = true },
-                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
-                            ) {
-                                Text(
-                                    text = "👻",
-                                    color = Color.White,
-                                    fontSize = if (isCompactMode) 10.sp else 12.sp,
-                                )
-                            }
-
-                            // Zoom In (+) Button
-                            IconButton(
-                                onClick = {
-                                    val newScale = (bubbleScale + 0.1f).coerceIn(0.6f, 1.5f)
-                                    val rounded = round(newScale * 10f) / 10f
-                                    bubbleScale = rounded
-                                    prefs.bubbleScale = rounded
-                                },
-                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
-                            ) {
-                                Text(
-                                    text = "+",
-                                    color = Color(0xFF38BDF8),
-                                    fontSize = if (isCompactMode) 13.sp else 16.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-
-
-                            IconButton(
-                                onClick = { isMaximized = !isMaximized },
-                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
-                            ) {
-                                Text(
-                                    text = if (isMaximized) "🗗" else "🗖",
-                                    color = Color(0xFFFFD700),
-                                    fontSize = if (isCompactMode) 10.sp else 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                            }
-
-                            var refreshRotationAngle by remember { mutableFloatStateOf(0f) }
-                            val animatedRotation by animateFloatAsState(
-                                targetValue = refreshRotationAngle,
-                                animationSpec = tween(durationMillis = 600, easing = LinearOutSlowInEasing),
-                                label = "RefreshRotation",
-                            )
-
-                            IconButton(
-                                onClick = {
-                                    refreshRotationAngle += 360f
-                                    onRefresh()
-                                },
-                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Refresh,
-                                    contentDescription = "Aktualisieren",
-                                    tint = Color.LightGray,
-                                    modifier = Modifier
-                                        .size(if (isCompactMode) 14.dp else 18.dp)
-                                        .graphicsLayer(rotationZ = animatedRotation),
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    val openIntent = Intent(context, MainActivity::class.java).apply {
-                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-                                    }
-                                    context.startActivity(openIntent)
-                                },
-                                modifier = Modifier.size(if (isCompactMode) 22.dp else 28.dp),
-                            ) {
-                                Text(
-                                    text = "📲",
-                                    fontSize = if (isCompactMode) 10.sp else 12.sp,
-                                )
-                            }
-
                             // Minimieren zu Bubble Button
                             IconButton(
                                 onClick = {
@@ -974,6 +893,7 @@ fun BubbleOverlayContent(
                                     modifier = Modifier.size(if (isCompactMode) 14.dp else 18.dp),
                                 )
                             }
+                        }
                         }
                     }
 
@@ -1471,16 +1391,17 @@ fun BubbleOverlayContent(
                                             Text("⚡ Silber Budget & Tragkraft", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
 
                                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-                                                var editSilverText by remember(uiState.silverBudget) { mutableStateOf(uiState.silverBudget.toString()) }
+                                                var editSilverText by remember { mutableStateOf(uiState.silverBudget.toString()) }
                                                 OutlinedTextField(
                                                     value = editSilverText,
                                                     onValueChange = { str ->
-                                                        val clean = str.filter { it.isDigit() }
-                                                        editSilverText = clean
-                                                        val valLong = clean.toLongOrNull() ?: 0L
-                                                        viewModel.onSilverBudgetChanged(valLong)
-                                                        prefsForCity.silverBudget = valLong
-                                                        onRefresh()
+                                                        editSilverText = str
+                                                        val valLong = str.filter { it.isDigit() }.toLongOrNull()
+                                                        if (valLong != null) {
+                                                            viewModel.onSilverBudgetChanged(valLong)
+                                                            prefsForCity.silverBudget = valLong
+                                                            onRefresh()
+                                                        }
                                                     },
                                                     label = { Text("💰 Budget", fontSize = 8.sp, color = Color.LightGray) },
                                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1488,16 +1409,17 @@ fun BubbleOverlayContent(
                                                     modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
                                                 )
 
-                                                var editCapText by remember(uiState.carryCapacityKg) { mutableStateOf(uiState.carryCapacityKg.toLong().toString()) }
+                                                var editCapText by remember { mutableStateOf(uiState.carryCapacityKg.toLong().toString()) }
                                                 OutlinedTextField(
                                                     value = editCapText,
                                                     onValueChange = { str ->
-                                                        val clean = str.filter { it.isDigit() }
-                                                        editCapText = clean
-                                                        val valDbl = clean.toDoubleOrNull() ?: 0.0
-                                                        viewModel.onCarryCapacityChanged(valDbl)
-                                                        prefsForCity.carryCapacityKg = valDbl
-                                                        onRefresh()
+                                                        editCapText = str
+                                                        val valDbl = str.filter { it.isDigit() }.toDoubleOrNull()
+                                                        if (valDbl != null) {
+                                                            viewModel.onCarryCapacityChanged(valDbl)
+                                                            prefsForCity.carryCapacityKg = valDbl
+                                                            onRefresh()
+                                                        }
                                                     },
                                                     label = { Text("⚖️ kg", fontSize = 8.sp, color = Color.LightGray) },
                                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -2184,7 +2106,6 @@ fun BubbleOverlayContent(
             }
         }
     }
-}
 
 @Composable
 fun BubbleSmugglerRadarTab(

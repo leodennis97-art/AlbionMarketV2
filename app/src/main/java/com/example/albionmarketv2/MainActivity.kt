@@ -778,16 +778,21 @@ class MainActivity : ComponentActivity() {
                             context = context,
                             prefs = prefs
                         ) {
-                            prefs.isUserLoggedIn = false
-                            isUserLoggedInState = false
-                            isUnlockedForSession = false
                             try {
-                                FloatingBubbleService.stopService(this@MainActivity)
-                            } catch (_: Exception) {}
-                            try {
-                                PersistentServerSyncService.stopService(this@MainActivity)
-                            } catch (_: Exception) {}
-                            Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
+                                prefs.isUserLoggedIn = false
+                                prefs.savedPassword = ""
+                                isUserLoggedInState = false
+                                isUnlockedForSession = false
+                                try {
+                                    FloatingBubbleService.stopService(this@MainActivity)
+                                } catch (_: Exception) {}
+                                try {
+                                    PersistentServerSyncService.stopService(this@MainActivity)
+                                } catch (_: Exception) {}
+                                Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
 
                         if (ServerSyncManager.isOtaUpdateAvailable) {
