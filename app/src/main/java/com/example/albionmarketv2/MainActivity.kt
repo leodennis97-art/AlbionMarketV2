@@ -902,13 +902,16 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.2.1"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("Eine neue Version der App ist verfügbar (${ServerSyncManager.latestTargetVersion ?: "neu"}).")
-                                        Text("Möchtest du die aktuellsten Änderungen jetzt herunterladen und installieren?")
+                                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Eine neue Version ist verfügbar. Die installierte App ist älter als die aktuelle Server-Version.")
+                                        Text("✨ Was ist neu / Changelog:", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8), fontSize = 13.sp)
+                                        Text("• Optimierte Kauf- & Verkaufspreise für exakte Handelschancen\n• Vollständige Entfernung aller Telegram-Elemente & Weiterleitung zur Webseite\n• Live-Online-Nutzerübersicht im Admin-Dashboard\n• Verbesserte, stabile Abmelde- & Sperr-Funktion\n• 24/7 Cloud-Sync & Performance-Updates", fontSize = 11.sp, color = Color(0xFFCBD5E1))
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Möchtest du das Update jetzt herunterladen und installieren?")
                                     }
                                 },
                                 confirmButton = {
