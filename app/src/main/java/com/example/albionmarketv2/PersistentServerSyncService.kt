@@ -240,6 +240,13 @@ class PersistentServerSyncService : LifecycleService() {
                     }
 
                     // 2. Check for new lucrative trade opportunities
+                    try {
+                        val cloudSnapshots = ServerSyncManager.fetchCloudPrices(this@PersistentServerSyncService)
+                        if (cloudSnapshots.isNotEmpty()) {
+                            prefs.savePriceSnapshots(prefs.server, cloudSnapshots)
+                        }
+                    } catch (_: Exception) {}
+
                     val snapshots = prefs.getPriceSnapshots(prefs.server)
                     val priceMap = if (snapshots.isNotEmpty()) {
                         snapshots.map { s ->
@@ -293,7 +300,7 @@ class PersistentServerSyncService : LifecycleService() {
                     val topOpp = filteredOpps.firstOrNull()
                     if (topOpp != null) {
                         val oppKey = "${topOpp.resource.fullId}_${topOpp.buyCity}_${topOpp.sellCity}_${topOpp.buyPrice}"
-                        if (oppKey != lastNotifiedOppKey && topOpp.totalNetProfit >= 50_000) {
+                        if (oppKey != lastNotifiedOppKey && topOpp.totalNetProfit >= 10_000) {
                             lastNotifiedOppKey = oppKey
                             NotificationHelper.showTradeNotification(
                                 this@PersistentServerSyncService,
