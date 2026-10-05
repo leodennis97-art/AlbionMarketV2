@@ -412,16 +412,16 @@ object TradeCalculator {
                             // Schwarzmarkt: Sofortverkauf an die höchste aktive Kauforder (buyPriceMax)
                             cityPrices.maxOfOrNull { it.buyPriceMax } ?: 0
                         } else {
-                            // Normale Städte: Plausibilitäts-Check zwischen sellPriceMin und buyPriceMax
-                            val bestSellOrder = cityPrices.filter { it.sellPriceMin > buyPrice }.minByOrNull { it.sellPriceMin }?.sellPriceMin ?: 0
+                            // Normale Städte: Priorität auf aktive Kauforder (buyPriceMax) für Sofortverkauf, sonst Markt-Verkaufspreis (sellPriceMin)
                             val bestBuyOrder = cityPrices.maxOfOrNull { it.buyPriceMax } ?: 0
+                            val bestSellOrder = cityPrices.filter { it.sellPriceMin > buyPrice }.minByOrNull { it.sellPriceMin }?.sellPriceMin ?: 0
                             
-                            if (bestSellOrder > 0 && bestSellOrder <= buyPrice * 3.5) {
-                                bestSellOrder
-                            } else if (bestBuyOrder > buyPrice) {
+                            if (bestBuyOrder > buyPrice) {
                                 bestBuyOrder
-                            } else {
+                            } else if (bestSellOrder > buyPrice && bestSellOrder <= buyPrice * 3.5) {
                                 bestSellOrder
+                            } else {
+                                maxOf(bestBuyOrder, bestSellOrder)
                             }
                         }
 
