@@ -467,7 +467,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val aiVerifiedPrices = rawCombined.filter { p ->
             val isNotZero = p.sellPriceMin > 0
             val isNotUnrealistic = !AlbionMarketApi.isUnrealisticPrice(p.itemId, p.sellPriceMin)
-            val isWithinBounds = (p.sellPriceMin in 5..500_000_000)
+            val isWithinBounds = (p.sellPriceMin >= 5) && (p.sellPriceMin <= 500_000_000)
             val isBuyOrderValid = p.buyPriceMax == 0 || p.buyPriceMax < (p.sellPriceMin * 3)
 
             isNotZero && isNotUnrealistic && isWithinBounds && isBuyOrderValid
@@ -523,11 +523,11 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val filteredResources = resources.filter { res ->
             val matchesCategory = when (bubbleCategory) {
                 "ALL" -> true
-                "SAMMLER" -> res.category == ResourceCategory.RESOURCES || res.category == ResourceCategory.REFINED
-                "GEAR" -> res.category == ResourceCategory.WEAPONS || res.category == ResourceCategory.ARMOR || res.category == ResourceCategory.HELMETS || res.category == ResourceCategory.SHOES || res.category == ResourceCategory.OFFHAND || res.category == ResourceCategory.BAG || res.category == ResourceCategory.CAPE
-                "GASTRO" -> res.category == ResourceCategory.FOOD || res.category == ResourceCategory.POTIONS
-                "LUXUS" -> res.category == ResourceCategory.MOUNTS || res.category == ResourceCategory.ARTIFACTS
-                else -> res.category.name.equals(bubbleCategory, ignoreCase = true) || res.category.displayName.equals(bubbleCategory, ignoreCase = true)
+                "SAMMLER" -> (res.category == ResourceCategory.RESOURCES || res.category == ResourceCategory.REFINED)
+                "GEAR" -> (res.category == ResourceCategory.WEAPONS || res.category == ResourceCategory.ARMOR || res.category == ResourceCategory.HELMETS || res.category == ResourceCategory.SHOES || res.category == ResourceCategory.OFFHAND || res.category == ResourceCategory.BAG || res.category == ResourceCategory.CAPE)
+                "GASTRO" -> (res.category == ResourceCategory.FOOD || res.category == ResourceCategory.POTIONS)
+                "LUXUS" -> (res.category == ResourceCategory.MOUNTS || res.category == ResourceCategory.ARTIFACTS)
+                else -> (res.category.name.equals(bubbleCategory, ignoreCase = true) || res.category.displayName.equals(bubbleCategory, ignoreCase = true))
             }
 
             val matchesTier = if (bubbleTier > 0) res.tier == bubbleTier else true
@@ -813,7 +813,7 @@ fun BubbleOverlayContent(
                                         text = topOpportunities.size.toString(),
                                         color = Color.White,
                                         fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold
+                                        fontWeight = FontWeight.Bold,
                                     )
                                 }
                             }
@@ -1393,7 +1393,7 @@ fun BubbleOverlayContent(
                                 ) {
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text("📦 Deals", color = Color.Gray, fontSize = 8.sp)
-                                        Text("${topOpportunities.size}", color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                        Text(topOpportunities.size.toString(), color = Color(0xFF10B981), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                     }
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         val topProfit = topOpportunities.maxOfOrNull { it.totalNetProfit } ?: 0L
@@ -1697,15 +1697,19 @@ fun BubbleOverlayContent(
                                     var currentBubbleHideBlackMarket by remember { mutableStateOf(prefsForCity.bubbleHideBlackMarket || prefsForCity.hideBlackMarket) }
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
                                         Text("🏴‍☠️ Schmuggler ausblenden", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                        Switch(checked = currentBubbleHideBlackMarket, onCheckedChange = {
-                                            currentBubbleHideBlackMarket = it
-                                            prefsForCity.bubbleHideBlackMarket = it
-                                            prefsForCity.hideBlackMarket = it
-                                            if (it && selectedTab == BubbleTab.SMUGGLER_RADAR) {
-                                                selectedTab = BubbleTab.TOP_MARGIN
-                                            }
-                                            onRefresh()
-                                        }, colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFFB74D)))
+                                        Switch(
+                                            checked = currentBubbleHideBlackMarket,
+                                            onCheckedChange = {
+                                                currentBubbleHideBlackMarket = it
+                                                prefsForCity.bubbleHideBlackMarket = it
+                                                prefsForCity.hideBlackMarket = it
+                                                if (it && selectedTab == BubbleTab.SMUGGLER_RADAR) {
+                                                    selectedTab = BubbleTab.TOP_MARGIN
+                                                }
+                                                onRefresh()
+                                            },
+                                            colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFFB74D)),
+                                        )
                                     }
                                 }
                             }
@@ -2163,7 +2167,7 @@ fun BubbleOverlayContent(
 fun BubbleSmugglerRadarTab(
     @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
-    maxHeight: Dp
+    maxHeight: Dp,
 ) {
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -2488,7 +2492,7 @@ fun BubbleCraftingTab(
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val fmtDec = remember { DecimalFormat("0.0", DecimalFormatSymbols(Locale.GERMANY)) }
-    var hideCaerleonInCrafting by remember { mutableStateOf(false) }
+    var hideCaerleonInCrafting by remember { mutableStateOf(value = false) }
 
     val craftingOpps = remember(priceMap, hideCaerleonInCrafting) {
         CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true, hideCaerleon = hideCaerleonInCrafting).take(25)
