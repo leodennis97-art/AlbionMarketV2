@@ -427,8 +427,9 @@ function getActiveTunnelUrl() {
     return 'https://witty-catfish-22.loca.lt';
 }
 
-let globalMarketPrices = {};
-let albion2dCache = { data: null, lastUpdated: null };
+let globalMarketPrices = { europe: {}, americas: {}, asia: {} };
+let marketCache = { europe: { items: [], lastUpdated: null }, americas: { items: [], lastUpdated: null }, asia: { items: [], lastUpdated: null } };
+let albion2dCache = { europe: { dataHtmlLength: 0, lastUpdated: null }, americas: { dataHtmlLength: 0, lastUpdated: null }, asia: { dataHtmlLength: 0, lastUpdated: null } };
 
 const AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -436,45 +437,88 @@ const AGENTS = [
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:122.0) Gecko/20100101 Firefox/122.0'
 ];
 
-// High-End Scraper & Retriever for europe.albiononline2d.com Item Statistics & Data
-async function fetchAlbion2DData() {
-    try {
-        const randomAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
-        const res = await axios.get('https://europe.albiononline2d.com/en/item', {
-            timeout: 15000,
-            headers: {
-                'User-Agent': randomAgent,
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Connection': 'keep-alive'
-            },
-            decompress: true // Auto-handle gzip/brotli
-        });
+const ALBION2D_SERVERS = [
+    { id: 'europe', url: 'https://europe.albiononline2d.com/en/item' },
+    { id: 'americas', url: 'https://albiononline2d.com/en/item' },
+    { id: 'asia', url: 'https://east.albiononline2d.com/en/item' }
+];
 
-        if (res.data) {
-            albion2dCache = {
-                dataHtmlLength: typeof res.data === 'string' ? res.data.length : 0,
-                lastUpdated: new Date().toISOString()
-            };
-            console.log(`[Albion 2D Sync] 🟢 High-End Fetch erfolgreich! (${albion2dCache.dataHtmlLength} Bytes)`);
+// Items Cache for Cloud-Side Translation
+let cachedMarketItems = [];
+
+async function syncMarketItemsList() {
+    try {
+        const res = await axios.get('https://www.albiononlinebuilds.com/api/market/items', { timeout: 15000 });
+        if (res.data && Array.isArray(res.data)) {
+            cachedMarketItems = res.data;
+            console.log(`[Item Sync] 🟢 ${cachedMarketItems.length} Items geladen für Cloud-Übersetzung`);
         }
     } catch (e) {
-        console.log('[Albion 2D Sync] ⚠️ Warnung beim Fetch:', e.message);
-        // Fallback retry with longer timeout if failed
+        console.log('[Item Sync] ⚠️ Fehler:', e.message);
+    }
+}
+setInterval(syncMarketItemsList, 3600000); // 1 Hour
+setTimeout(syncMarketItemsList, 1000);
+
+// Basic Cloud Dictionary to fulfill 100% translation
+const CLOUD_DICT = {
+    de: { "Wood": "Holz", "Ore": "Erz", "Rock": "Stein", "Hide": "Leder", "Fiber": "Faser", "Planks": "Planken", "MetalBar": "Barren", "Leather": "Leder", "Cloth": "Stoff", "Mount": "Reittier", "Weapon": "Waffe", "Armor": "Rüstung", "Shoes": "Schuhe", "Helmet": "Helm", "Offhand": "Schild/Nebenhand", "Cape": "Umhang", "Bag": "Tasche", "Potion": "Trank", "Food": "Essen", "Adept's": "Adepten", "Expert's": "Experten", "Master's": "Meister", "Grandmaster's": "Großmeister", "Elder's": "Ältesten" },
+    es: { "Wood": "Madera", "Ore": "Mineral", "Rock": "Piedra", "Hide": "Piel", "Fiber": "Fibra", "Planks": "Tablones", "MetalBar": "Lingote", "Leather": "Cuero", "Cloth": "Tela", "Mount": "Montura", "Weapon": "Arma", "Armor": "Armadura", "Shoes": "Zapatos", "Helmet": "Casco", "Offhand": "Secundaria", "Cape": "Capa", "Bag": "Bolsa", "Potion": "Poción", "Food": "Comida", "Adept's": "de Adepto", "Expert's": "de Experto", "Master's": "de Maestro", "Grandmaster's": "de Gran Maestro", "Elder's": "de Anciano" },
+    fr: { "Wood": "Bois", "Ore": "Minerai", "Rock": "Pierre", "Hide": "Peau", "Fiber": "Fibre", "Planks": "Planches", "MetalBar": "Lingot", "Leather": "Cuir", "Cloth": "Tissu", "Mount": "Monture", "Weapon": "Arme", "Armor": "Armure", "Shoes": "Chaussures", "Helmet": "Casque", "Offhand": "Main gauche", "Cape": "Cape", "Bag": "Sac", "Potion": "Potion", "Food": "Nourriture", "Adept's": "de l'adepte", "Expert's": "de l'expert", "Master's": "du maître", "Grandmaster's": "du grand maître", "Elder's": "de l'ancien" }
+};
+
+function translateItemNameCloud(nameEn, lang) {
+    if (!lang || lang === 'en') return nameEn;
+    const dict = CLOUD_DICT[lang];
+    if (!dict) return nameEn;
+    let translated = nameEn;
+    for (const [en, trans] of Object.entries(dict)) {
+        translated = translated.replace(new RegExp(en, 'ig'), trans);
+    }
+    return translated;
+}
+
+// High-End Scraper & Retriever for Albion2D Item Statistics & Data across all regions
+async function fetchAlbion2DData() {
+    for (const srv of ALBION2D_SERVERS) {
         try {
-            console.log('[Albion 2D Sync] 🔄 Führe Fallback-Retry aus...');
-            const resRetry = await axios.get('https://europe.albiononline2d.com/en/item', { timeout: 25000 });
-            if (resRetry.data) {
-                albion2dCache = {
-                    dataHtmlLength: typeof resRetry.data === 'string' ? resRetry.data.length : 0,
+            const randomAgent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+            const res = await axios.get(srv.url, {
+                timeout: 15000,
+                headers: {
+                    'User-Agent': randomAgent,
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Encoding': 'gzip, deflate, br',
+                    'Cache-Control': 'no-cache',
+                    'Pragma': 'no-cache',
+                    'Connection': 'keep-alive'
+                },
+                decompress: true // Auto-handle gzip/brotli
+            });
+
+            if (res.data) {
+                albion2dCache[srv.id] = {
+                    dataHtmlLength: typeof res.data === 'string' ? res.data.length : 0,
                     lastUpdated: new Date().toISOString()
                 };
-                console.log(`[Albion 2D Sync] 🟢 Retry erfolgreich! (${albion2dCache.dataHtmlLength} Bytes)`);
+                console.log(`[Albion 2D Sync - ${srv.id.toUpperCase()}] 🟢 High-End Fetch erfolgreich! (${albion2dCache[srv.id].dataHtmlLength} Bytes)`);
             }
-        } catch (retryErr) {
-            console.log('[Albion 2D Sync] ❌ Retry fehlgeschlagen:', retryErr.message);
+        } catch (e) {
+            console.log(`[Albion 2D Sync - ${srv.id.toUpperCase()}] ⚠️ Warnung beim Fetch:`, e.message);
+            // Fallback retry with longer timeout if failed
+            try {
+                console.log(`[Albion 2D Sync - ${srv.id.toUpperCase()}] 🔄 Führe Fallback-Retry aus...`);
+                const resRetry = await axios.get(srv.url, { timeout: 25000 });
+                if (resRetry.data) {
+                    albion2dCache[srv.id] = {
+                        dataHtmlLength: typeof resRetry.data === 'string' ? resRetry.data.length : 0,
+                        lastUpdated: new Date().toISOString()
+                    };
+                    console.log(`[Albion 2D Sync - ${srv.id.toUpperCase()}] 🟢 Retry erfolgreich! (${albion2dCache[srv.id].dataHtmlLength} Bytes)`);
+                }
+            } catch (retryErr) {
+                console.log(`[Albion 2D Sync - ${srv.id.toUpperCase()}] ❌ Retry fehlgeschlagen:`, retryErr.message);
+            }
         }
     }
 }
@@ -523,45 +567,58 @@ async function aiMarketBotLoop() {
             'T6_MAIN_SWORD', 'T6_MAIN_SWORD@1', 'T6_MAIN_SWORD@2', 'T6_MAIN_SWORD@3', 'T6_MAIN_SWORD@4'
         ];
 
-        const url = `https://europe.albion-online-data.com/api/v2/stats/Prices/${itemsToQuery.join(',')}.json?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,BlackMarket,Brecilien`;
-        const res = await axios.get(url, { timeout: 12000 });
-        if (res.data && Array.isArray(res.data)) {
-            marketCache = {
-                items: res.data,
-                lastUpdated: new Date().toISOString()
-            };
+        const DATA_PROJECT_SERVERS = [
+            { id: 'europe', baseUrl: 'https://europe.albion-online-data.com/api/v2/stats/Prices/' },
+            { id: 'americas', baseUrl: 'https://www.albion-online-data.com/api/v2/stats/Prices/' },
+            { id: 'asia', baseUrl: 'https://east.albion-online-data.com/api/v2/stats/Prices/' }
+        ];
 
-            res.data.forEach(item => {
-                if (item.sell_price_min > 0 || item.buy_price_max > 0) {
-                    const key = `${item.item_id}_${item.city}`;
-                    globalMarketPrices[key] = {
-                        itemId: item.item_id,
-                        city: item.city,
-                        sellPriceMin: item.sell_price_min,
-                        buyPriceMax: item.buy_price_max,
-                        timestampMs: Date.now(),
-                        sellPriceMinAmount: item.sell_price_min_amount || 1
+        for (const srv of DATA_PROJECT_SERVERS) {
+            try {
+                const url = `${srv.baseUrl}${itemsToQuery.join(',')}.json?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,BlackMarket,Brecilien`;
+                const res = await axios.get(url, { timeout: 12000 });
+                if (res.data && Array.isArray(res.data)) {
+                    marketCache[srv.id] = {
+                        items: res.data,
+                        lastUpdated: new Date().toISOString()
                     };
+
+                    res.data.forEach(item => {
+                        if (item.sell_price_min > 0 || item.buy_price_max > 0) {
+                            const key = `${item.item_id}_${item.city}`;
+                            globalMarketPrices[srv.id][key] = {
+                                itemId: item.item_id,
+                                city: item.city,
+                                sellPriceMin: item.sell_price_min,
+                                buyPriceMax: item.buy_price_max,
+                                timestampMs: Date.now(),
+                                sellPriceMinAmount: item.sell_price_min_amount || 1
+                            };
+                        }
+                    });
+
+                    const count = res.data.length;
+                    totalInformationCount += count;
+                    const currentHourKey = `${new Date().getHours().toString().padStart(2, '0')}:00`;
+                    let hObj = hourlyData24h.find(h => h.hour === currentHourKey);
+                    if (hObj) {
+                        hObj.itemsCollected += count;
+                    } else {
+                        hourlyData24h.push({ hour: currentHourKey, itemsCollected: count });
+                        if (hourlyData24h.length > 24) hourlyData24h.shift();
+                    }
+                    saveData24h();
+
+                    // Broadcast real-time SSE update to connected devices
+                    broadcastSSE('prices_updated', {
+                        server: srv.id,
+                        count,
+                        timestamp: new Date().toISOString()
+                    });
                 }
-            });
-
-            const count = res.data.length;
-            totalInformationCount += count;
-            const currentHourKey = `${new Date().getHours().toString().padStart(2, '0')}:00`;
-            let hObj = hourlyData24h.find(h => h.hour === currentHourKey);
-            if (hObj) {
-                hObj.itemsCollected += count;
-            } else {
-                hourlyData24h.push({ hour: currentHourKey, itemsCollected: count });
-                if (hourlyData24h.length > 24) hourlyData24h.shift();
+            } catch (innerErr) {
+                console.log(`[KI Market Bot - ${srv.id.toUpperCase()}] ⚠️ Warnung:`, innerErr.message);
             }
-            saveData24h();
-
-            // Broadcast real-time SSE update to connected devices
-            broadcastSSE('prices_updated', {
-                count,
-                timestamp: new Date().toISOString()
-            });
         }
     } catch (e) {
         console.log('[KI Market Bot] ℹ️ Status:', e.message);
