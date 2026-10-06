@@ -658,10 +658,49 @@ app.use((req, res, next) => {
     next();
 });
 
-// HMAC-SHA256 Response Signing Middleware
+function translateServerMessage(msg, langCode) {
+    if (!msg || typeof msg !== 'string') return msg;
+    const l = (langCode || 'DE').toUpperCase();
+    if (l === 'DE') return msg;
+
+    const dict = {
+        'EN': {
+            'Server Login & Authentifizierung': 'Server Login & Authentication',
+            'Benutzername und Passwort erforderlich': 'Username and password required',
+            'Benutzer existiert bereits': 'User already exists',
+            'Ungültiger Lizenzschlüssel. Bitte erwerben Sie eine gültige Lizenz.': 'Invalid license key. Please purchase a valid license.',
+            'Account erfolgreich registriert & freigeschaltet.': 'Account successfully registered and unlocked.',
+            'Account registriert. Bitte erwerben Sie eine Lizenz.': 'Account registered. Please purchase a license.',
+            'Ungültiger Benutzername oder Passwort': 'Invalid username or password',
+            'Login fehlgeschlagen: Keine aktive Lizenz vorhanden! Bitte erwerben Sie eine Lizenz.': 'Login failed: No active license found! Please purchase a license.',
+            'Zu viele fehlerhafte Anmeldeversuche. Bitte 10 Minuten warten.': 'Too many failed login attempts. Please wait 10 minutes.'
+        },
+        'ES': {
+            'Benutzername und Passwort erforderlich': 'Usuario y contraseña requeridos',
+            'Benutzer existiert bereits': 'El usuario ya existe',
+            'Ungültiger Lizenzschlüssel. Bitte erwerben Sie eine gültige Lizenz.': 'Clave de licencia inválida. Compre una licencia válida.',
+            'Account erfolgreich registriert & freigeschaltet.': 'Cuenta registrada y desbloqueada con éxito.'
+        },
+        'FR': {
+            'Benutzername und Passwort erforderlich': "Nom d'utilisateur et mot de passe requis",
+            'Benutzer existiert bereits': "L'utilisateur existe déjà",
+            'Ungültiger Lizenzschlüssel. Bitte erwerben Sie eine gültige Lizenz.': 'Clé de licence invalide. Veuillez acheter une licence valide.'
+        }
+    };
+
+    const targetDict = dict[l] || dict['EN'];
+    return targetDict[msg] || msg;
+}
+
+// HMAC-SHA256 Response Signing Middleware with Multi-Language API Support
 app.use((req, res, next) => {
     const originalJson = res.json;
     res.json = function(data) {
+        const lang = req.headers['x-app-language'] || req.query.lang || 'DE';
+        if (data && typeof data === 'object') {
+            if (data.message) data.message = translateServerMessage(data.message, lang);
+            if (data.error) data.error = translateServerMessage(data.error, lang);
+        }
         const payload = JSON.stringify(data);
         const signature = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update(payload).digest('hex');
         res.setHeader('X-Albion-Signature', signature);

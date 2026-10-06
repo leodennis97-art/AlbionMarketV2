@@ -118,6 +118,7 @@ object ServerSyncManager {
                         connection.setRequestProperty("Accept", "application/json")
                         connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
                         connection.setRequestProperty("User-Agent", "AlbionDataPro/$appVersion")
+                        connection.setRequestProperty("X-App-Language", AppPreferences(context).appLanguage)
                         connection.setRequestProperty("Connection", "keep-alive")
                         connection.setRequestProperty("Keep-Alive", "timeout=600, max=1000")
                         connection.setRequestProperty("Accept-Encoding", "gzip")
