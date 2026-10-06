@@ -435,6 +435,30 @@ class MainActivity : ComponentActivity() {
 
                                     Spacer(modifier = Modifier.height(2.dp))
 
+                                    var currentAppLang by remember { mutableStateOf(prefs.appLanguage) }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "🌐 ${LanguageManager.getString("lang_select", currentAppLang)}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF38BDF8)
+                                        )
+
+                                        GlowingLanguageSelectorButton(
+                                            currentLanguageCode = currentAppLang,
+                                            onLanguageSelected = { newLang ->
+                                                prefs.appLanguage = newLang
+                                                currentAppLang = newLang
+                                                AiTranslationEngine.setLanguage(newLang)
+                                            }
+                                        )
+                                    }
+
                                     // 2. SEGMENTED TAB SWITCHER
                                     Surface(
                                         shape = RoundedCornerShape(12.dp),
