@@ -7,6 +7,7 @@ import java.io.File
 
 object ServerConfigManager {
 
+    private const val CUSTOM_DOMAIN_PRIMARY_URL = "https://www.AlbionDataPro.com"
     private const val RENDER_PRIMARY_URL = "https://albionmarketv2-1.onrender.com"
 
     fun initServerConfig(context: Context) {
@@ -19,10 +20,10 @@ object ServerConfigManager {
 
             val configFile = File(albionFolder, "server_config.json")
             val defaultConfig = JSONObject().apply {
-                put("serverUrl", RENDER_PRIMARY_URL)
+                put("serverUrl", CUSTOM_DOMAIN_PRIMARY_URL)
                 put("fallbackUrl", RENDER_PRIMARY_URL)
                 put("autoConnect", true)
-                put("note", "Render Cloud Live Server")
+                put("note", "AlbionDataPro Official Custom Domain")
             }
             configFile.writeText(defaultConfig.toString(4), Charsets.UTF_8)
         } catch (e: Exception) {
@@ -31,11 +32,12 @@ object ServerConfigManager {
     }
 
     fun getCustomServerUrl(context: Context): String {
-        return "$RENDER_PRIMARY_URL/api/devices/ping"
+        return "$CUSTOM_DOMAIN_PRIMARY_URL/api/devices/ping"
     }
 
     fun getCustomServerUrls(context: Context): List<String> {
         val urls = mutableListOf<String>()
+        urls.add(CUSTOM_DOMAIN_PRIMARY_URL)
         urls.add(RENDER_PRIMARY_URL)
 
         try {

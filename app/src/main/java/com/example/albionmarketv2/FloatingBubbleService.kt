@@ -673,9 +673,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             prefs.saveTradeOrders(updatedOrders)
 
             serviceScope.launch(Dispatchers.Main) {
+                val msg = LanguageManager.translateUI("Auftrag angenommen: ${opp.resource.nameDe} (${opp.resource.tierText})", lang)
                 Toast.makeText(
                     this@FloatingBubbleService,
-                    if (lang == "DE") "Auftrag angenommen: ${opp.resource.nameDe} (T${opp.resource.tier})" else "Order accepted: ${opp.resource.nameEn} (T${opp.resource.tier})",
+                    msg,
                     Toast.LENGTH_SHORT,
                 ).show()
             }
@@ -925,7 +926,7 @@ fun BubbleOverlayContent(
                                     modifier = Modifier.clickable { selectedTab = tab },
                                 ) {
                                     Text(
-                                        text = "${tab.emoji} ${if (lang == "DE") tab.titleDe else tab.titleEn}",
+                                        text = "${tab.emoji} ${LanguageManager.translateUI(tab.titleDe, lang)}",
                                         color = if (isSelected) Color.White else Color.Gray,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = if (isCompactMode) 8.sp else 9.sp,
@@ -1073,7 +1074,7 @@ fun BubbleOverlayContent(
                                         ) {
                                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text(if (lang == "DE") "✅ Buchen" else "Book", fontWeight = FontWeight.ExtraBold, color = Color.Black, fontSize = 11.sp)
+                                            Text(LanguageManager.translateUI("✅ Buchen", lang), fontWeight = FontWeight.ExtraBold, color = Color.Black, fontSize = 11.sp)
                                         }
 
                                         Button(
@@ -1084,7 +1085,7 @@ fun BubbleOverlayContent(
                                                     val updatedOrders = orders.filter { it.id != activeOrder.id }
                                                     prefs.saveTradeOrders(updatedOrders)
                                                     prefs.clearDraftOrderInput(activeOrder.id)
-                                                    Toast.makeText(context, if (lang == "DE") "❌ Auftrag storniert!" else "Order cancelled!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, LanguageManager.translateUI("❌ Auftrag storniert!", lang), Toast.LENGTH_SHORT).show()
                                                     onOrderBooked()
                                                 } catch (e: Exception) {
                                                     e.printStackTrace()
@@ -1096,7 +1097,7 @@ fun BubbleOverlayContent(
                                         ) {
                                             Icon(Icons.Default.Close, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text(if (lang == "DE") "❌ Stornieren" else "Cancel", fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 11.sp)
+                                            Text(LanguageManager.translateUI("❌ Stornieren", lang), fontWeight = FontWeight.ExtraBold, color = Color.White, fontSize = 11.sp)
                                         }
                                     }
                                 }
@@ -1142,7 +1143,7 @@ fun BubbleOverlayContent(
                                             unitsInput = it
                                             prefsObj.saveDraftOrderInput(activeOrder.id, it, buyPriceInput, sellPriceInput)
                                         },
-                                        label = { Text(if (lang == "DE") "Menge" else "Units", fontSize = 10.sp, color = Color.LightGray) },
+                                        label = { Text(LanguageManager.translateUI("Menge", lang), fontSize = 10.sp, color = Color.LightGray) },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         modifier = Modifier
@@ -1158,7 +1159,7 @@ fun BubbleOverlayContent(
                                             buyPriceInput = it
                                             prefsObj.saveDraftOrderInput(activeOrder.id, unitsInput, it, sellPriceInput)
                                         },
-                                        label = { Text(if (lang == "DE") "Kaufpreis" else "Buy Price", fontSize = 10.sp, color = Color.LightGray) },
+                                        label = { Text(LanguageManager.translateUI("Kaufpreis", lang), fontSize = 10.sp, color = Color.LightGray) },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         modifier = Modifier
@@ -1174,7 +1175,7 @@ fun BubbleOverlayContent(
                                             sellPriceInput = it
                                             prefsObj.saveDraftOrderInput(activeOrder.id, unitsInput, buyPriceInput, it)
                                         },
-                                        label = { Text(if (lang == "DE") "Verkaufspreis" else "Sell Price", fontSize = 10.sp, color = Color.LightGray) },
+                                        label = { Text(LanguageManager.translateUI("Verkaufspreis", lang), fontSize = 10.sp, color = Color.LightGray) },
                                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                         singleLine = true,
                                         modifier = Modifier
@@ -1197,18 +1198,18 @@ fun BubbleOverlayContent(
                                             verticalArrangement = Arrangement.spacedBy(2.dp)
                                         ) {
                                             Text(
-                                                text = if (lang == "DE") "📊 Netto-Einkommen (nach Steuern): ${fmt.format(computedEarned)} S." else "📊 Net Revenue (after tax): ${fmt.format(computedEarned)} S.",
+                                                text = "📊 ${LanguageManager.translateUI("Netto-Umsatz", lang)}: ${fmt.format(computedEarned)} S.",
                                                 color = Color(0xFF38BDF8),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 10.sp
                                             )
                                             Text(
-                                                text = if (lang == "DE") "Ausgegeben (Kaufpreis): ${fmt.format(computedSpent)} S." else "Spent: ${fmt.format(computedSpent)} S.",
+                                                text = "${LanguageManager.translateUI("Ausgegeben", lang)} (${LanguageManager.translateUI("Kaufpreis", lang)}): ${fmt.format(computedSpent)} S.",
                                                 color = Color.LightGray,
                                                 fontSize = 10.sp
                                             )
                                             Text(
-                                                text = if (lang == "DE") "Reingewinn: ${if (computedProfit >= 0) "+" else ""}${fmt.format(computedProfit)} S." else "Profit/Loss: ${if (computedProfit >= 0) "+" else ""}${fmt.format(computedProfit)} S.",
+                                                text = "${LanguageManager.translateUI("Reingewinn", lang)}: ${if (computedProfit >= 0) "+" else ""}${fmt.format(computedProfit)} S.",
                                                 color = if (computedProfit >= 0) Color(0xFF66BB6A) else Color(0xFFFF8A80),
                                                 fontWeight = FontWeight.Bold,
                                                 fontSize = 10.sp
@@ -1229,7 +1230,7 @@ fun BubbleOverlayContent(
                                             },
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
-                                            Text(if (lang == "DE") "❌ Stornieren" else "Cancel", fontSize = 10.sp, color = Color(0xFFFF8A80), fontWeight = FontWeight.Bold)
+                                            Text(LanguageManager.translateUI("❌ Stornieren", lang), fontSize = 10.sp, color = Color(0xFFFF8A80), fontWeight = FontWeight.Bold)
                                         }
 
                                         Button(
@@ -1255,7 +1256,7 @@ fun BubbleOverlayContent(
 
                                                     prefs.saveTradeOrders(updatedOrders)
                                                     prefs.clearDraftOrderInput(activeOrder.id)
-                                                    Toast.makeText(context, if (lang == "DE") "✅ Erfolgreich gebucht!" else "Successfully booked!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, LanguageManager.translateUI("✅ Erfolgreich gebucht!", lang), Toast.LENGTH_SHORT).show()
 
                                                     isBookingMode = false
                                                     onFocusModeChanged(false)

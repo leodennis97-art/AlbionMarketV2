@@ -12,9 +12,17 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const querystring = require('querystring');
 
+process.on('uncaughtException', (err) => {
+    console.error('[Server] Uncaught Exception:', err?.stack || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[Server] Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
 const app = express();
 app.set('trust proxy', true);
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 10000;
 const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'AlbionDataPro_Military_Admin_SuperSecret_2026#Key';
 
@@ -157,7 +165,7 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.2.12";
+    return "3.2.13";
 }
 
 let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
@@ -704,6 +712,7 @@ Allow: /
 Disallow: /api/admin/
 Disallow: /admin
 
+Sitemap: https://www.AlbionDataPro.com/sitemap.xml
 Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
     );
 });
@@ -715,19 +724,25 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/</loc>
+      <loc>https://www.AlbionDataPro.com/</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>1.0</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/app</loc>
+      <loc>https://albionmarketv2-1.onrender.com/</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk</loc>
+      <loc>https://www.AlbionDataPro.com/app</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/download/AlbionDataPro.apk</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.8</priority>
@@ -754,18 +769,18 @@ app.get(['/', '/get', '/app'], (req, res) => {
     <meta name="keywords" content="Albion Online, Albion Market, Albion Market Bot, Albion Arbitrage, Albion Online Overlay, Albion Mobile, Silber Rechner, Black Market Albion, Caerleon Trade Bot, Albion Online Calculator, Albion Price Checker, Albion Data Project">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="author" content="AlbionDataPro Team" />
-    <link rel="canonical" href="https://albionmarketv2-1.onrender.com/" />
-    <link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/" />
-    <link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/" />
-    <link rel="alternate" hreflang="x-default" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="canonical" href="https://www.AlbionDataPro.com/" />
+    <link rel="alternate" hreflang="de" href="https://www.AlbionDataPro.com/" />
+    <link rel="alternate" hreflang="en" href="https://www.AlbionDataPro.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.AlbionDataPro.com/" />
 
     <!-- OpenGraph SEO -->
     <meta property="og:site_name" content="AlbionDataPro" />
     <meta property="og:title" content="AlbionDataPro - #1 Albion Online Markt Bot, Arbitrage & Overlay" />
     <meta property="og:description" content="Dominiere den Albion Markt mit Echtzeit-Arbitrage & KI. Schwebendes In-Game Overlay für Android & PC." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://albionmarketv2-1.onrender.com/" />
-    <meta property="og:image" content="https://albionmarketv2-1.onrender.com/download" />
+    <meta property="og:url" content="https://www.AlbionDataPro.com/" />
+    <meta property="og:image" content="https://www.AlbionDataPro.com/download" />
     <meta property="og:locale" content="de_DE" />
 
     <!-- Twitter Card -->
@@ -2585,9 +2600,10 @@ app.get(['/admin'], (req, res) => {
 </html>`);
 });
 
-const server = app.listen(PORT, () => {
-    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v${CURRENT_SERVER_VERSION}) läuft auf Port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[Albion Server] 🟢 High-Performance Central Admin & Tunnel Server (v${CURRENT_SERVER_VERSION}) läuft auf 0.0.0.0:${PORT}`);
     triggerAutoOtaUpdateForAllDevices(`Server gestartet / Globaler OTA-Impuls v${CURRENT_SERVER_VERSION}`);
 });
-server.keepAliveTimeout = 65000;
-server.headersTimeout = 66000;
+server.keepAliveTimeout = 120000; // Align with Render proxy keep-alive (120s) to fix 502 / Connection reset by peer
+server.headersTimeout = 120500;   // Slightly higher than keepAliveTimeout
+server.timeout = 180000;          // 3 minutes request timeout

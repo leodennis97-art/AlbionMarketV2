@@ -1,5 +1,6 @@
 package com.example.albionmarketv2
 
+import android.R
 import android.app.KeyguardManager
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -61,11 +62,15 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val lang = AppPreferences(context).appLanguage
+        val translatedTitle = LanguageManager.translateUI(title, lang)
+        val translatedMessage = LanguageManager.translateUI(message, lang)
+
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(title)
-            .setContentText(message)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message))
+            .setSmallIcon(R.drawable.ic_dialog_info)
+            .setContentTitle(translatedTitle)
+            .setContentText(translatedMessage)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(translatedMessage))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setDefaults(NotificationCompat.DEFAULT_ALL)
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)
