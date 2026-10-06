@@ -1225,6 +1225,7 @@ object LanguageManager {
         return translated ?: enMap[key] ?: translateUI(baseDe, cleanLang)
     }
 
+    @Suppress("DEPRECATION")
     fun updateAppLocale(context: Context, langCode: String) {
         try {
             val locale = Locale(langCode.lowercase())
