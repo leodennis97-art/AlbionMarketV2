@@ -740,9 +740,29 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 </div>
             </div>
 
-            <a href="/download/AlbionDataPro.apk?v=${CURRENT_SERVER_VERSION}" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
-                <i class="fa-solid fa-download"></i> APK Download
-            </a>
+            <div class="flex items-center gap-3">
+                <!-- Glowing Website Language Selector -->
+                <div class="relative inline-flex items-center">
+                    <select id="webLangSelect" onchange="changeWebLanguage(this.value)" class="bg-slate-900/90 text-sky-400 font-extrabold border border-sky-400/60 hover:border-sky-300 rounded-xl px-3 py-2 text-xs shadow-[0_0_15px_rgba(56,189,248,0.35)] transition cursor-pointer outline-none">
+                        <option value="de">🇩🇪 DE</option>
+                        <option value="en">🇬🇧 EN</option>
+                        <option value="es">🇪🇸 ES</option>
+                        <option value="fr">🇫🇷 FR</option>
+                        <option value="pt">🇵🇹 PT</option>
+                        <option value="ru">🇷🇺 RU</option>
+                        <option value="zh">🇨🇳 ZH</option>
+                        <option value="ja">🇯🇵 JA</option>
+                        <option value="ko">🇰🇷 KO</option>
+                        <option value="tr">🇹🇷 TR</option>
+                        <option value="id">🇮🇩 ID</option>
+                        <option value="pl">🇵🇱 PL</option>
+                    </select>
+                </div>
+
+                <a href="/download/AlbionDataPro.apk?v=${CURRENT_SERVER_VERSION}" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
+                    <i class="fa-solid fa-download"></i> APK Download
+                </a>
+            </div>
         </div>
     </header>
 
@@ -980,6 +1000,21 @@ app.get(['/', '/get', '/app'], (req, res) => {
         <p class="text-xs mt-2 text-slate-600">Dieses Analyse-Tool steht in keiner offiziellen Verbindung zu Sandbox Interactive.</p>
     </footer>
 
+    <script>
+        function changeWebLanguage(lang) {
+            try { localStorage.setItem('web_lang', lang); } catch (_) {}
+        }
+        document.addEventListener("DOMContentLoaded", function() {
+            try {
+                const saved = localStorage.getItem('web_lang') || navigator.language.substring(0, 2).toLowerCase();
+                const select = document.getElementById('webLangSelect');
+                if (select) {
+                    const opt = Array.from(select.options).find(o => o.value === saved);
+                    if (opt) select.value = saved;
+                }
+            } catch (_) {}
+        });
+    </script>
 </body>
 </html>`);
 });
