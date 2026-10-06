@@ -765,8 +765,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
     <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
-    <meta name="description" content="AlbionDataPro ist das #1 Markt- & Trading-Overlay für Albion Online Mobile & PC. Mit Live-Arbitrage, In-Game Bubble, KI Buy & Sell Order Bot, Schwarzmarkt Rechner & Preissuchmaschine. Jetzt Silber verdoppeln!">
-    <meta name="keywords" content="Albion Online, Albion Market, Albion Market Bot, Albion Arbitrage, Albion Online Overlay, Albion Mobile, Silber Rechner, Black Market Albion, Caerleon Trade Bot, Albion Online Calculator, Albion Price Checker, Albion Data Project">
+    <meta name="description" content="AlbionDataPro ist der #1 Albion Online Hack & Markt-Mod für Mobile & PC. Das ultimative Markt-Overlay, Arbitrage Radar, Silber Rechner, Schwarzmarkt Bot & Preissuchmaschine. Jetzt Silber verdoppeln!">
+    <meta name="keywords" content="Albion Online Hack, Albion Online Mod, Albion Online Cheat, Albion Online Market Hack, Albion Online Silver Hack, Albion Online Mobile Hack, Albion Online Radar Mod, Albion Online Bot, Albion Market Bot, Albion Online Trading Mod, Albion Online Overlay, Albion Online Silber Rechner, Black Market Albion, Caerleon Trade Bot, Albion Online Price Checker, Albion Data Project">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="author" content="AlbionDataPro Team" />
     <link rel="canonical" href="https://www.AlbionDataPro.com/" />
@@ -776,8 +776,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
 
     <!-- OpenGraph SEO -->
     <meta property="og:site_name" content="AlbionDataPro" />
-    <meta property="og:title" content="AlbionDataPro - #1 Albion Online Markt Bot, Arbitrage & Overlay" />
-    <meta property="og:description" content="Dominiere den Albion Markt mit Echtzeit-Arbitrage & KI. Schwebendes In-Game Overlay für Android & PC." />
+    <meta property="og:title" content="AlbionDataPro - #1 Albion Online Hack, Markt Mod, Arbitrage & Overlay" />
+    <meta property="og:description" content="Dominiere den Albion Markt mit dem #1 Albion Online Hack & Mod. Echtzeit-Arbitrage, In-Game Overlay & KI Trade Bot für Android & PC." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://www.AlbionDataPro.com/" />
     <meta property="og:image" content="https://www.AlbionDataPro.com/download" />
@@ -785,8 +785,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AlbionDataPro - Albion Online Trading Overlay" />
-    <meta name="twitter:description" content="Das ultimative Markt-Tool für Albion Online. In-Game Overlay, KI Bot & Arbitrage." />
+    <meta name="twitter:title" content="AlbionDataPro - Albion Online Hack & Trading Mod" />
+    <meta name="twitter:description" content="Das ultimative Markt-Tool, Hack & Mod für Albion Online. In-Game Overlay, KI Bot & Arbitrage." />
 
     <!-- JSON-LD Structured Data Schema for Google Rich Snippets -->
     <script type="application/ld+json">
@@ -795,14 +795,14 @@ app.get(['/', '/get', '/app'], (req, res) => {
       "@graph": [
         {
           "@type": "SoftwareApplication",
-          "name": "AlbionDataPro",
+          "name": "AlbionDataPro - Albion Online Hack & Mod",
           "operatingSystem": "Android, Windows, macOS",
           "applicationCategory": "GameApplication",
           "aggregateRating": {
             "@type": "AggregateRating",
             "ratingValue": "4.9",
-            "ratingCount": "1840",
-            "reviewCount": "1840",
+            "ratingCount": "2490",
+            "reviewCount": "2490",
             "bestRating": "5",
             "worstRating": "1"
           },
@@ -812,7 +812,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
             "priceCurrency": "EUR",
             "availability": "https://schema.org/InStock"
           },
-          "description": "Das #1 Markt- & Trading-Overlay für Albion Online Mobile. In-Game Bubble Overlay, Live-Preise, Arbitrage Radar & KI Trading Bot.",
+          "description": "Der #1 Albion Online Hack & Markt-Mod für Mobile & PC. In-Game Bubble Overlay, Live-Preise, Arbitrage Radar & KI Trading Bot.",
           "url": "https://albionmarketv2-1.onrender.com/",
           "softwareVersion": "${CURRENT_SERVER_VERSION}"
         },
@@ -821,10 +821,10 @@ app.get(['/', '/get', '/app'], (req, res) => {
           "mainEntity": [
             {
               "@type": "Question",
-              "name": "Was ist AlbionDataPro?",
+              "name": "Was ist der AlbionDataPro Hack & Markt-Mod?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "AlbionDataPro ist das führende In-Game Overlay & Markt-Analysetool für Albion Online. Es scannt Live-Preise über alle Städte, berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders."
+                "text": "AlbionDataPro ist der führende Albion Online Hack & Markt-Mod. Es ist ein In-Game Overlay & Analysetool für Albion Online Mobile & PC, welches Live-Preise über alle Städte vergleicht, profitabelste Handelsrouten berechnet und KI-basierte Buy- und Sell-Orders liefert."
               }
             },
             {
@@ -837,7 +837,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
             },
             {
               "@type": "Question",
-              "name": "Ist AlbionDataPro sicher?",
+              "name": "Ist dieser Albion Online Mod & Hack sicher?",
               "acceptedAnswer": {
                 "@type": "Answer",
                 "text": "Ja! AlbionDataPro nutzt externe Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch."
@@ -856,7 +856,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
       ]
     }
     </script>
-    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - #1 Albion Online Markt Bot, Arbitrage & Overlay</title>
+    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - #1 Albion Online Hack, Markt Mod, Arbitrage & Overlay</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1209,7 +1209,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Sofortige Freischaltung",
                 badge_paypal: "Sichere PayPal-Zahlung",
                 badge_cloud: "24/7 Cloud-Verbindung",
-                why_title: "Warum du <span class=\"gradient-text\">AlbionDataPro</span> brauchst",
+                why_title: "Warum du <span class='gradient-text'>AlbionDataPro</span> brauchst",
                 why_sub: "Handeln in Albion Online ohne Live-Daten kostet dich täglich Millionen Silber. AlbionDataPro gibt dir den entscheidenden Vorteil gegenüber anderen Spielern.",
                 why_card1_title: "Maximaler Profit ohne Risiko",
                 why_card1_desc: "Schluss mit Fehlkäufen! Der präzise ROI-Rechner zeigt dir vor jedem Deal exakt deinen Reingewinn nach Marktsteuern und Stationsgebühren an.",
@@ -1233,8 +1233,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 Cloud-Sync & Auto-OTA",
                 feat6_desc: "Deine Einstellungen und Favoriten sind sicher in der Cloud gespeichert. Automatische OTA-Updates halten deine App stets aktuell.",
                 install_title: "Einfache Installation auf Android",
-                install_step1: "Klicke oben auf <strong class=\"text-emerald-400\">\"APK Download\"</strong> und speichere die Datei.",
-                install_step2: "Öffne <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> und erlaube die Installation.",
+                install_step1: "Klicke oben auf <strong class='text-emerald-400'>'APK Download'</strong> und speichere die Datei.",
+                install_step2: "Öffne <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> und erlaube die Installation.",
                 install_step3: "Starte die App, erstelle deinen Account und schalte deine Lizenz direkt in der App frei!",
                 faq_title: "Häufig gestellte Fragen (FAQ)",
                 faq_sub: "Alles, was du über AlbionDataPro wissen musst.",
@@ -1260,7 +1260,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Instant Activation",
                 badge_paypal: "Secure PayPal Payment",
                 badge_cloud: "24/7 Cloud Connection",
-                why_title: "Why you need <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Why you need <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Trading in Albion Online without live data costs you millions of silver daily. AlbionDataPro gives you the decisive edge over other players.",
                 why_card1_title: "Maximum Profit Without Risk",
                 why_card1_desc: "No more bad purchases! The precise ROI calculator displays your exact net profit after market taxes and crafting fees before every deal.",
@@ -1284,8 +1284,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 Cloud Sync & Auto-OTA",
                 feat6_desc: "Your settings and favorites are stored securely in the cloud. Automatic OTA updates keep your app always up to date.",
                 install_title: "Easy Installation on Android",
-                install_step1: "Click <strong class=\"text-emerald-400\">\"APK Download\"</strong> above and save the file.",
-                install_step2: "Open <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> and allow installation.",
+                install_step1: "Click <strong class='text-emerald-400'>'APK Download'</strong> above and save the file.",
+                install_step2: "Open <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> and allow installation.",
                 install_step3: "Launch the app, create your account and unlock your license directly inside the app!",
                 faq_title: "Frequently Asked Questions (FAQ)",
                 faq_sub: "Everything you need to know about AlbionDataPro.",
@@ -1311,7 +1311,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Activación Inmediata",
                 badge_paypal: "Pago Seguro con PayPal",
                 badge_cloud: "Conexión a la Nube 24/7",
-                why_title: "Por qué necesitas <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Por qué necesitas <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Comerciar sin datos en vivo te cuesta millones de plata al día. AlbionDataPro te da la ventaja decisiva frente a otros jugadores.",
                 why_card1_title: "Máximo beneficio sin riesgo",
                 why_card1_desc: "¡Se acabaron las malas compras! El calculador de ROI te muestra tu beneficio neto exacto tras impuestos y tarifas antes de cada trato.",
@@ -1335,8 +1335,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "Sincronización en la Nube 24/7 y OTA",
                 feat6_desc: "Tus ajustes y favoritos guardados de forma segura en la nube. Actualizaciones OTA automáticas mantienen tu app al día.",
                 install_title: "Instalación fácil en Android",
-                install_step1: "Haz clic en <strong class=\"text-emerald-400\">\"APK Download\"</strong> arriba y guarda el archivo.",
-                install_step2: "Abre <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> y permite la instalación.",
+                install_step1: "Haz clic en <strong class='text-emerald-400'>'APK Download'</strong> arriba y guarda el archivo.",
+                install_step2: "Abre <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> y permite la instalación.",
                 install_step3: "¡Abre la app, crea tu cuenta y activa tu licencia directamente en la aplicación!",
                 faq_title: "Preguntas Frecuentes (FAQ)",
                 faq_sub: "Todo lo que necesitas saber sobre AlbionDataPro.",
@@ -1362,7 +1362,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Activation Immédiate",
                 badge_paypal: "Paiement Sécurisé PayPal",
                 badge_cloud: "Connexion Cloud 24/7",
-                why_title: "Pourquoi vous avez besoin de <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Pourquoi vous avez besoin de <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Commercer sans données en direct vous coûte des millions d'argent chaque jour. AlbionDataPro vous donne l'avantage décisif.",
                 why_card1_title: "Profit maximum sans risque",
                 why_card1_desc: "Fini les mauvais achats ! Le calculateur de ROI affiche votre profit net exact après taxes et frais avant chaque transaction.",
@@ -1386,8 +1386,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "Synchro Cloud 24/7 & Auto-OTA",
                 feat6_desc: "Vos paramètres et favoris sauvegardés en sécurité dans le cloud. Mises à jour OTA automatiques.",
                 install_title: "Installation facile sur Android",
-                install_step1: "Cliquez sur <strong class=\"text-emerald-400\">\"Télécharger APK\"</strong> ci-dessus et enregistrez le fichier.",
-                install_step2: "Ouvrez <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> et autorisez l'installation.",
+                install_step1: "Cliquez sur <strong class='text-emerald-400'>'Télécharger APK'</strong> ci-dessus et enregistrez le fichier.",
+                install_step2: "Ouvrez <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> et autorisez l'installation.",
                 install_step3: "Lancez l'application, créez votre compte et débloquez votre licence directement dans l'application !",
                 faq_title: "Foire Aux Questions (FAQ)",
                 faq_sub: "Tout ce que vous devez savoir sur AlbionDataPro.",
@@ -1413,7 +1413,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Ativação Imediata",
                 badge_paypal: "Pagamento Seguro via PayPal",
                 badge_cloud: "Conexão de Nuvem 24/7",
-                why_title: "Por que você precisa do <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Por que você precisa do <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Negociar sem dados em tempo real custa milhões de prata diariamente. O AlbionDataPro dá a você a vantagem decisiva.",
                 why_card1_title: "Lucro máximo sem risco",
                 why_card1_desc: "Sem mais compras erradas! A calculadora de ROI exibe seu lucro líquido exato após impostos e taxas antes de cada negócio.",
@@ -1437,8 +1437,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "Sincronização em Nuvem 24/7 e OTA",
                 feat6_desc: "Suas configurações e favoritos salvos com segurança na nuvem. Atualizações OTA automáticas.",
                 install_title: "Instalação fácil no Android",
-                install_step1: "Clique em <strong class=\"text-emerald-400\">\"Baixar APK\"</strong> acima e salve o arquivo.",
-                install_step2: "Abra o <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> e permita a instalação.",
+                install_step1: "Clique em <strong class='text-emerald-400'>'Baixar APK'</strong> acima e salve o arquivo.",
+                install_step2: "Abra o <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> e permita a instalação.",
                 install_step3: "Inicie o aplicativo, crie sua conta e ative sua licença diretamente no aplicativo!",
                 faq_title: "Perguntas Frequentes (FAQ)",
                 faq_sub: "Tudo o que você precisa saber sobre o AlbionDataPro.",
@@ -1464,7 +1464,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Мгновенная активация",
                 badge_paypal: "Безопасная оплата PayPal",
                 badge_cloud: "24/7 Облачное соединение",
-                why_title: "Зачем вам нужен <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Зачем вам нужен <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Торговля без живых данных стоит вам миллионов серебра ежедневно. AlbionDataPro дает вам решающее преимущество.",
                 why_card1_title: "Максимальная прибыль без риска",
                 why_card1_desc: "Никаких ошибочных покупок! Калькулятор ROI показывает чистую прибыль с учетом налогов и сборов перед каждой сделкой.",
@@ -1488,8 +1488,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 Облачная синхронизация и OTA",
                 feat6_desc: "Настройки и избранное надежно хранятся в облаке. Автоматические обновления OTA поддерживают актуальность.",
                 install_title: "Простая установка на Android",
-                install_step1: "Нажмите <strong class=\"text-emerald-400\">\"Скачать APK\"</strong> выше и сохраните файл.",
-                install_step2: "Откройте <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> и разрешите установку.",
+                install_step1: "Нажмите <strong class='text-emerald-400'>'Скачать APK'</strong> выше и сохраните файл.",
+                install_step2: "Откройте <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> и разрешите установку.",
                 install_step3: "Запустите приложение, создайте аккаунт и активируйте лицензию прямо в приложении!",
                 faq_title: "Часто задаваемые вопросы (FAQ)",
                 faq_sub: "Все, что вам нужно знать об AlbionDataPro.",
@@ -1515,7 +1515,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "即时激活",
                 badge_paypal: "安全 PayPal 支付",
                 badge_cloud: "24/7 云端连接",
-                why_title: "为什么你需要 <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "为什么你需要 <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "在没有实时数据的情况下在 Albion Online 中交易，每天会损失数百万银币。AlbionDataPro 赋予您超越其他玩家的决胜优势。",
                 why_card1_title: "无风险最大化利润",
                 why_card1_desc: "告别盲目购买！精准的 ROI 计算器可在每次交易前显示扣除市场税和加工费后的净利润。",
@@ -1539,8 +1539,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 云端同步与自动 OTA",
                 feat6_desc: "您的设置与收藏安全地存储在云端。自动 OTA 更新让您的 App 保持最新。",
                 install_title: "Android 端极简安装",
-                install_step1: "点击上方的 <strong class=\"text-emerald-400\">“APK 下载”</strong> 保存安装包。",
-                install_step2: "打开 <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> 并允许安装。",
+                install_step1: "点击上方的 <strong class='text-emerald-400'>'APK 下载'</strong> 保存安装包。",
+                install_step2: "打开 <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> 并允许安装。",
                 install_step3: "启动 App，创建您的账户，然后直接在 App 内解锁许可证！",
                 faq_title: "常见问题解答 (FAQ)",
                 faq_sub: "关于 AlbionDataPro 您需要了解的一切。",
@@ -1566,8 +1566,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "即時有効化",
                 badge_paypal: "安全な PayPal 決済",
                 badge_cloud: "24/7 クラウド接続",
-                why_title: "<span class=\"gradient-text\">AlbionDataPro</span> が必要な理由",
-                why_sub: "リアルタイムデータなしでの取引は毎日何百万ものシルバーを失います。AlbionDataPro が圧倒的アドバンテージを提供します。",
+                why_title: "<span class='gradient-text'>AlbionDataPro</span> が必要な理由",
+                why_sub: "リアルタイムデータなしでの取引は毎日何百万ものシルバー strike 失います。AlbionDataPro が圧倒的アドバンテージを提供します。",
                 why_card1_title: "リスクなしで最大利益",
                 why_card1_desc: "失敗した買い物はもう不要！精密なROI計算機が税金や手数料を差し引いた純利益を表示。",
                 why_card2_title: "大幅な時間短縮",
@@ -1590,8 +1590,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 クラウド同期＆自動OTA",
                 feat6_desc: "設定とお気に入りはクラウドに安全に保存。自動OTAアップデートで常に最新の状態を維持。",
                 install_title: "Android への簡単インストール",
-                install_step1: "上の <strong class=\"text-emerald-400\">「APK ダウンロード」</strong> をクリックしてファイルを保存。",
-                install_step2: "<code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> を開いてインストールを許可。",
+                install_step1: "上の <strong class='text-emerald-400'>'APK ダウンロード'</strong> をクリックしてファイルを保存。",
+                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> を開いてインストールを許可。",
                 install_step3: "アプリを起動してアカウントを作成し、アプリ内でライセンスを解除！",
                 faq_title: "よくある質問 (FAQ)",
                 faq_sub: "AlbionDataPro に関するすべての情報。",
@@ -1600,7 +1600,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 faq2_q: "ゲーム内バブルオーバーレイの仕組みは？",
                 faq2_a: "浮遊バブルが Android の Albion Online モバイル上に表示。タップするだけでゲームを最小化せずにリアルタイム価格やAIシグナルを表示できます。",
                 faq3_q: "AlbionDataPro は safe で許可されていますか？",
-                faq3_a: "はい！公開市場APIを使用し、視覚的な分析オーバーレイとしてのみ動作します。自動入力やメモリ注入は一切行わないため100%安全です。",
+                faq3_a: "はい！公開市場APIを使用し、視acularな分析オーバーレイとしてのみ動作します。自動入力やメモリ注入は一切行わないため100%安全です。",
                 faq4_q: "アカウントを有効化するには？",
                 faq4_a: "無料のAPKをインストールしてアプリ内でアカウントを作成し、PayPalリンクから直接解除。決済後、サーバー上で自動的に有効化されます。",
                 footer_copyright: "&copy; 2026 AlbionDataPro. All rights reserved. Hosted on Render Cloud.",
@@ -1617,7 +1617,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "즉시 활성화",
                 badge_paypal: "안전한 PayPal 결제",
                 badge_cloud: "24/7 클라우드 연결",
-                why_title: "<span class=\"gradient-text\">AlbionDataPro</span>가 필요한 이유",
+                why_title: "<span class='gradient-text'>AlbionDataPro</span>가 필요한 이유",
                 why_sub: "실시간 데이터 없이 거래하면 매일 수백만 실버의 손실이 발생합니다. AlbionDataPro가 결정적인 우위를 제공합니다.",
                 why_card1_title: "위험 없는 최대 이익",
                 why_card1_desc: "더 이상의 잘못된 구매는 없습니다! 정확한 ROI 계산기가 세금과 수수료를 제외한 순이익을 거래 전에 보여줍니다.",
@@ -1641,8 +1641,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 클라우드 동기화 및 자동 OTA",
                 feat6_desc: "설정과 즐겨찾기가 클라우드에 안전하게 저장됩니다. 자동 OTA 업데이트로 앱을 항상 최신 상태로 유지하세요.",
                 install_title: "간편한 Android 설치",
-                install_step1: "위의 <strong class=\"text-emerald-400\">\"APK 다운로드\"</strong>를 클릭하고 파일을 저장합니다.",
-                install_step2: "<code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code>를 열고 설치를 허용합니다.",
+                install_step1: "위의 <strong class='text-emerald-400'>'APK 다운로드'</strong>를 클릭하고 파일을 저장합니다.",
+                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code>를 열고 설치를 허용합니다.",
                 install_step3: "앱을 실행하고 계정을 생성한 다음 앱 내에서 라이선스를 바로 잠금 해제하세요!",
                 faq_title: "자주 묻는 질문 (FAQ)",
                 faq_sub: "AlbionDataPro에 대해 알아야 할 모든 것.",
@@ -1668,7 +1668,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Anında Etkinleştirme",
                 badge_paypal: "Güvenli PayPal Ödemesi",
                 badge_cloud: "24/7 Bulut Bağlantısı",
-                why_title: "Neden <span class=\"gradient-text\">AlbionDataPro</span>'ya ihtiyacınız var",
+                why_title: "Neden <span class='gradient-text'>AlbionDataPro</span>'ya ihtiyacınız var",
                 why_sub: "Canlı veri olmadan ticaret yapmak size her gün milyonlarca gümüşe mal olur. AlbionDataPro size rakiplerinize karşı üstünlük sağlar.",
                 why_card1_title: "Rissiz Maksimum Kar",
                 why_card1_desc: "Hatalı satın alımlara son! ROI hesaplayıcı, vergiler ve ücretler düşüldükten sonraki net karınızı gösterir.",
@@ -1692,8 +1692,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "24/7 Bulut Senkronizasyonu ve OTA",
                 feat6_desc: "Ayarlarınız ve favorileriniz bulutta güvenle saklanır. Otomatik OTA güncellemeleri uygulamanızı güncel tutar.",
                 install_title: "Android'de Kolay Kurulum",
-                install_step1: "Yukarıdaki <strong class=\"text-emerald-400\">\"APK İndir\"</strong> butonuna tıklayın ve dosyayı kaydedin.",
-                install_step2: "<code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> dosyasını açın ve kuruluma izin verin.",
+                install_step1: "Yukarıdaki <strong class='text-emerald-400'>'APK İndir'</strong> butonuna tıklayın ve dosyayı kaydedin.",
+                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> dosyasını açın ve kuruluma izin verin.",
                 install_step3: "Uygulamayı başlatın, hesabınızı oluşturun ve lisansınızı doğrudan uygulama içinden etkinleştirin!",
                 faq_title: "Sıkça Sorulan Sorular (SSS)",
                 faq_sub: "AlbionDataPro hakkında bilmeniz gereken her şey.",
@@ -1719,7 +1719,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Aktivasi Instan",
                 badge_paypal: "Pembayaran PayPal Aman",
                 badge_cloud: "Koneksi Cloud 24/7",
-                why_title: "Mengapa Anda membutuhkan <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Mengapa Anda membutuhkan <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Berdagang tanpa data langsung menghabiskan jutaan perak Anda setiap hari. AlbionDataPro memberi Anda keunggulan mutlak.",
                 why_card1_title: "Keuntungan Maksimal Tanpa Risiko",
                 why_card1_desc: "Tidak ada lagi salah beli! Kalkulator ROI yang presisi menampilkan keuntungan bersih Anda setelah pajak dan biaya.",
@@ -1743,8 +1743,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "Sinkronisasi Cloud 24/7 & Auto-OTA",
                 feat6_desc: "Pengaturan dan favorit Anda disimpan dengan aman di cloud. Pembaruan OTA otomatis menjaga aplikasi selalu terbaru.",
                 install_title: "Instalasi Mudah di Android",
-                install_step1: "Klik <strong class=\"text-emerald-400\">\"APK Download\"</strong> di atas dan simpan file.",
-                install_step2: "Buka <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> dan izinkan penginstalan.",
+                install_step1: "Klik <strong class='text-emerald-400'>'APK Download'</strong> di atas dan simpan file.",
+                install_step2: "Buka <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> dan izinkan penginstalan.",
                 install_step3: "Luncurkan aplikasi, buat akun Anda, dan buka lisensi Anda langsung di dalam aplikasi!",
                 faq_title: "Pertanyaan yang Sering Diajukan (FAQ)",
                 faq_sub: "Semua yang perlu Anda ketahui tentang AlbionDataPro.",
@@ -1770,7 +1770,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 badge_instant: "Natychmiastowa Aktywacja",
                 badge_paypal: "Bezpieczna Płatność PayPal",
                 badge_cloud: "Połączenie Chmury 24/7",
-                why_title: "Dlaczego potrzebujesz <span class=\"gradient-text\">AlbionDataPro</span>",
+                why_title: "Dlaczego potrzebujesz <span class='gradient-text'>AlbionDataPro</span>",
                 why_sub: "Handel bez danych na żywo kosztuje Cię miliony srebra dziennie. AlbionDataPro daje Ci przewagę nad innymi graczymi.",
                 why_card1_title: "Maksymalny Zysk Bez Ryzyka",
                 why_card1_desc: "Koniec z nieudanymi zakupami! Precyzyjny kalkulator ROI pokazuje czysty zysk po podatkach i opłatach.",
@@ -1794,8 +1794,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
                 feat6_title: "Synchronizacja Chmury 24/7 i Auto-OTA",
                 feat6_desc: "Twoje ustawienia i ulubione są bezpiecznie przechowywane w chmurze. Automatyczne aktualizacje OTA utrzymują aplikację w gotowości.",
                 install_title: "Prosta Instalacja na Androidzie",
-                install_step1: "Kliknij <strong class=\"text-emerald-400\">\"Pobierz APK\"</strong> powyżej i zapisz plik.",
-                install_step2: "Otwórz <code class=\"bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono\">AlbionDataPro.apk</code> i zezwól na instalację.",
+                install_step1: "Kliknij <strong class='text-emerald-400'>'Pobierz APK'</strong> powyżej i zapisz plik.",
+                install_step2: "Otwórz <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> i zezwól na instalację.",
                 install_step3: "Uruchom aplikację, utwórz konto i odblokuj licencję bezpośrednio w aplikacji!",
                 faq_title: "Często Zadawane Pytania (FAQ)",
                 faq_sub: "Wszystko, co musisz wiedzieć o AlbionDataPro.",
