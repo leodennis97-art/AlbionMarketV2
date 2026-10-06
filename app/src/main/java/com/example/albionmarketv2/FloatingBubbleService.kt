@@ -960,9 +960,17 @@ fun BubbleOverlayContent(
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFF1E3A4C),
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = maxBubbleHeightTab)
+                                    .padding(vertical = 2.dp),
                             ) {
-                                Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(6.dp)
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                                ) {
                                     // Row 1: Item Name, Tier/Enchantment & Net Profit
                                     Row(
                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1231,9 +1239,15 @@ fun BubbleOverlayContent(
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = Color(0xFF1E3A4C),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = maxBubbleHeightTab)
                             ) {
-                                Column(modifier = Modifier.padding(6.dp)) {
+                                Column(
+                                    modifier = Modifier
+                                        .padding(6.dp)
+                                        .verticalScroll(rememberScrollState())
+                                ) {
                                     Text(
                                         text = "${activeOrder.resourceNameDe} (${activeOrder.tierText})",
                                         color = Color.White,
