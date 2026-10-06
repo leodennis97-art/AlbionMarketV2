@@ -366,10 +366,10 @@ object AdvancedTradingBot {
             if (buyCandidates.isEmpty()) continue
             val bestBuy = buyCandidates.minByOrNull { it.sellPriceMin } ?: continue
 
-            // Verkaufs-Stadt bestimmen (höchster Preis in anderer Stadt)
-            val sellCandidates = filteredPrices.filter { !TradeCalculator.citiesMatch(it.city, bestBuy.city) && it.sellPriceMin > 0 }
+            // Verkaufs-Stadt bestimmen (höchste Kauforder oder höchster Preis in anderer Stadt)
+            val sellCandidates = filteredPrices.filter { !TradeCalculator.citiesMatch(it.city, bestBuy.city) && (it.buyPriceMax > 0 || it.sellPriceMin > 0) }
             if (sellCandidates.isEmpty()) continue
-            val bestSell = sellCandidates.maxByOrNull { it.sellPriceMin } ?: continue
+            val bestSell = sellCandidates.maxByOrNull { if (it.buyPriceMax > 0) it.buyPriceMax else it.sellPriceMin } ?: continue
 
             // Strikter Filter für Rote Zonen, Schmuggler/Schwarzmarkt und Brecilien
             if (avoidDangerous && (TradeCalculator.isDangerousCity(bestBuy.city) || TradeCalculator.isDangerousCity(bestSell.city))) continue
@@ -381,7 +381,7 @@ object AdvancedTradingBot {
             if (zones > maxZones) continue
 
             val buyPrice = bestBuy.sellPriceMin
-            val sellPrice = bestSell.sellPriceMin
+            val sellPrice = if (bestSell.buyPriceMax > 0) bestSell.buyPriceMax else bestSell.sellPriceMin
             if (buyPrice < 10 || sellPrice <= buyPrice) continue
 
             // 🎯 Prädiktive KI-Buy- & Sell-Order Modellierung (Dip-Kauf & Peak-Verkauf)

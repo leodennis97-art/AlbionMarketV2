@@ -30,6 +30,12 @@ const ACME_DIR = path.join(__dirname, '.well-known', 'acme-challenge');
 if (!fs.existsSync(ACME_DIR)) fs.mkdirSync(ACME_DIR, { recursive: true });
 app.use('/.well-known/acme-challenge', express.static(ACME_DIR));
 
+// Digital Asset Links for Android App Links verification
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.sendFile(path.join(__dirname, 'assetlinks.json'));
+});
+
 // Security Middleware: Allow all connections (removed IP block on 74.220.*)
 app.use((req, res, next) => {
     next();
@@ -901,6 +907,71 @@ app.get(['/sitemap.hml', '/sitemap.html', '/sitemap'], (req, res) => {
     res.redirect(301, '/sitemap.xml');
 });
 
+// Privacy Policy Route
+app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
+    res.send(`<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datenschutzerklärung - AlbionDataPro</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
+        h1 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+        h2 { color: #38bdf8; margin-top: 30px; }
+        a { color: #38bdf8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: 1px solid #334155; }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Datenschutzerklärung für AlbionDataPro (AlbionMarketV2)</h1>
+        <p><strong>Stand:</strong> Januar 2026</p>
+        <p>Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten innerhalb unserer Android-App <strong>AlbionDataPro</strong> (sowie der zugehörigen Webdienste und APIs unter <code>albionmarketv2-1.onrender.com</code> und <code>www.AlbionDataPro.com</code>) auf.</p>
+
+        <h2>1. Verantwortlicher</h2>
+        <p>Verantwortlicher im Sinne der Datenschutzgesetze ist:<br>
+        <strong>Entwickler / Betreiber:</strong> AlbionDataPro Team / Leo Dennis<br>
+        <strong>Website:</strong> <a href="https://www.AlbionDataPro.com">https://www.AlbionDataPro.com</a></p>
+
+        <h2>2. Arten der verarbeiteten Daten</h2>
+        <ul>
+            <li><strong>Geräte- und Technische Daten:</strong> Geräte-ID (Hardware-ID), Betriebssystemversion, IP-Adresse, App-Version und Absturzprotokolle zur Sicherung des Betriebs und zur Fehlerbehebung.</li>
+            <li><strong>Lizenz- und Account-Daten:</strong> Aktivierungsschlüssel (License Keys) zur Verifizierung von Kauf- und Testversionen sowie ggf. Authentifizierungsdaten.</li>
+            <li><strong>Nutzungs- und Marktdaten:</strong> Vom Nutzer eingegebene oder abgefragte Handelsdaten, Marktdaten, Preisalarme und Einstellungen zur Synchronisation mit unseren Servern.</li>
+            <li><strong>Zahlungsdaten:</strong> Zahlungen werden über externe Zahlungsdienstleister (z. B. PayPal) abgewickelt. Wir speichern keine Kreditkarten- oder Bankdaten.</li>
+        </ul>
+
+        <h2>3. Zweck der Datenverarbeitung</h2>
+        <ul>
+            <li>Bereitstellung der App-Funktionen (Marktanalysen, Handelsbots, Preissynchronisation).</li>
+            <li>Lizenzprüfung, Betrugsschutz und Verwaltung von Software-Updates (OTA-Updates).</li>
+            <li>Kommunikation mit dem Server zur Marktdatensynchronisation.</li>
+        </ul>
+
+        <h2>4. Einsatz von Drittanbietern und APIs</h2>
+        <ul>
+            <li><strong>Eigenes Backend (Render):</strong> <code>https://albionmarketv2-1.onrender.com</code> zur Daten- und Lizenzsynchronisation.</li>
+            <li><strong>Firebase (Google):</strong> Für Authentifizierung, Push-Benachrichtigungen und Crash-Reporting.</li>
+            <li><strong>Albion Online Data Project APIs:</strong> Zum Abrufen öffentlicher Spielmarktstatistiken.</li>
+            <li><strong>PayPal:</strong> Zur Abwicklung von Lizenzkäufen und Spenden.</li>
+        </ul>
+
+        <h2>5. Datensicherheit</h2>
+        <p>Wir setzen technische und organisatorische Sicherheitsmaßnahmen ein (u. a. verschlüsselte HTTPS-Verbindungen und Token-Authentifizierung), um Ihre Daten zu schützen.</p>
+
+        <h2>6. Ihre Rechte als Nutzer</h2>
+        <p>Sie haben das Recht auf Auskunft, Berichtigung oder Löschung Ihrer Daten. Bei Fragen kontaktieren Sie uns über unsere Website.</p>
+
+        <p style="margin-top: 40px; text-align: center;"><a href="/">← Zurück zur Startseite</a></p>
+    </div>
+</body>
+</html>`);
+});
+
 // Landing Pages (10 Specialized SEO Portal Routes for Google Rank #1)
 app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/calculator', '/overlay', '/mobile', '/guide'], (req, res) => {
     const route = req.path.toLowerCase();
@@ -1370,6 +1441,9 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
             <span class="font-bold text-slate-400">AlbionDataPro v${CURRENT_SERVER_VERSION}</span>
         </div>
         <p data-i18n-html="footer_copyright">&copy; 2026 AlbionDataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.</p>
+        <div class="mt-2 text-xs">
+            <a href="/privacy" class="text-sky-400 hover:underline">Datenschutzerklärung / Privacy Policy</a>
+        </div>
         <p data-i18n="footer_disclaimer" class="text-xs mt-2 text-slate-600">Dieses Analyse-Tool steht in keiner offiziellen Verbindung zu Sandbox Interactive.</p>
     </footer>
 
