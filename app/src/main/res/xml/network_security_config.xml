@@ -10,7 +10,9 @@
 
     <!-- HTTPS & Outbound Domain Endpoints -->
     <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">AlbionDataPro.com</domain>
         <domain includeSubdomains="true">onrender.com</domain>
+        <domain includeSubdomains="true">216.24.57.1</domain>
         <domain includeSubdomains="true">albiononlinebuilds.com</domain>
         <domain includeSubdomains="true">albion-online.com</domain>
         <domain includeSubdomains="true">ngrok-free.dev</domain>

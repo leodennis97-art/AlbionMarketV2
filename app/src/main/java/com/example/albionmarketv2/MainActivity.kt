@@ -1055,6 +1055,31 @@ fun UnlockedLockscreenContent(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
+                var currentAppLang by remember { mutableStateOf(prefs.appLanguage) }
+
+                // Top Header Row with Language Button on Bubble Activation Screen
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "🌐 ${LanguageManager.getString("lang_select", currentAppLang)}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF38BDF8)
+                    )
+
+                    GlowingLanguageSelectorButton(
+                        currentLanguageCode = currentAppLang,
+                        onLanguageSelected = { newLang ->
+                            prefs.appLanguage = newLang
+                            currentAppLang = newLang
+                            AiTranslationEngine.setLanguage(newLang)
+                            LanguageManager.updateAppLocale(context, newLang)
+                        }
+                    )
+                }
                 Text(
                     text = "🔒 Login",
                     fontSize = 18.sp,
@@ -1192,7 +1217,7 @@ fun UnlockedLockscreenContent(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Text(
-                                        text = if (isBubbleRunning) "🛑 Overlay Beenden" else "⚡ Overlay Starten",
+                                        text = LanguageManager.translateUI(if (isBubbleRunning) "🛑 Overlay Beenden" else "⚡ Overlay Starten", currentAppLang),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 11.sp,
                                         color = Color.White
@@ -1207,7 +1232,7 @@ fun UnlockedLockscreenContent(
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f)
                                 ) {
-                                    Text("📲 App Minimieren", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
+                                    Text(LanguageManager.translateUI("📲 App Minimieren", currentAppLang), fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
                                 }
                             }
                         }
@@ -1250,7 +1275,7 @@ fun UnlockedLockscreenContent(
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("🔒 Abmelden / Sperren", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                        Text(LanguageManager.translateUI("🔒 Abmelden / Sperren", currentAppLang), fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
                     }
                 }
             }

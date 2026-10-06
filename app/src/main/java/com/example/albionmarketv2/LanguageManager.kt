@@ -1,6 +1,8 @@
 package com.example.albionmarketv2
 
+import android.content.Context
 import androidx.compose.runtime.compositionLocalOf
+import java.util.Locale
 
 val LocalAppLanguage = compositionLocalOf { "DE" }
 
@@ -368,6 +370,16 @@ object LanguageManager {
         return translated ?: enMap[key] ?: translateUI(baseDe, cleanLang)
     }
 
+    fun updateAppLocale(context: Context, langCode: String) {
+        try {
+            val locale = Locale(langCode.lowercase())
+            Locale.setDefault(locale)
+            val config = context.resources.configuration
+            config.setLocale(locale)
+            context.resources.updateConfiguration(config, context.resources.displayMetrics)
+        } catch (_: Exception) {}
+    }
+
     fun translateUI(text: String, langCode: String): String {
         if (text.isBlank()) return text
         val cleanLang = langCode.trim().uppercase()
@@ -398,11 +410,17 @@ object LanguageManager {
             .replace("Einloggen", "Log In", ignoreCase = true)
             .replace("Anmelden", "Sign In", ignoreCase = true)
             .replace("Registrieren", "Register", ignoreCase = true)
-            .replace("Lizenz erwerben", "Purchase License", ignoreCase = true)
-            .replace("Auf Update prüfen", "Check for Updates", ignoreCase = true)
-            .replace("Suche nach Updates", "Checking for updates", ignoreCase = true)
-            .replace("Abmelden / Logout", "Log Out", ignoreCase = true)
+            .replace("Overlay Starten", "Start Overlay", ignoreCase = true)
+            .replace("Overlay Beenden", "Stop Overlay", ignoreCase = true)
+            .replace("App Minimieren", "Minimize App", ignoreCase = true)
             .replace("Abmelden / Sperren", "Log Out / Lock", ignoreCase = true)
+            .replace("Abmelden / Logout", "Log Out", ignoreCase = true)
+            .replace("Auf Update prüfen", "Check for Updates", ignoreCase = true)
+            .replace("Jetzt aktualisieren", "Update Now", ignoreCase = true)
+            .replace("Marge", "Margin", ignoreCase = true)
+            .replace("Neueste", "Newest", ignoreCase = true)
+            .replace("Wenigster Bestand", "Fewest Stock", ignoreCase = true)
+            .replace("Zugangsdaten merken", "Remember Credentials", ignoreCase = true)
             .replace("Server auswählen:", "Select Server:", ignoreCase = true)
             .replace("Silber-Budget", "Silver Budget", ignoreCase = true)
             .replace("Traglast (kg)", "Carry Capacity (kg)", ignoreCase = true)
@@ -436,6 +454,13 @@ object LanguageManager {
             .replace("Einloggen", "Iniciar sesión", ignoreCase = true)
             .replace("Anmelden", "Ingresar", ignoreCase = true)
             .replace("Registrieren", "Registrarse", ignoreCase = true)
+            .replace("Overlay Starten", "Iniciar Superposición", ignoreCase = true)
+            .replace("Overlay Beenden", "Detener Superposición", ignoreCase = true)
+            .replace("App Minimieren", "Minimizar App", ignoreCase = true)
+            .replace("Abmelden / Sperren", "Cerrar sesión / Bloquear", ignoreCase = true)
+            .replace("Auf Update prüfen", "Buscar actualizaciones", ignoreCase = true)
+            .replace("Marge", "Margen", ignoreCase = true)
+            .replace("Neueste", "Más reciente", ignoreCase = true)
             .replace("Silber-Budget", "Presupuesto de plata", ignoreCase = true)
             .replace("Kaufpreis", "Precio de compra", ignoreCase = true)
             .replace("Verkaufspreis", "Precio de venta", ignoreCase = true)
@@ -456,6 +481,10 @@ object LanguageManager {
             .replace("Einloggen", "Se connecter", ignoreCase = true)
             .replace("Anmelden", "Connexion", ignoreCase = true)
             .replace("Registrieren", "S'inscrire", ignoreCase = true)
+            .replace("Overlay Starten", "Lancer Overlay", ignoreCase = true)
+            .replace("Overlay Beenden", "Arrêter Overlay", ignoreCase = true)
+            .replace("App Minimieren", "Réduire l'application", ignoreCase = true)
+            .replace("Abmelden / Sperren", "Déconnexion / Verrouiller", ignoreCase = true)
             .replace("Silber-Budget", "Budget argent", ignoreCase = true)
             .replace("Kaufpreis", "Prix d'achat", ignoreCase = true)
             .replace("Verkaufspreis", "Prix de vente", ignoreCase = true)
@@ -474,6 +503,10 @@ object LanguageManager {
             .replace("Einloggen", "Entrar", ignoreCase = true)
             .replace("Anmelden", "Entrar", ignoreCase = true)
             .replace("Registrieren", "Registrar", ignoreCase = true)
+            .replace("Overlay Starten", "Iniciar Overlay", ignoreCase = true)
+            .replace("Overlay Beenden", "Parar Overlay", ignoreCase = true)
+            .replace("App Minimieren", "Minimizar App", ignoreCase = true)
+            .replace("Abmelden / Sperren", "Sair / Bloquear", ignoreCase = true)
             .replace("Silber-Budget", "Orçamento de prata", ignoreCase = true)
             .replace("Kaufpreis", "Preço de compra", ignoreCase = true)
             .replace("Verkaufspreis", "Preço de venda", ignoreCase = true)
@@ -492,6 +525,10 @@ object LanguageManager {
             .replace("Einloggen", "Войти", ignoreCase = true)
             .replace("Anmelden", "Вход", ignoreCase = true)
             .replace("Registrieren", "Регистрация", ignoreCase = true)
+            .replace("Overlay Starten", "Запустить оверлей", ignoreCase = true)
+            .replace("Overlay Beenden", "Остановить оверлей", ignoreCase = true)
+            .replace("App Minimieren", "Свернуть прилож.", ignoreCase = true)
+            .replace("Abmelden / Sperren", "Выйти / Заблокировать", ignoreCase = true)
             .replace("Silber-Budget", "Бюджет серебра", ignoreCase = true)
             .replace("Kaufpreis", "Цена покупки", ignoreCase = true)
             .replace("Verkaufspreis", "Цена продажи", ignoreCase = true)
@@ -510,6 +547,10 @@ object LanguageManager {
             .replace("Einloggen", "登录", ignoreCase = true)
             .replace("Anmelden", "登录", ignoreCase = true)
             .replace("Registrieren", "注册", ignoreCase = true)
+            .replace("Overlay Starten", "启动悬浮窗", ignoreCase = true)
+            .replace("Overlay Beenden", "关闭悬浮窗", ignoreCase = true)
+            .replace("App Minimieren", "最小化应用", ignoreCase = true)
+            .replace("Abmelden / Sperren", "退出 / 锁定", ignoreCase = true)
             .replace("Silber-Budget", "银币预算", ignoreCase = true)
             .replace("Kaufpreis", "买入价", ignoreCase = true)
             .replace("Verkaufspreis", "卖出价", ignoreCase = true)
