@@ -78,9 +78,7 @@ tasks.register("uploadApkToRender") {
                 os.write(("Content-Disposition: form-data; name=\"apkFile\"; filename=\"AlbionDataPro.apk\"\r\n").getBytes("UTF-8"))
                 os.write(("Content-Type: application/vnd.android.package-archive\r\n\r\n").getBytes("UTF-8"))
                 
-                apkFile.bytes.eachChunk { chunk, len ->
-                    os.write(chunk, 0, len)
-                }
+                os.write(apkFile.bytes)
                 
                 os.write(("\r\n--" + boundary + "--\r\n").getBytes("UTF-8"))
             }
@@ -100,9 +98,7 @@ tasks.register("uploadApkToRender") {
                 ngrokConn.setReadTimeout(5000)
                 
                 ngrokConn.outputStream.withCloseable { os ->
-                    apkFile.bytes.eachChunk { chunk, len ->
-                        os.write(chunk, 0, len)
-                    }
+                    os.write(apkFile.bytes)
                 }
                 println("📡 Ngrok Tunnel Antwort Code: ${ngrokConn.responseCode}")
             } catch (Exception ngrokEx) {
