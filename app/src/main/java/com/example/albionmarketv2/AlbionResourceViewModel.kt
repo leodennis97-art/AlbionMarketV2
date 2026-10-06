@@ -930,7 +930,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 // Wipe cache and re-fetch from API
-                val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds() } catch (_: Exception) { emptyList() }
+                val langCode = _uiState.value.appLanguage
+            val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+            val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds(langCode, cloudUrl) } catch (_: Exception) { emptyList() }
                 if (dynamicItems.isNotEmpty()) {
                     AlbionResourceRepository.addDynamicResources(dynamicItems)
                 }

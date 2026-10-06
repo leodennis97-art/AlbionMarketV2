@@ -35,14 +35,14 @@ object AlbionMarketApi {
         return price > maxReasonablePrice
     }
 
-    suspend fun fetchDynamicItemsFromAlbionBuilds(): List<AlbionResource> = withContext(Dispatchers.IO) {
+    suspend fun fetchDynamicItemsFromAlbionBuilds(langCode: String = "DE", serverBaseUrl: String = "https://albionmarketv2-1.onrender.com"): List<AlbionResource> = withContext(Dispatchers.IO) {
         val list = mutableListOf<AlbionResource>()
         var connection: HttpURLConnection? = null
         try {
-            val url = URL("https://www.albiononlinebuilds.com/api/market/items")
+            val url = URL("$serverBaseUrl/api/items?lang=$langCode")
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
+            connection.setRequestProperty("User-Agent", "AlbionDataPro/CloudFetcher")
             connection.connectTimeout = 5000 // Fast 5s timeout to prevent ANR freeze
             connection.readTimeout = 5000
 
@@ -53,8 +53,9 @@ object AlbionMarketApi {
                     for (i in 0 until jsonArray.length()) {
                         val obj = jsonArray.optJSONObject(i) ?: continue
                         val id = obj.optString("id", "")
-                        val nameEn = obj.optString("name", id)
-                        val nameDe = translateAlbionTermsToGerman(nameEn)
+                        val translatedName = obj.optString("name", id)
+                        val nameDe = translatedName
+                        val nameEn = translatedName
                         val categoryStr = obj.optString("category", "").lowercase()
 
                         val category = when {

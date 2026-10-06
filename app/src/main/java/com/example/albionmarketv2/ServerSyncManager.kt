@@ -378,7 +378,8 @@ object ServerSyncManager {
             put("prefsDataBatch", prefsObj)
         }.toString()
 
-        val batchUrls = getServerBaseUrls(context).map { "$it/api/data/batch" }
+        val srvId = appPrefs.server.serverId
+        val batchUrls = getServerBaseUrls(context).map { "$it/api/data/batch?server=$srvId" }
 
         for (urlStr in batchUrls) {
             var conn: HttpURLConnection? = null
@@ -453,7 +454,8 @@ object ServerSyncManager {
     suspend fun fetchCloudPrices(context: Context): List<PriceSnapshot> = withContext(Dispatchers.IO) {
         val prefs = AppPreferences(context)
         if (!prefs.isUserLoggedIn) return@withContext emptyList()
-        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/market/prices/live" }
+        val srvId = prefs.server.serverId
+        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/market/prices/live?server=$srvId" }
         for (serverUrl in urlsToTry) {
             var connection: HttpURLConnection? = null
             try {

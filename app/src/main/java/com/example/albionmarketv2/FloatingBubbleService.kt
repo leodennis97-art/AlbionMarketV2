@@ -3675,6 +3675,41 @@ fun BubbleSettingsTab(
     ) {
         Text("⚙️ Floating Bubble Einstellungen", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
 
+        var currentServer by remember { mutableStateOf(prefs.server) }
+        val scope = rememberCoroutineScope()
+
+        // Server Selection
+        Text("Server auswählen:", fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFF81D4FA))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            AlbionServer.entries.forEach { srv ->
+                val isSelected = srv == currentServer
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable {
+                        currentServer = srv
+                        prefs.server = srv
+                        // Trigger immediate refresh to load new server data
+                        scope.launch {
+                            try {
+                                SharedTradeStore.latestOpportunities = emptyList()
+                            } catch (_: Exception) {}
+                        }
+                    }
+                ) {
+                    Text(
+                        text = srv.displayName,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(4.dp))
+
         // Opacity Selection
         Text(LanguageManager.getString("bubble_opacity", lang), fontWeight = FontWeight.Bold, fontSize = 10.sp, color = Color(0xFF81D4FA))
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
