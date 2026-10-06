@@ -2338,6 +2338,7 @@ fun BubbleSmugglerRadarTab(
     uiState: ResourceUiState,
     maxHeight: Dp,
 ) {
+    val lang = LocalAppLanguage.current
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     
@@ -2346,10 +2347,10 @@ fun BubbleSmugglerRadarTab(
     }
 
     Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
-        Text("🏴‍☠️ Schwarzmarkt-Radar (Caerleon)", fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFEF4444), modifier = Modifier.padding(bottom = 6.dp))
+        Text(LanguageManager.translateUI("🏴‍☠️ Schwarzmarkt-Radar (Caerleon)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFEF4444), modifier = Modifier.padding(bottom = 6.dp))
         
         if (smugglerOpps.isEmpty()) {
-            Text("Keine Schwarzmarkt-Deals gefunden. Prüfe Budget.", color = Color.Gray, fontSize = 10.sp)
+            Text(LanguageManager.translateUI("Keine Schwarzmarkt-Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 itemsIndexed(smugglerOpps) { idx, opp ->
@@ -2463,6 +2464,7 @@ fun BubbleCatalogTab(
     maxHeight: Dp,
     onResourceClick: (AlbionResource) -> Unit,
 ) {
+    val lang = LocalAppLanguage.current
     var query by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf(ResourceCategory.ALL) }
     var selectedTier by remember { mutableIntStateOf(0) }
@@ -2488,7 +2490,7 @@ fun BubbleCatalogTab(
         OutlinedTextField(
             value = query,
             onValueChange = { query = it },
-            placeholder = { Text("Suchname oder ID (z.B. Holz, T4_WOOD)", fontSize = 10.sp) },
+            placeholder = { Text(LanguageManager.translateUI("Suchname oder ID (z.B. Holz, T4_WOOD)", lang), fontSize = 10.sp) },
             singleLine = true,
             modifier = Modifier
                 .fillMaxWidth()
@@ -2530,7 +2532,7 @@ fun BubbleCatalogTab(
                     modifier = Modifier.clickable { selectedTier = tier }
                 ) {
                     Text(
-                        text = if (tier == 0) "Alle Stufen" else "Tier $tier",
+                        text = if (tier == 0) LanguageManager.translateUI("Alle Stufen", lang) else "Tier $tier",
                         color = Color.White,
                         fontSize = 9.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
@@ -2542,7 +2544,7 @@ fun BubbleCatalogTab(
 
         // Catalog Product Cards
         if (filtered.isEmpty()) {
-            Text("Keine Ressourcen im Katalog gefunden.", color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
+            Text(LanguageManager.translateUI("Keine Ressourcen im Katalog gefunden.", lang), color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
         } else {
             val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
 
