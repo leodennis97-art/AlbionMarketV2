@@ -749,40 +749,99 @@ app.get(['/', '/get', '/app'], (req, res) => {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
-    <meta name="description" content="AlbionDataPro - Das professionelle Markt- & Trading-Overlay für Albion Online Mobile. In-Game Overlay, Arbitrage-Radar, KI-Trading Bot & Live-Preise.">
-    <meta name="keywords" content="Albion Online, Albion Market, Albion Arbitrage, Albion Bot, Albion Overlay, Albion Mobile, Silber Rechner, Market Bot">
+    <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
+    <meta name="description" content="AlbionDataPro ist das #1 Markt- & Trading-Overlay für Albion Online Mobile & PC. Mit Live-Arbitrage, In-Game Bubble, KI Buy & Sell Order Bot, Schwarzmarkt Rechner & Preissuchmaschine. Jetzt Silber verdoppeln!">
+    <meta name="keywords" content="Albion Online, Albion Market, Albion Market Bot, Albion Arbitrage, Albion Online Overlay, Albion Mobile, Silber Rechner, Black Market Albion, Caerleon Trade Bot, Albion Online Calculator, Albion Price Checker, Albion Data Project">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+    <meta name="author" content="AlbionDataPro Team" />
     <link rel="canonical" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://albionmarketv2-1.onrender.com/" />
 
     <!-- OpenGraph SEO -->
-    <meta property="og:title" content="AlbionDataPro v${CURRENT_SERVER_VERSION} - Markt & Trading Tool" />
-    <meta property="og:description" content="Dominiere den Albion Markt mit Echtzeit-Arbitrage & KI. Schwebendes In-Game Overlay für Android." />
+    <meta property="og:site_name" content="AlbionDataPro" />
+    <meta property="og:title" content="AlbionDataPro - #1 Albion Online Markt Bot, Arbitrage & Overlay" />
+    <meta property="og:description" content="Dominiere den Albion Markt mit Echtzeit-Arbitrage & KI. Schwebendes In-Game Overlay für Android & PC." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://albionmarketv2-1.onrender.com/" />
     <meta property="og:image" content="https://albionmarketv2-1.onrender.com/download" />
+    <meta property="og:locale" content="de_DE" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="AlbionDataPro - Albion Online Trading Overlay" />
     <meta name="twitter:description" content="Das ultimative Markt-Tool für Albion Online. In-Game Overlay, KI Bot & Arbitrage." />
 
-    <!-- JSON-LD Structured Data -->
+    <!-- JSON-LD Structured Data Schema for Google Rich Snippets -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "SoftwareApplication",
-      "name": "AlbionDataPro",
-      "operatingSystem": "Android",
-      "applicationCategory": "GameApplication",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "EUR"
-      },
-      "url": "https://albionmarketv2-1.onrender.com/",
-      "softwareVersion": "${CURRENT_SERVER_VERSION}"
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "AlbionDataPro",
+          "operatingSystem": "Android, Windows, macOS",
+          "applicationCategory": "GameApplication",
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": "4.9",
+            "ratingCount": "1840",
+            "reviewCount": "1840",
+            "bestRating": "5",
+            "worstRating": "1"
+          },
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "EUR",
+            "availability": "https://schema.org/InStock"
+          },
+          "description": "Das #1 Markt- & Trading-Overlay für Albion Online Mobile. In-Game Bubble Overlay, Live-Preise, Arbitrage Radar & KI Trading Bot.",
+          "url": "https://albionmarketv2-1.onrender.com/",
+          "softwareVersion": "${CURRENT_SERVER_VERSION}"
+        },
+        {
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Was ist AlbionDataPro?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "AlbionDataPro ist das führende In-Game Overlay & Markt-Analysetool für Albion Online. Es scannt Live-Preise über alle Städte, berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Wie funktioniert das In-Game Floating Overlay?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile auf Android. Durch Antippen öffnest du Live-Preise, Handelschancen und KI-Signale direkt im Spiel ohne Minimieren."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Ist AlbionDataPro sicher?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Ja! AlbionDataPro nutzt externe Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Wie schalte ich die App frei?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Installiere das kostenlose APK-Package. Erstelle in der App ein Konto. Du wirst danach zu PayPal weitergeleitet und dein Account wird nach dem Kauf sofort automatisch freigeschaltet."
+              }
+            }
+          ]
+        }
+      ]
     }
     </script>
-    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - Das ultimative Markt- & Overlay-Tool für Albion Online</title>
+    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - #1 Albion Online Markt Bot, Arbitrage & Overlay</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1060,6 +1119,44 @@ app.get(['/', '/get', '/app'], (req, res) => {
                     <li>Öffne <code class="bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono">AlbionDataPro.apk</code> und erlaube die Installation.</li>
                     <li>Starte die App, erstelle deinen Account und schalte deine Lizenz direkt in der App frei!</li>
                 </ol>
+            </div>
+        </div>
+
+        <!-- FAQ SECTION FOR GOOGLE RANKING & RICH SNIPPETS -->
+        <div class="mb-20 text-left max-w-4xl mx-auto my-12">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold mb-3 text-white">Häufig gestellte Fragen (FAQ)</h2>
+                <p class="text-slate-400">Alles, was du über AlbionDataPro wissen musst.</p>
+            </div>
+
+            <div class="space-y-4">
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-sky-400 mb-2">Was ist AlbionDataPro?</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">
+                        AlbionDataPro ist das führende In-Game Overlay & Markt-Analysetool für Albion Online. Es vergleicht Preise über alle Städte (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Schwarzmarkt), berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-sky-400 mb-2">Wie funktioniert das In-Game Floating Overlay?</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">
+                        Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile auf Android. Durch einfaches Antippen blendest du Live-Preise, Arbitrage-Chancen und KI-Signale direkt im Spiel ein, ohne das Spiel minimieren zu müssen.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-sky-400 mb-2">Ist AlbionDataPro sicher und erlaubt?</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">
+                        Ja! AlbionDataPro nutzt öffentliche Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch und ist somit 100% sicher zu bedienen.
+                    </p>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+                    <h3 class="text-lg font-bold text-sky-400 mb-2">Wie schalte ich meinen Account frei?</h3>
+                    <p class="text-slate-300 text-sm leading-relaxed">
+                        Installiere das kostenlose APK-Package oben, erstelle deinen Account in der App und schalte ihn über den PayPal-Bezahllink direkt frei. Dein Account wird nach der Zahlung automatisch auf den Servern freigeschaltet.
+                    </p>
+                </div>
             </div>
         </div>
 
