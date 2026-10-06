@@ -13,14 +13,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -365,74 +370,92 @@ fun GlowingLanguageSelectorButton(
     }
 
     if (showDialog) {
-        AlertDialog(
+        Popup(
             onDismissRequest = { showDialog = false },
-            title = {
-                Text(
-                    text = "🌐 Sprache auswählen / Select Language",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            },
-            text = {
+            alignment = Alignment.TopEnd,
+            properties = PopupProperties(focusable = true)
+        ) {
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                border = BorderStroke(1.5.dp, Color(0xFF00E5FF)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                modifier = Modifier
+                    .padding(top = 28.dp, end = 4.dp)
+                    .width(250.dp)
+            ) {
                 Column(
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 340.dp)
-                        .verticalScroll(rememberScrollState())
+                    modifier = Modifier.padding(10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    LanguageManager.AppLanguage.entries.forEach { lang ->
-                        val isSelected = lang.code.equals(currentLanguageCode, ignoreCase = true)
-                        Surface(
-                            onClick = {
-                                onLanguageSelected(lang.code)
-                                showDialog = false
-                            },
-                            shape = RoundedCornerShape(10.dp),
-                            color = if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B),
-                            border = BorderStroke(1.dp, if (isSelected) Color(0xFF38BDF8) else Color(0xFF334155)),
-                            modifier = Modifier.fillMaxWidth()
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "🌐 Sprache / Language",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00E5FF)
+                        )
+                        IconButton(
+                            onClick = { showDialog = false },
+                            modifier = Modifier.size(20.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                            Icon(Icons.Default.Close, contentDescription = "Schließen", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFF334155))
+
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 280.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        LanguageManager.AppLanguage.entries.forEach { lang ->
+                            val isSelected = lang.code.equals(currentLanguageCode, ignoreCase = true)
+                            Surface(
+                                onClick = {
+                                    onLanguageSelected(lang.code)
+                                    showDialog = false
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSelected) Color(0xFF0284C7) else Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, if (isSelected) Color(0xFF38BDF8) else Color(0xFF334155)),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(text = lang.flag, fontSize = 16.sp)
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = lang.displayName,
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Default.Check,
-                                        contentDescription = "Ausgewählt",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(16.dp)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                                ) {
+                                    Text(text = lang.flag, fontSize = 14.sp)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = lang.displayName,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.White,
+                                        modifier = Modifier.weight(1f)
                                     )
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.Check,
+                                            contentDescription = "Ausgewählt",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            },
-            confirmButton = {},
-            dismissButton = {
-                Button(
-                    onClick = { showDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text("Schließen", fontSize = 12.sp, color = Color.White)
-                }
-            },
-            containerColor = Color(0xFF0F172A)
-        )
+            }
+        }
     }
 }
 
