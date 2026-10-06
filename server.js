@@ -691,6 +691,11 @@ app.get('/apk', (req, res) => {
     res.redirect(`/download/AlbionDataPro.apk?token=${token}`);
 });
 
+// Google Search Console Verification Endpoint & File
+app.get(['/google999f0d6f9c312079.html', '/google999f0d6f9c312079'], (req, res) => {
+    res.type('text/html').send('google-site-verification: google999f0d6f9c312079.html');
+});
+
 // Landing Page (Verkauf, Info & Download)
 app.get(['/', '/get', '/app'], (req, res) => {
     res.send(`<!DOCTYPE html>
@@ -698,6 +703,8 @@ app.get(['/', '/get', '/app'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
+    <meta name="google-site-verification" content="google999f0d6f9c312079" />
     <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - Das ultimative Markt- & Overlay-Tool für Albion Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
