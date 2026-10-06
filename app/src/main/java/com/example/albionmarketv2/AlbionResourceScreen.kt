@@ -110,7 +110,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Tab
-import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -808,9 +808,59 @@ fun OrdersAndStatsTabContent(
                             }
                         }
 
-                        Text("Menge: ${numberFormat.format(order.plannedUnits)} Stk. | Angenommen: ${order.acceptedDate}", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        var isEditingActivePrices by remember(order.id) { mutableStateOf(false) }
+                        var editBuyPriceStr by remember(order.id, order.buyPrice) { mutableStateOf(order.buyPrice.toString()) }
+                        var editSellPriceStr by remember(order.id, order.sellPrice) { mutableStateOf(order.sellPrice.toString()) }
+                        var editUnitsStr by remember(order.id, order.plannedUnits) { mutableStateOf(order.plannedUnits.toString()) }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                        ) {
+                            Text("Menge: ${numberFormat.format(order.plannedUnits)} Stk. | Angenommen: ${order.acceptedDate}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            TextButton(
+                                onClick = { isEditingActivePrices = !isEditingActivePrices },
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                            ) {
+                                Text(if (isEditingActivePrices) "💾 Fertig" else "✏️ Preise anpassen", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            }
+                        }
+
+                        if (isEditingActivePrices) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                OutlinedTextField(
+                                    value = editBuyPriceStr,
+                                    onValueChange = {
+                                        editBuyPriceStr = it
+                                        val nb = it.toIntOrNull() ?: order.buyPrice
+                                        val ns = editSellPriceStr.toIntOrNull() ?: order.sellPrice
+                                        val nu = editUnitsStr.toIntOrNull() ?: order.plannedUnits
+                                        viewModel.updateActiveOrderPrices(order.id, nb, ns, nu)
+                                    },
+                                    label = { Text("Kaufpreis", fontSize = 10.sp) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                OutlinedTextField(
+                                    value = editSellPriceStr,
+                                    onValueChange = {
+                                        editSellPriceStr = it
+                                        val nb = editBuyPriceStr.toIntOrNull() ?: order.buyPrice
+                                        val ns = it.toIntOrNull() ?: order.sellPrice
+                                        val nu = editUnitsStr.toIntOrNull() ?: order.plannedUnits
+                                        viewModel.updateActiveOrderPrices(order.id, nb, ns, nu)
+                                    },
+                                    label = { Text("Verkaufspreis", fontSize = 10.sp) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                             Button(
@@ -1838,18 +1888,51 @@ fun TradeOpportunityCard(
     var showDialog by remember { mutableStateOf(false) }
     var showDirectBookDialog by remember { mutableStateOf(false) }
 
+    var isCustomizingPrices by remember { mutableStateOf(false) }
+    var customBuyStr by remember(opportunity.buyPrice) { mutableStateOf(opportunity.buyPrice.toString()) }
+    var customSellStr by remember(opportunity.sellPrice) { mutableStateOf(opportunity.sellPrice.toString()) }
+
+    val cBuy = customBuyStr.toIntOrNull() ?: opportunity.buyPrice
+    val cSell = customSellStr.toIntOrNull() ?: opportunity.sellPrice
+
+    val localContext = LocalContext.current
+    val localPrefs = remember { AppPreferences(localContext) }
+    val taxRate = if (localPrefs.hasPremium) 0.04 else 0.08
+
+    val taxPerUnit = (cSell * taxRate).toLong()
+    val setupFeePerUnit = (cSell * 0.025).toLong()
+    val netSellUnit = cSell.toLong() - taxPerUnit - setupFeePerUnit
+    val unitNetProfit = netSellUnit - cBuy.toLong()
+
+    val units = opportunity.tradeUnits
+    val customTotalInvestment = cBuy.toLong() * units
+    val customTotalNetRevenue = netSellUnit * units
+    val customTotalNetProfit = unitNetProfit * units
+    val customRoiPercent = if (customTotalInvestment > 0) (customTotalNetProfit.toDouble() / customTotalInvestment) * 100.0 else 0.0
+
+    val activeOpportunity = opportunity.copy(
+        buyPrice = cBuy,
+        sellPrice = cSell,
+        unitNetProfit = unitNetProfit.toInt(),
+        totalInvestment = customTotalInvestment,
+        totalGrossRevenue = cSell.toLong() * units,
+        totalNetRevenue = customTotalNetRevenue,
+        totalNetProfit = customTotalNetProfit,
+        roiPercent = customRoiPercent
+    )
+
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text("📋 Marktchance buchen", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Möchtest du den Auftrag für ${opportunity.resource.nameDe} buchen?", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    Text("Möchtest du den Auftrag für ${activeOpportunity.resource.nameDe} buchen?", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     HorizontalDivider()
-                    Text("📍 Kaufen in: ${opportunity.buyCity} (${numberFormat.format(opportunity.buyPrice)} Silber)", fontSize = 12.sp)
-                    Text("📍 Verkaufen in: ${opportunity.sellCity} (${numberFormat.format(opportunity.sellPrice)} Silber)", fontSize = 12.sp)
-                    Text("📊 Umsatz: ${numberFormat.format(opportunity.totalNetRevenue)} Silber", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF66BB6A))
-                    Text("📦 Menge: ${numberFormat.format(opportunity.tradeUnits)} Stk. | Traglast: ${String.format(Locale.GERMANY, "%.1f", opportunity.totalWeightKg)} kg", fontSize = 11.sp)
+                    Text("📍 Kaufen in: ${activeOpportunity.buyCity} (${numberFormat.format(activeOpportunity.buyPrice)} Silber)", fontSize = 12.sp)
+                    Text("📍 Verkaufen in: ${activeOpportunity.sellCity} (${numberFormat.format(activeOpportunity.sellPrice)} Silber)", fontSize = 12.sp)
+                    Text("📊 Umsatz: ${numberFormat.format(activeOpportunity.totalNetRevenue)} Silber", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF66BB6A))
+                    Text("📦 Menge: ${numberFormat.format(activeOpportunity.tradeUnits)} Stk. | Traglast: ${String.format(Locale.GERMANY, "%.1f", activeOpportunity.totalWeightKg)} kg", fontSize = 11.sp)
                 }
             },
             confirmButton = {
@@ -1857,7 +1940,7 @@ fun TradeOpportunityCard(
                     Button(
                         onClick = {
                             showDialog = false
-                            onAcceptOrder(opportunity)
+                            onAcceptOrder(activeOpportunity)
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
                         modifier = Modifier.fillMaxWidth()
@@ -2065,13 +2148,13 @@ fun TradeOpportunityCard(
             ) {
                 Column {
                     Text(
-                        text = "Umsatz: ${numberFormat.format(opportunity.totalNetRevenue)} Silber",
+                        text = "Umsatz: ${numberFormat.format(activeOpportunity.totalNetRevenue)} Silber",
                         fontWeight = FontWeight.ExtraBold,
                         fontSize = 15.sp,
                         color = Color(0xFF66BB6A)
                     )
                     Text(
-                        text = "+${String.format(Locale.GERMANY, "%.1f", opportunity.roiPercent)}% Marge (ROI)",
+                        text = "+${String.format(Locale.GERMANY, "%.1f", activeOpportunity.roiPercent)}% Marge (ROI)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = Color(0xFF81C784)
@@ -2084,7 +2167,7 @@ fun TradeOpportunityCard(
                         color = Color(0xFF81D4FA)
                     ) {
                         Text(
-                            text = "🗺️ ${opportunity.zonesWalkedCount} Gebiete",
+                            text = "🗺️ ${activeOpportunity.zonesWalkedCount} Gebiete",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.Black,
@@ -2097,7 +2180,7 @@ fun TradeOpportunityCard(
                         color = Color(0xFF4DB6AC)
                     ) {
                         Text(
-                            text = "📦 Bestand: ${opportunity.stockAvailable}",
+                            text = "📦 Bestand: ${activeOpportunity.stockAvailable}",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -2106,7 +2189,7 @@ fun TradeOpportunityCard(
                     }
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "🪙 ~${numberFormat.format(opportunity.equivalentGoldProfit)} Gold",
+                        text = "🪙 ~${numberFormat.format(activeOpportunity.equivalentGoldProfit)} Gold",
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         color = Color(0xFFFFD700)
@@ -2114,7 +2197,49 @@ fun TradeOpportunityCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ECHTZEIT PREISANPASSUNG BUTTON
+            Row(
+                horizontalArrangement = Arrangement.End,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                TextButton(
+                    onClick = { isCustomizingPrices = !isCustomizingPrices },
+                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                ) {
+                    Text(
+                        text = if (isCustomizingPrices) "💾 Fertig" else "✏️ Preise anpassen (Echtzeit)",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            if (isCustomizingPrices) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = customBuyStr,
+                        onValueChange = { customBuyStr = it },
+                        label = { Text("Kaufpreis (Silber)", fontSize = 10.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = customSellStr,
+                        onValueChange = { customSellStr = it },
+                        label = { Text("Verkaufspreis (Silber)", fontSize = 10.sp) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
 
             // ROUTE DETAILS CARD (Kaufort -> Verkaufort)
             Surface(
@@ -2132,14 +2257,14 @@ fun TradeOpportunityCard(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Kaufen in:", fontSize = 11.sp, color = Color.LightGray)
-                            val buyBadge = ZoneThemeColors.getCityZoneBadgeText(opportunity.buyCity)
+                            val buyBadge = ZoneThemeColors.getCityZoneBadgeText(activeOpportunity.buyCity)
                             if (buyBadge.startsWith("🔴") || buyBadge.startsWith("✨") || buyBadge.startsWith("🏴‍☠️")) {
                                 Text(" $buyBadge", color = buyCityColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(opportunity.buyCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = buyCityColor)
-                        Text("${numberFormat.format(opportunity.buyPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text(activeOpportunity.buyCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = buyCityColor)
+                        Text("${numberFormat.format(activeOpportunity.buyPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
 
                     Icon(
@@ -2153,14 +2278,14 @@ fun TradeOpportunityCard(
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Verkaufen in:", fontSize = 11.sp, color = Color.LightGray)
-                            val sellBadge = ZoneThemeColors.getCityZoneBadgeText(opportunity.sellCity)
+                            val sellBadge = ZoneThemeColors.getCityZoneBadgeText(activeOpportunity.sellCity)
                             if (sellBadge.startsWith("🔴") || sellBadge.startsWith("✨") || sellBadge.startsWith("🏴‍☠️")) {
                                 Text(" $sellBadge", color = sellCityColor, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                        Text(opportunity.sellCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = sellCityColor)
-                        Text("${numberFormat.format(opportunity.sellPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                        Text(activeOpportunity.sellCity, fontWeight = FontWeight.Bold, fontSize = 15.sp, color = sellCityColor)
+                        Text("${numberFormat.format(activeOpportunity.sellPrice)} Silber", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                     }
                 }
             }

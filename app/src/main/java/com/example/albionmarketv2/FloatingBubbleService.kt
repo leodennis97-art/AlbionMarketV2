@@ -1059,6 +1059,111 @@ fun BubbleOverlayContent(
                                     }
                                 }
 
+                                    var isEditingActivePricesInBubble by remember(activeOrder.id) { mutableStateOf(false) }
+                                    var editActiveBuyStr by remember(activeOrder.id, activeOrder.buyPrice) { mutableStateOf(activeOrder.buyPrice.toString()) }
+                                    var editActiveSellStr by remember(activeOrder.id, activeOrder.sellPrice) { mutableStateOf(activeOrder.sellPrice.toString()) }
+
+                                    Row(
+                                        horizontalArrangement = Arrangement.End,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        TextButton(
+                                            onClick = { isEditingActivePricesInBubble = !isEditingActivePricesInBubble },
+                                            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                                        ) {
+                                            Text(
+                                                text = if (isEditingActivePricesInBubble) "💾 Fertig" else "✏️ Preise in Echtzeit anpassen",
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF38BDF8)
+                                            )
+                                        }
+                                    }
+
+                                    if (isEditingActivePricesInBubble) {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)
+                                        ) {
+                                            OutlinedTextField(
+                                                value = editActiveBuyStr,
+                                                onValueChange = {
+                                                    editActiveBuyStr = it
+                                                    val nb = it.toIntOrNull() ?: activeOrder.buyPrice
+                                                    val ns = editActiveSellStr.toIntOrNull() ?: activeOrder.sellPrice
+                                                    val nu = activeOrder.plannedUnits
+
+                                                    val prefs = AppPreferences(context)
+                                                    val orders = prefs.getTradeOrders()
+                                                    val marketTaxRate = if (prefs.hasPremium) 0.04 else 0.08
+                                                    val taxPerUnit = (ns * marketTaxRate).toLong()
+                                                    val setupFeePerUnit = (ns * 0.025).toLong()
+                                                    val netSellPrice = ns.toLong() - taxPerUnit - setupFeePerUnit
+                                                    val unitProfit = netSellPrice - nb.toLong()
+                                                    val newNetProfit = unitProfit * nu
+                                                    val newInvestment = nb.toLong() * nu
+
+                                                    val updatedOrders = orders.map { o ->
+                                                        if (o.id == activeOrder.id) {
+                                                            o.copy(
+                                                                buyPrice = nb,
+                                                                sellPrice = ns,
+                                                                targetNetProfit = newNetProfit,
+                                                                targetInvestment = newInvestment,
+                                                                recommendedBuyOrderPrice = (nb * 0.88).toInt().coerceAtLeast(1),
+                                                                recommendedSellOrderPrice = (ns * 1.08).toInt().coerceAtLeast(1)
+                                                            )
+                                                        } else o
+                                                    }
+                                                    prefs.saveTradeOrders(updatedOrders)
+                                                    activeOrder = updatedOrders.find { it.id == activeOrder.id }
+                                                },
+                                                label = { Text("Kaufpreis", fontSize = 9.sp) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                            )
+                                            OutlinedTextField(
+                                                value = editActiveSellStr,
+                                                onValueChange = {
+                                                    editActiveSellStr = it
+                                                    val nb = editActiveBuyStr.toIntOrNull() ?: activeOrder.buyPrice
+                                                    val ns = it.toIntOrNull() ?: activeOrder.sellPrice
+                                                    val nu = activeOrder.plannedUnits
+
+                                                    val prefs = AppPreferences(context)
+                                                    val orders = prefs.getTradeOrders()
+                                                    val marketTaxRate = if (prefs.hasPremium) 0.04 else 0.08
+                                                    val taxPerUnit = (ns * marketTaxRate).toLong()
+                                                    val setupFeePerUnit = (ns * 0.025).toLong()
+                                                    val netSellPrice = ns.toLong() - taxPerUnit - setupFeePerUnit
+                                                    val unitProfit = netSellPrice - nb.toLong()
+                                                    val newNetProfit = unitProfit * nu
+                                                    val newInvestment = nb.toLong() * nu
+
+                                                    val updatedOrders = orders.map { o ->
+                                                        if (o.id == activeOrder.id) {
+                                                            o.copy(
+                                                                buyPrice = nb,
+                                                                sellPrice = ns,
+                                                                targetNetProfit = newNetProfit,
+                                                                targetInvestment = newInvestment,
+                                                                recommendedBuyOrderPrice = (nb * 0.88).toInt().coerceAtLeast(1),
+                                                                recommendedSellOrderPrice = (ns * 1.08).toInt().coerceAtLeast(1)
+                                                            )
+                                                        } else o
+                                                    }
+                                                    prefs.saveTradeOrders(updatedOrders)
+                                                    activeOrder = updatedOrders.find { it.id == activeOrder.id }
+                                                },
+                                                label = { Text("Verkaufspreis", fontSize = 9.sp) },
+                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                singleLine = true,
+                                                modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                            )
+                                        }
+                                    }
+
                                     // Row 3: Prominent Action Buttons (Buchen / Stornieren)
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),

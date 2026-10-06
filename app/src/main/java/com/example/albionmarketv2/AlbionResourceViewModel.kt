@@ -601,6 +601,32 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         )
     }
 
+    fun updateActiveOrderPrices(orderId: String, newBuyPrice: Int, newSellPrice: Int, newUnits: Int) {
+        val marketTaxRate = if (prefs.hasPremium) 0.04 else 0.08
+        val updatedOrders = _uiState.value.tradeOrders.map { order ->
+            if (order.id == orderId) {
+                val taxPerUnit = (newSellPrice * marketTaxRate).toLong()
+                val setupFeePerUnit = (newSellPrice * 0.025).toLong()
+                val netSellPrice = newSellPrice.toLong() - taxPerUnit - setupFeePerUnit
+                val unitProfit = netSellPrice - newBuyPrice.toLong()
+                val newNetProfit = unitProfit * newUnits
+                val newInvestment = newBuyPrice.toLong() * newUnits
+
+                order.copy(
+                    buyPrice = newBuyPrice,
+                    sellPrice = newSellPrice,
+                    plannedUnits = newUnits,
+                    targetNetProfit = newNetProfit,
+                    targetInvestment = newInvestment,
+                    recommendedBuyOrderPrice = (newBuyPrice * 0.88).toInt().coerceAtLeast(1),
+                    recommendedSellOrderPrice = (newSellPrice * 1.08).toInt().coerceAtLeast(1)
+                )
+            } else order
+        }
+        prefs.saveTradeOrders(updatedOrders)
+        _uiState.value = _uiState.value.copy(tradeOrders = updatedOrders)
+    }
+
     fun clearOrderError() {
         _uiState.value = _uiState.value.copy(orderErrorMsg = null)
     }
