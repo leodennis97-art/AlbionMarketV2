@@ -777,7 +777,7 @@ Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
     );
 });
 
-// Sitemap.xml for Google Search Console
+// Sitemap.xml for Google Search Console (10 Specialized SEO Landing Page Endpoints)
 app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     res.type('application/xml').send(
@@ -790,7 +790,49 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
       <priority>1.0</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/</loc>
+      <loc>https://www.AlbionDataPro.com/hack</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/bot</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/arbitrage</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/blackmarket</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/calculator</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/overlay</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/mobile</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://www.AlbionDataPro.com/guide</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
@@ -800,6 +842,12 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://albionmarketv2-1.onrender.com/</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.8</priority>
    </url>
    <url>
       <loc>https://www.AlbionDataPro.com/download/AlbionDataPro.apk</loc>
@@ -816,8 +864,39 @@ app.get(['/sitemap.hml', '/sitemap.html', '/sitemap'], (req, res) => {
     res.redirect(301, '/sitemap.xml');
 });
 
-// Landing Page (Verkauf, Info & Download)
-app.get(['/', '/get', '/app'], (req, res) => {
+// Landing Pages (10 Specialized SEO Portal Routes for Google Rank #1)
+app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/calculator', '/overlay', '/mobile', '/guide'], (req, res) => {
+    const route = req.path.toLowerCase();
+
+    let pageTitle = `AlbionDataPro v${CURRENT_SERVER_VERSION} - #1 Albion Online Hack, Markt Mod, Arbitrage & Overlay`;
+    let pageDesc = `AlbionDataPro ist der #1 Albion Online Hack & Markt-Mod für Mobile & PC. Das ultimative Markt-Overlay, Arbitrage Radar, Silber Rechner, Schwarzmarkt Bot & Preissuchmaschine. Jetzt Silber verdoppeln!`;
+
+    if (route.includes('hack')) {
+        pageTitle = `Albion Online Hack & Mod 2026 - #1 Markt & Trading Overlay | AlbionDataPro`;
+        pageDesc = `Der beste Albion Online Hack & Mod für Android & PC. In-Game Markt-Overlay, Live-Preise, Arbitrage Radar & KI Trade Bot. Jetzt Silber verdoppeln!`;
+    } else if (route.includes('bot')) {
+        pageTitle = `Albion Online Market Bot & KI Signals 2026 | AlbionDataPro`;
+        pageDesc = `Automatische KI-Kauf- & Verkaufsaufträge für Albion Online. Verdopple deine Silber-Erträge mit dem #1 Albion Trading Bot.`;
+    } else if (route.includes('arbitrage')) {
+        pageTitle = `Albion Online Arbitrage Radar & Routen-Planner | AlbionDataPro`;
+        pageDesc = `Finde die lukrativsten Handelsrouten in Albion Online. Exakte Reingewinn-Berechnung zwischen Caerleon, Brecilien & königlichen Hauptstädten.`;
+    } else if (route.includes('blackmarket')) {
+        pageTitle = `Albion Online Schwarzmarkt Rechner & Caerleon Bot | AlbionDataPro`;
+        pageDesc = `Maximierte Gewinne am Caerleon Schwarzmarkt. Berechne Ausrüstungs-Preise, Margen und Beutelgewicht in Echtzeit.`;
+    } else if (route.includes('calculator')) {
+        pageTitle = `Albion Online Silber & Crafting Rechner 2026 | AlbionDataPro`;
+        pageDesc = `Berechne Veredelungs- & Herstellungskosten, Stadt-Rückgaberaten (Return Rates), Stationsgebühren und Reingewinn.`;
+    } else if (route.includes('overlay')) {
+        pageTitle = `Albion Online In-Game Overlay Bubble Mod for Mobile | AlbionDataPro`;
+        pageDesc = `Schwebendes In-Game Markt-Overlay direkt über Albion Online Mobile. Preise, Arbitrage & KI-Signale im Spiel anzeigen ohne Minimieren.`;
+    } else if (route.includes('mobile')) {
+        pageTitle = `Albion Online Mobile Mod Package (Android APK) | AlbionDataPro`;
+        pageDesc = `Lade das offizielle Albion Online Mobile Mod Package herunter. In-Game Overlay, 24/7 Cloud Sync & automatische Updates.`;
+    } else if (route.includes('guide')) {
+        pageTitle = `Albion Online Silber Verdienen Guide 2026 | AlbionDataPro`;
+        pageDesc = `Der ultimative Guide für maximalen Silber-Gewinn in Albion Online. Handels-Strategien, Markt-Lücken & KI-Tipps.`;
+    }
+
     res.send(`<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -826,7 +905,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
     <meta name="google-site-verification" content="T7hOrPz6NeYQJJoUIr7Tl0RWmnYmsA9MZ72tSXS47YI" />
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
     <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
-    <meta name="description" content="AlbionDataPro ist der #1 Albion Online Hack & Markt-Mod für Mobile & PC. Das ultimative Markt-Overlay, Arbitrage Radar, Silber Rechner, Schwarzmarkt Bot & Preissuchmaschine. Jetzt Silber verdoppeln!">
+    <meta name="description" content="${pageDesc}">
     <meta name="keywords" content="Albion Online Hack, Albion Online Mod, Albion Online Cheat, Albion Online Market Hack, Albion Online Silver Hack, Albion Online Mobile Hack, Albion Online Radar Mod, Albion Online Bot, Albion Market Bot, Albion Online Trading Mod, Albion Online Overlay, Albion Online Silber Rechner, Black Market Albion, Caerleon Trade Bot, Albion Online Price Checker, Albion Data Project">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="author" content="AlbionDataPro Team" />
