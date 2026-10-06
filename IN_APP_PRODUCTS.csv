@@ -1,0 +1,3 @@
+Product ID,Status,Purchase Type,Auto Translate,Name,Description,Default Price
+albion_pro_subscription,Active,Subscription,true,AlbionDataPro Abo,Monatlicher Zugriff auf alle Live-Market-Daten und In-Game Overlays,4.99
+lifetime_license,Active,Managed Product,true,AlbionDataPro Lifetime,Unbegrenzter lebenslanger Zugriff auf alle Features und Updates,19.99
