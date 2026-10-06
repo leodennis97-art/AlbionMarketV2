@@ -1116,7 +1116,7 @@ fun BubbleOverlayContent(
                                                         } else o
                                                     }
                                                     prefs.saveTradeOrders(updatedOrders)
-                                                    activeOrder = updatedOrders.find { it.id == activeOrder.id }
+                                                    onOrderBooked()
                                                 },
                                                 label = { Text("Kaufpreis", fontSize = 9.sp) },
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1154,7 +1154,7 @@ fun BubbleOverlayContent(
                                                         } else o
                                                     }
                                                     prefs.saveTradeOrders(updatedOrders)
-                                                    activeOrder = updatedOrders.find { it.id == activeOrder.id }
+                                                    onOrderBooked()
                                                 },
                                                 label = { Text("Verkaufspreis", fontSize = 9.sp) },
                                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -1854,13 +1854,47 @@ fun BubbleOverlayContent(
                             } else {
                                 displayedOpps.forEachIndexed { index, opp ->
                                     key("${opp.resource.fullId}_${opp.buyCity}_${opp.sellCity}") {
-                                        val buyTrans = LanguageManager.getCityTranslation(opp.buyCity, lang)
-                                        val sellTrans = LanguageManager.getCityTranslation(opp.sellCity, lang)
+                                        var isCustomizingInBubble by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(false) }
+                                        var customBuyStr by remember(opp.buyPrice) { mutableStateOf(opp.buyPrice.toString()) }
+                                        var customSellStr by remember(opp.sellPrice) { mutableStateOf(opp.sellPrice.toString()) }
 
-                                        val buyColor = ZoneThemeColors.getCityZoneColor(opp.buyCity)
-                                        val sellColor = ZoneThemeColors.getCityZoneColor(opp.sellCity)
-                                        val borderColor = ZoneThemeColors.getOpportunityBorderColor(opp.buyCity, opp.sellCity)
-                                        val containerBg = ZoneThemeColors.getOpportunityContainerBg(opp.buyCity, opp.sellCity)
+                                        val cBuy = customBuyStr.toIntOrNull() ?: opp.buyPrice
+                                        val cSell = customSellStr.toIntOrNull() ?: opp.sellPrice
+
+                                        val localPrefs = remember { AppPreferences(context) }
+                                        val marketTaxRate = if (localPrefs.hasPremium) 0.04 else 0.08
+
+                                        val taxPerUnit = (cSell * marketTaxRate).toLong()
+                                        val setupFeePerUnit = (cSell * 0.025).toLong()
+                                        val netSellUnit = cSell.toLong() - taxPerUnit - setupFeePerUnit
+                                        val unitNetProfit = netSellUnit - cBuy.toLong()
+
+                                        val units = opp.tradeUnits
+                                        val customTotalInvestment = cBuy.toLong() * units
+                                        val customTotalNetRevenue = netSellUnit * units
+                                        val customTotalNetProfit = unitNetProfit * units
+                                        val customRoiPercent = if (customTotalInvestment > 0) (customTotalNetProfit.toDouble() / customTotalInvestment) * 100.0 else 0.0
+
+                                        val activeOpp = opp.copy(
+                                            buyPrice = cBuy,
+                                            sellPrice = cSell,
+                                            unitNetProfit = unitNetProfit.toInt(),
+                                            totalInvestment = customTotalInvestment,
+                                            totalGrossRevenue = cSell.toLong() * units,
+                                            totalNetRevenue = customTotalNetRevenue,
+                                            totalNetProfit = customTotalNetProfit,
+                                            roiPercent = customRoiPercent,
+                                            recommendedBuyOrderPrice = (cBuy * 0.88).toInt().coerceAtLeast(1),
+                                            recommendedSellOrderPrice = (cSell * 1.08).toInt().coerceAtLeast(1)
+                                        )
+
+                                        val buyTrans = LanguageManager.getCityTranslation(activeOpp.buyCity, lang)
+                                        val sellTrans = LanguageManager.getCityTranslation(activeOpp.sellCity, lang)
+
+                                        val buyColor = ZoneThemeColors.getCityZoneColor(activeOpp.buyCity)
+                                        val sellColor = ZoneThemeColors.getCityZoneColor(activeOpp.sellCity)
+                                        val borderColor = ZoneThemeColors.getOpportunityBorderColor(activeOpp.buyCity, activeOpp.sellCity)
+                                        val containerBg = ZoneThemeColors.getOpportunityContainerBg(activeOpp.buyCity, activeOpp.sellCity)
 
                                         Surface(
                                             shape = RoundedCornerShape(12.dp),
@@ -1871,13 +1905,13 @@ fun BubbleOverlayContent(
                                                 .wrapContentHeight()
                                                 .padding(bottom = 6.dp)
                                                 .clickable {
-                                                    onAcceptOpportunity(opp)
+                                                    onAcceptOpportunity(activeOpp)
                                                     selectedTab = BubbleTab.ACTIVE_ORDER
                                                 }
                                         ) {
                                             Column(modifier = Modifier.padding(6.dp)) {
                                                 if (isCompactMode) {
-                                                    // ULTRA-KOMPAKTE ZEILE IM COMPACT MODE: Alle wichtigen Infos auf 1-2 Zeilen ohne Scroll-Overhead
+                                                    // ULTRA-KOMPAKTE ZEILE IM COMPACT MODE
                                                     Row(
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -1885,17 +1919,17 @@ fun BubbleOverlayContent(
                                                     ) {
                                                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                                             AsyncImage(
-                                                                model = opp.resource.imageUrl,
+                                                                model = activeOpp.resource.imageUrl,
                                                                 contentDescription = null,
                                                                 modifier = Modifier.size(20.dp)
                                                             )
                                                             Spacer(modifier = Modifier.width(3.dp))
-                                                            Surface(shape = RoundedCornerShape(3.dp), color = getTierColor(opp.resource.tier)) {
-                                                                Text("${opp.resource.tierText}${opp.resource.enchantmentText}", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 2.dp))
+                                                            Surface(shape = RoundedCornerShape(3.dp), color = getTierColor(activeOpp.resource.tier)) {
+                                                                Text("${activeOpp.resource.tierText}${activeOpp.resource.enchantmentText}", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 2.dp))
                                                             }
                                                             Spacer(modifier = Modifier.width(3.dp))
                                                             Text(
-                                                                text = "Nr. ${index + 1} • ${opp.resource.nameDe}",
+                                                                text = "Nr. ${index + 1} • ${activeOpp.resource.nameDe}",
                                                                 color = Color.White,
                                                                 fontSize = 9.sp,
                                                                 fontWeight = FontWeight.Bold,
@@ -1904,14 +1938,14 @@ fun BubbleOverlayContent(
                                                             )
                                                         }
                                                         Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
-                                                            Text("+${String.format(Locale.GERMANY, "%.0f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                                            Text("+${String.format(Locale.GERMANY, "%.0f", activeOpp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
                                                         }
                                                         Spacer(modifier = Modifier.width(3.dp))
                                                         Surface(
                                                             shape = RoundedCornerShape(8.dp),
                                                             color = Color(0xFF10B981),
                                                             modifier = Modifier.clickable {
-                                                                onAcceptOpportunity(opp)
+                                                                onAcceptOpportunity(activeOpp)
                                                                 selectedTab = BubbleTab.ACTIVE_ORDER
                                                             }
                                                         ) {
@@ -1924,7 +1958,7 @@ fun BubbleOverlayContent(
                                                         modifier = Modifier.fillMaxWidth().padding(top = 2.dp)
                                                     ) {
                                                         Text(
-                                                            text = "$buyTrans (${fmt.format(opp.buyPrice)}) ➜ $sellTrans (${fmt.format(opp.sellPrice)})",
+                                                            text = "$buyTrans (${fmt.format(activeOpp.buyPrice)}) ➜ $sellTrans (${fmt.format(activeOpp.sellPrice)})",
                                                             color = Color(0xFF81C784),
                                                             fontSize = 8.sp,
                                                             maxLines = 1,
@@ -1932,7 +1966,7 @@ fun BubbleOverlayContent(
                                                             modifier = Modifier.weight(1f)
                                                         )
                                                         Text(
-                                                            text = "+${fmt.format(opp.totalNetRevenue)} S. | ⏱️ ${opp.ageInSeconds}s",
+                                                            text = "+${fmt.format(activeOpp.totalNetRevenue)} S. | ⏱️ ${activeOpp.ageInSeconds}s",
                                                             color = Color(0xFFFFB74D),
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 9.sp
@@ -1950,17 +1984,17 @@ fun BubbleOverlayContent(
                                                             modifier = Modifier.weight(1f)
                                                         ) {
                                                             AsyncImage(
-                                                                model = opp.resource.imageUrl,
+                                                                model = activeOpp.resource.imageUrl,
                                                                 contentDescription = null,
                                                                 modifier = Modifier.size(24.dp)
                                                             )
                                                             Spacer(modifier = Modifier.width(4.dp))
                                                             Surface(
                                                                 shape = RoundedCornerShape(4.dp),
-                                                                color = getTierColor(opp.resource.tier)
+                                                                color = getTierColor(activeOpp.resource.tier)
                                                             ) {
                                                                 Text(
-                                                                    text = "${opp.resource.tierText}${opp.resource.enchantmentText}",
+                                                                    text = "${activeOpp.resource.tierText}${activeOpp.resource.enchantmentText}",
                                                                     color = Color.White,
                                                                     fontWeight = FontWeight.Bold,
                                                                     fontSize = 9.sp,
@@ -1969,7 +2003,7 @@ fun BubbleOverlayContent(
                                                             }
                                                             Spacer(modifier = Modifier.width(4.dp))
                                                             Text(
-                                                                text = "Nr. ${index + 1} • ${opp.resource.nameDe}",
+                                                                text = "Nr. ${index + 1} • ${activeOpp.resource.nameDe}",
                                                                 color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 10.sp,
@@ -1977,20 +2011,26 @@ fun BubbleOverlayContent(
                                                                 overflow = TextOverflow.Ellipsis,
                                                                 modifier = Modifier.weight(1f)
                                                             )
-                                                            Spacer(modifier = Modifier.width(4.dp))
-                                                            Surface(
-                                                                shape = RoundedCornerShape(4.dp),
-                                                                color = Color(0xFF10B981).copy(alpha = 0.2f),
-                                                                border = BorderStroke(1.dp, Color(0xFF10B981))
-                                                            ) {
-                                                                Text(
-                                                                    text = "100% Frisch & Geprüft ✓",
-                                                                    color = Color(0xFF34D399),
-                                                                    fontSize = 8.sp,
-                                                                    fontWeight = FontWeight.Bold,
-                                                                    modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp)
-                                                                )
+                                                        }
+
+                                                        Spacer(modifier = Modifier.width(4.dp))
+
+                                                        // EDIT PRICE BUTTON
+                                                        Surface(
+                                                            shape = RoundedCornerShape(6.dp),
+                                                            color = Color(0xFF38BDF8).copy(alpha = 0.2f),
+                                                            border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                                            modifier = Modifier.clickable {
+                                                                isCustomizingInBubble = !isCustomizingInBubble
                                                             }
+                                                        ) {
+                                                            Text(
+                                                                text = if (isCustomizingInBubble) "💾" else "✏️",
+                                                                color = Color(0xFF38BDF8),
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                            )
                                                         }
 
                                                         Spacer(modifier = Modifier.width(4.dp))
@@ -1998,7 +2038,7 @@ fun BubbleOverlayContent(
                                                         // ROI Badge
                                                         Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFF10B981)) {
                                                             Text(
-                                                                text = "+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%",
+                                                                text = "+${String.format(Locale.GERMANY, "%.1f", activeOpp.roiPercent)}%",
                                                                 color = Color.White,
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 10.sp,
@@ -2013,7 +2053,7 @@ fun BubbleOverlayContent(
                                                             shape = RoundedCornerShape(12.dp),
                                                             color = Color(0xFF10B981),
                                                             modifier = Modifier.clickable {
-                                                                onAcceptOpportunity(opp)
+                                                                onAcceptOpportunity(activeOpp)
                                                                 selectedTab = BubbleTab.ACTIVE_ORDER
                                                             }
                                                         ) {
@@ -2031,11 +2071,36 @@ fun BubbleOverlayContent(
                                                         }
                                                     }
 
+                                                    if (isCustomizingInBubble) {
+                                                        Spacer(modifier = Modifier.height(4.dp))
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                            modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                                                        ) {
+                                                            OutlinedTextField(
+                                                                value = customBuyStr,
+                                                                onValueChange = { customBuyStr = it },
+                                                                label = { Text("Kaufpreis", fontSize = 8.sp) },
+                                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                                singleLine = true,
+                                                                modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                                            )
+                                                            OutlinedTextField(
+                                                                value = customSellStr,
+                                                                onValueChange = { customSellStr = it },
+                                                                label = { Text("Verkaufspreis", fontSize = 8.sp) },
+                                                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                                                singleLine = true,
+                                                                modifier = Modifier.weight(1f).onFocusChanged { if (it.isFocused) onFocusModeChanged(true) }
+                                                            )
+                                                        }
+                                                    }
+
                                                     Spacer(modifier = Modifier.height(4.dp))
 
                                                     // MIDDLE ROW: Buy City & Price -> Sell City & Price
-                                                    val aiBuyOrder = if (opp.recommendedBuyOrderPrice > 0) opp.recommendedBuyOrderPrice else (opp.buyPrice * 0.88).toInt().coerceAtLeast(1)
-                                                    val aiSellOrder = if (opp.recommendedSellOrderPrice > 0) opp.recommendedSellOrderPrice else (opp.sellPrice * 1.08).toInt().coerceAtLeast(1)
+                                                    val aiBuyOrder = if (activeOpp.recommendedBuyOrderPrice > 0) activeOpp.recommendedBuyOrderPrice else (activeOpp.buyPrice * 0.88).toInt().coerceAtLeast(1)
+                                                    val aiSellOrder = if (activeOpp.recommendedSellOrderPrice > 0) activeOpp.recommendedSellOrderPrice else (activeOpp.sellPrice * 1.08).toInt().coerceAtLeast(1)
 
                                                     Row(
                                                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -2050,13 +2115,13 @@ fun BubbleOverlayContent(
                                                                 fontSize = 9.sp
                                                             )
                                                             Text(
-                                                                text = "Kaufpreis: ${fmt.format(opp.buyPrice)} S.",
+                                                                text = "Kaufpreis: ${fmt.format(activeOpp.buyPrice)} S.",
                                                                 color = Color(0xFF81C784),
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 9.sp
                                                             )
                                                             Text(
-                                                                text = "🤖 Kauforder (KI): ${fmt.format(aiBuyOrder)} S. (Dip -${String.format(Locale.GERMANY, "%.1f", opp.expectedPriceDropPercent)}%)",
+                                                                text = "🤖 Kauforder (KI): ${fmt.format(aiBuyOrder)} S. (Dip -${String.format(Locale.GERMANY, "%.1f", activeOpp.expectedPriceDropPercent)}%)",
                                                                 color = Color(0xFF38BDF8),
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 8.sp
@@ -2071,16 +2136,16 @@ fun BubbleOverlayContent(
                                                                 fontSize = 9.sp
                                                             )
                                                             Text(
-                                                                text = "Verkaufspreis: ${fmt.format(opp.sellPrice)} S.",
+                                                                text = "Verkaufspreis: ${fmt.format(activeOpp.sellPrice)} S.",
                                                                 color = Color(0xFFFFB74D),
                                                                 fontWeight = FontWeight.Bold,
                                                                 fontSize = 9.sp
                                                             )
                                                             Text(
-                                                                text = "🤖 Verkauforder (KI): ${fmt.format(aiSellOrder)} S. (Peak +${String.format(Locale.GERMANY, "%.1f", opp.expectedPriceRisePercent)}%)",
+                                                                text = "🤖 Verkauforder (KI): ${fmt.format(aiSellOrder)} S. (Peak +${String.format(Locale.GERMANY, "%.1f", activeOpp.expectedPriceRisePercent)}%)",
                                                                 color = Color(0xFFFFD700),
                                                                 fontWeight = FontWeight.Bold,
-                                                                fontSize = 8.sp
+                                                                fontSize = 8.5.sp
                                                             )
                                                         }
                                                     }
