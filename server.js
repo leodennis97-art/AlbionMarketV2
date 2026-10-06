@@ -760,8 +760,8 @@ app.get('/apk', (req, res) => {
 });
 
 // Google Search Console Verification Endpoint & File
-app.get(['/google999f0d6f9c312079.html', '/google999f0d6f9c312079', '/google:id.html'], (req, res) => {
-    res.type('text/html').send('google-site-verification: google999f0d6f9c312079.html');
+app.get(['/google999f0d6f9c312079.html', '/google999f0d6f9c312079', '/google:id.html', '/qztdnbxgihfm.html', '/qztdnbxgihfm'], (req, res) => {
+    res.type('text/html').send('google-site-verification: google999f0d6f9c312079.html\ngv-uvz2atxi4achnn.dv.googlehosted.com');
 });
 
 // Robots.txt for Search Engines
