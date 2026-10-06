@@ -823,6 +823,7 @@ app.get(['/', '/get', '/app'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google-site-verification" content="T7hOrPz6NeYQJJoUIr7Tl0RWmnYmsA9MZ72tSXS47YI" />
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
     <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
     <meta name="description" content="AlbionDataPro ist der #1 Albion Online Hack & Markt-Mod für Mobile & PC. Das ultimative Markt-Overlay, Arbitrage Radar, Silber Rechner, Schwarzmarkt Bot & Preissuchmaschine. Jetzt Silber verdoppeln!">
