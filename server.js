@@ -438,6 +438,7 @@ function getActiveTunnelUrl() {
 }
 
 let globalMarketPrices = { europe: {}, americas: {}, asia: {} };
+let cloudDataLastReceivedTimestamp = Date.now();
 let marketCache = { europe: { items: [], lastUpdated: null }, americas: { items: [], lastUpdated: null }, asia: { items: [], lastUpdated: null } };
 let albion2dCache = { europe: { dataHtmlLength: 0, lastUpdated: null }, americas: { dataHtmlLength: 0, lastUpdated: null }, asia: { dataHtmlLength: 0, lastUpdated: null } };
 
@@ -588,6 +589,7 @@ async function aiMarketBotLoop() {
                 const url = `${srv.baseUrl}${itemsToQuery.join(',')}.json?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,BlackMarket,Brecilien`;
                 const res = await axios.get(url, { timeout: 12000 });
                 if (res.data && Array.isArray(res.data)) {
+                    cloudDataLastReceivedTimestamp = Date.now();
                     marketCache[srv.id] = {
                         items: res.data,
                         lastUpdated: new Date().toISOString()
@@ -2101,7 +2103,14 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
 });
 
 // API Endpoints
-app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: CURRENT_SERVER_VERSION, subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
+app.get('/api/health', (req, res) => res.json({
+    status: 'healthy',
+    timestamp: Date.now(),
+    version: CURRENT_SERVER_VERSION,
+    lastInfoReceivedTimestamp: cloudDataLastReceivedTimestamp,
+    lastInfoReceivedDate: new Date(cloudDataLastReceivedTimestamp).toISOString(),
+    subnets: ['74.220.51.0/24', '74.220.59.0/24']
+}));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/prices', (req, res) => {
     const srv = (req.query.server || 'europe').toLowerCase();

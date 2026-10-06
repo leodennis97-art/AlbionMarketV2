@@ -1,0 +1,4 @@
+Kategorie,Datentyp,Erhoben (Collected?),Geteilt (Shared?),Verschlüsselt in Transit?,Zweck / Verwendung
+Geräte- oder andere IDs,Geräte-ID (Hardware-ID),Ja,Nein,Ja,App-Funktionalität, Lizenzprüfung & Sicherheitsmanagement (Anti-Cheat)
+App-Aktivität,Absturzprotokolle (Crash Logs),Ja,Nein,Ja,Fehlerbehebung (Debugging) & Leistungsanalyse
+Finanzdaten,Zahlungsinformationen,Nein (über externe Zahlungsanbieter wie PayPal),Nein,Ja,Lizenzkäufe (keine Speicherung in der App)

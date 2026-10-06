@@ -499,6 +499,12 @@ object TradeCalculator {
                     currentNowMs
                 }
 
+                // Strenger Filter: Nur Handelschancen zulassen, die weniger als 10 Minuten alt sind (600.000 ms)
+                val maxAgeMs = 10 * 60 * 1000L
+                if (effectiveTimestamp <= 0 || (currentNowMs - effectiveTimestamp) > maxAgeMs) {
+                    continue
+                }
+
                 val ageStr = formatPriceAge(effectiveTimestamp)
                 val goldProfit = if (currentGoldPrice > 0) totalNetProfit / currentGoldPrice else 0L
                 val priority = calculatePriorityScore(resource, roi, bestBuy.city, bestSell.city, effectiveTimestamp)
