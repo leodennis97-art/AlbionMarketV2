@@ -361,7 +361,249 @@ object LanguageManager {
             "PL" -> plMap[key]
             else -> null
         }
-        return translated ?: enMap[key] ?: baseDe
+        return translated ?: enMap[key] ?: translateUI(baseDe, cleanLang)
+    }
+
+    fun translateUI(text: String, langCode: String): String {
+        if (text.isBlank()) return text
+        val cleanLang = langCode.trim().uppercase()
+        if (cleanLang == "DE") return text
+
+        return when (cleanLang) {
+            "EN" -> translateToEn(text)
+            "ES" -> translateToEs(text)
+            "FR" -> translateToFr(text)
+            "PT" -> translateToPt(text)
+            "RU" -> translateToRu(text)
+            "ZH" -> translateToZh(text)
+            "JA" -> translateToJa(text)
+            "KO" -> translateToKo(text)
+            "TR" -> translateToTr(text)
+            "ID" -> translateToId(text)
+            "PL" -> translateToPl(text)
+            else -> translateToEn(text)
+        }
+    }
+
+    private fun translateToEn(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Server Login & Authentication", ignoreCase = true)
+            .replace("Bitte Server-Zugangsdaten eingeben", "Please enter server credentials", ignoreCase = true)
+            .replace("Benutzername", "Username", ignoreCase = true)
+            .replace("Passwort", "Password", ignoreCase = true)
+            .replace("Einloggen", "Log In", ignoreCase = true)
+            .replace("Anmelden", "Sign In", ignoreCase = true)
+            .replace("Registrieren", "Register", ignoreCase = true)
+            .replace("Lizenz erwerben", "Purchase License", ignoreCase = true)
+            .replace("Auf Update prüfen", "Check for Updates", ignoreCase = true)
+            .replace("Suche nach Updates", "Checking for updates", ignoreCase = true)
+            .replace("Abmelden / Logout", "Log Out", ignoreCase = true)
+            .replace("Abmelden / Sperren", "Log Out / Lock", ignoreCase = true)
+            .replace("Server auswählen:", "Select Server:", ignoreCase = true)
+            .replace("Silber-Budget", "Silver Budget", ignoreCase = true)
+            .replace("Traglast (kg)", "Carry Capacity (kg)", ignoreCase = true)
+            .replace("Mindest-Marge (%)", "Min Margin (%)", ignoreCase = true)
+            .replace("Handelschancen", "Trade Deals", ignoreCase = true)
+            .replace("Auftrag annehmen", "Accept Order", ignoreCase = true)
+            .replace("Kaufen in", "Buy in", ignoreCase = true)
+            .replace("Verkaufen in", "Sell in", ignoreCase = true)
+            .replace("Kaufpreis", "Buy Price", ignoreCase = true)
+            .replace("Verkaufspreis", "Sell Price", ignoreCase = true)
+            .replace("Gewinn/Stk", "Profit/Unit", ignoreCase = true)
+            .replace("Investition", "Investment", ignoreCase = true)
+            .replace("Gewinn", "Profit", ignoreCase = true)
+            .replace("Netto-Umsatz", "Net Revenue", ignoreCase = true)
+            .replace("Ausgegeben", "Spent", ignoreCase = true)
+            .replace("Menge", "Quantity", ignoreCase = true)
+            .replace("Buchen", "Book", ignoreCase = true)
+            .replace("Abbrechen", "Cancel", ignoreCase = true)
+            .replace("Speichern", "Save", ignoreCase = true)
+            .replace("Schließen", "Close", ignoreCase = true)
+            .replace("Einstellungen", "Settings", ignoreCase = true)
+            .replace("Standpunkt:", "Location:", ignoreCase = true)
+            .replace("Gefährliche Zonen meiden", "Avoid dangerous zones", ignoreCase = true)
+    }
+
+    private fun translateToEs(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Inicio de sesión y autenticación", ignoreCase = true)
+            .replace("Benutzername", "Usuario", ignoreCase = true)
+            .replace("Passwort", "Contraseña", ignoreCase = true)
+            .replace("Einloggen", "Iniciar sesión", ignoreCase = true)
+            .replace("Anmelden", "Ingresar", ignoreCase = true)
+            .replace("Registrieren", "Registrarse", ignoreCase = true)
+            .replace("Silber-Budget", "Presupuesto de plata", ignoreCase = true)
+            .replace("Kaufpreis", "Precio de compra", ignoreCase = true)
+            .replace("Verkaufspreis", "Precio de venta", ignoreCase = true)
+            .replace("Gewinn", "Ganancia", ignoreCase = true)
+            .replace("Menge", "Cantidad", ignoreCase = true)
+            .replace("Buchen", "Reservar", ignoreCase = true)
+            .replace("Abbrechen", "Cancelar", ignoreCase = true)
+            .replace("Speichern", "Guardar", ignoreCase = true)
+            .replace("Schließen", "Cerrar", ignoreCase = true)
+            .replace("Einstellungen", "Ajustes", ignoreCase = true)
+    }
+
+    private fun translateToFr(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Connexion et authentification", ignoreCase = true)
+            .replace("Benutzername", "Nom d'utilisateur", ignoreCase = true)
+            .replace("Passwort", "Mot de passe", ignoreCase = true)
+            .replace("Einloggen", "Se connecter", ignoreCase = true)
+            .replace("Anmelden", "Connexion", ignoreCase = true)
+            .replace("Registrieren", "S'inscrire", ignoreCase = true)
+            .replace("Silber-Budget", "Budget argent", ignoreCase = true)
+            .replace("Kaufpreis", "Prix d'achat", ignoreCase = true)
+            .replace("Verkaufspreis", "Prix de vente", ignoreCase = true)
+            .replace("Gewinn", "Bénéfice", ignoreCase = true)
+            .replace("Menge", "Quantité", ignoreCase = true)
+            .replace("Speichern", "Enregistrer", ignoreCase = true)
+            .replace("Schließen", "Fermer", ignoreCase = true)
+            .replace("Einstellungen", "Paramètres", ignoreCase = true)
+    }
+
+    private fun translateToPt(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Login e Autenticação", ignoreCase = true)
+            .replace("Benutzername", "Nome de usuário", ignoreCase = true)
+            .replace("Passwort", "Senha", ignoreCase = true)
+            .replace("Einloggen", "Entrar", ignoreCase = true)
+            .replace("Anmelden", "Entrar", ignoreCase = true)
+            .replace("Registrieren", "Registrar", ignoreCase = true)
+            .replace("Silber-Budget", "Orçamento de prata", ignoreCase = true)
+            .replace("Kaufpreis", "Preço de compra", ignoreCase = true)
+            .replace("Verkaufspreis", "Preço de venda", ignoreCase = true)
+            .replace("Gewinn", "Lucro", ignoreCase = true)
+            .replace("Menge", "Quantidade", ignoreCase = true)
+            .replace("Speichern", "Salvar", ignoreCase = true)
+            .replace("Schließen", "Fechar", ignoreCase = true)
+            .replace("Einstellungen", "Configurações", ignoreCase = true)
+    }
+
+    private fun translateToRu(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Вход и Аутентификация", ignoreCase = true)
+            .replace("Benutzername", "Имя пользователя", ignoreCase = true)
+            .replace("Passwort", "Пароль", ignoreCase = true)
+            .replace("Einloggen", "Войти", ignoreCase = true)
+            .replace("Anmelden", "Вход", ignoreCase = true)
+            .replace("Registrieren", "Регистрация", ignoreCase = true)
+            .replace("Silber-Budget", "Бюджет серебра", ignoreCase = true)
+            .replace("Kaufpreis", "Цена покупки", ignoreCase = true)
+            .replace("Verkaufspreis", "Цена продажи", ignoreCase = true)
+            .replace("Gewinn", "Прибыль", ignoreCase = true)
+            .replace("Menge", "Количество", ignoreCase = true)
+            .replace("Speichern", "Сохранить", ignoreCase = true)
+            .replace("Schließen", "Закрыть", ignoreCase = true)
+            .replace("Einstellungen", "Настройки", ignoreCase = true)
+    }
+
+    private fun translateToZh(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "服务器登录与身份验证", ignoreCase = true)
+            .replace("Benutzername", "用户名", ignoreCase = true)
+            .replace("Passwort", "密码", ignoreCase = true)
+            .replace("Einloggen", "登录", ignoreCase = true)
+            .replace("Anmelden", "登录", ignoreCase = true)
+            .replace("Registrieren", "注册", ignoreCase = true)
+            .replace("Silber-Budget", "银币预算", ignoreCase = true)
+            .replace("Kaufpreis", "买入价", ignoreCase = true)
+            .replace("Verkaufspreis", "卖出价", ignoreCase = true)
+            .replace("Gewinn", "利润", ignoreCase = true)
+            .replace("Menge", "数量", ignoreCase = true)
+            .replace("Speichern", "保存", ignoreCase = true)
+            .replace("Schließen", "关闭", ignoreCase = true)
+            .replace("Einstellungen", "设置", ignoreCase = true)
+    }
+
+    private fun translateToJa(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "サーバーログインと認証", ignoreCase = true)
+            .replace("Benutzername", "ユーザー名", ignoreCase = true)
+            .replace("Passwort", "パスワード", ignoreCase = true)
+            .replace("Einloggen", "ログイン", ignoreCase = true)
+            .replace("Anmelden", "サインイン", ignoreCase = true)
+            .replace("Registrieren", "登録", ignoreCase = true)
+            .replace("Silber-Budget", "シルバー予算", ignoreCase = true)
+            .replace("Kaufpreis", "購入価格", ignoreCase = true)
+            .replace("Verkaufspreis", "売却価格", ignoreCase = true)
+            .replace("Gewinn", "利益", ignoreCase = true)
+            .replace("Menge", "数量", ignoreCase = true)
+            .replace("Speichern", "保存", ignoreCase = true)
+            .replace("Schließen", "閉じる", ignoreCase = true)
+            .replace("Einstellungen", "設定", ignoreCase = true)
+    }
+
+    private fun translateToKo(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "서버 로그인 및 인증", ignoreCase = true)
+            .replace("Benutzername", "사용자 이름", ignoreCase = true)
+            .replace("Passwort", "비밀번호", ignoreCase = true)
+            .replace("Einloggen", "로그인", ignoreCase = true)
+            .replace("Anmelden", "로그인", ignoreCase = true)
+            .replace("Registrieren", "회원가입", ignoreCase = true)
+            .replace("Silber-Budget", "실버 예산", ignoreCase = true)
+            .replace("Kaufpreis", "구매가", ignoreCase = true)
+            .replace("Verkaufspreis", "판매가", ignoreCase = true)
+            .replace("Gewinn", "이익", ignoreCase = true)
+            .replace("Menge", "수량", ignoreCase = true)
+            .replace("Speichern", "저장", ignoreCase = true)
+            .replace("Schließen", "닫기", ignoreCase = true)
+            .replace("Einstellungen", "설정", ignoreCase = true)
+    }
+
+    private fun translateToTr(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Giriş ve Doğrulama", ignoreCase = true)
+            .replace("Benutzername", "Kullanıcı Adı", ignoreCase = true)
+            .replace("Passwort", "Şifre", ignoreCase = true)
+            .replace("Einloggen", "Giriş Yap", ignoreCase = true)
+            .replace("Anmelden", "Giriş", ignoreCase = true)
+            .replace("Registrieren", "Kayıt Ol", ignoreCase = true)
+            .replace("Silber-Budget", "Gümüş Bütçesi", ignoreCase = true)
+            .replace("Kaufpreis", "Alış Fiyatı", ignoreCase = true)
+            .replace("Verkaufspreis", "Satış Fiyatı", ignoreCase = true)
+            .replace("Gewinn", "Kar", ignoreCase = true)
+            .replace("Menge", "Miktar", ignoreCase = true)
+            .replace("Speichern", "Kaydet", ignoreCase = true)
+            .replace("Schließen", "Kapat", ignoreCase = true)
+            .replace("Einstellungen", "Ayarlar", ignoreCase = true)
+    }
+
+    private fun translateToId(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Login & Autentikasi", ignoreCase = true)
+            .replace("Benutzername", "Nama Pengguna", ignoreCase = true)
+            .replace("Passwort", "Kata Sandi", ignoreCase = true)
+            .replace("Einloggen", "Masuk", ignoreCase = true)
+            .replace("Anmelden", "Masuk", ignoreCase = true)
+            .replace("Registrieren", "Daftar", ignoreCase = true)
+            .replace("Silber-Budget", "Anggaran Perak", ignoreCase = true)
+            .replace("Kaufpreis", "Harga Beli", ignoreCase = true)
+            .replace("Verkaufspreis", "Harga Jual", ignoreCase = true)
+            .replace("Gewinn", "Keuntungan", ignoreCase = true)
+            .replace("Menge", "Jumlah", ignoreCase = true)
+            .replace("Speichern", "Simpan", ignoreCase = true)
+            .replace("Schließen", "Tutup", ignoreCase = true)
+            .replace("Einstellungen", "Pengaturan", ignoreCase = true)
+    }
+
+    private fun translateToPl(text: String): String {
+        return text
+            .replace("Server Login & Authentifizierung", "Logowanie i Uwierzytelnianie", ignoreCase = true)
+            .replace("Benutzername", "Nazwa użytkownika", ignoreCase = true)
+            .replace("Passwort", "Hasło", ignoreCase = true)
+            .replace("Einloggen", "Zaloguj się", ignoreCase = true)
+            .replace("Anmelden", "Zaloguj", ignoreCase = true)
+            .replace("Registrieren", "Zarejestruj się", ignoreCase = true)
+            .replace("Silber-Budget", "Budżet srebra", ignoreCase = true)
+            .replace("Kaufpreis", "Cena zakupu", ignoreCase = true)
+            .replace("Verkaufspreis", "Cena sprzedaży", ignoreCase = true)
+            .replace("Gewinn", "Zysk", ignoreCase = true)
+            .replace("Menge", "Ilość", ignoreCase = true)
+            .replace("Speichern", "Zapisz", ignoreCase = true)
+            .replace("Schließen", "Zamknij", ignoreCase = true)
+            .replace("Einstellungen", "Ustawienia", ignoreCase = true)
     }
 
     fun getCityTranslation(city: String, langCode: String): String {

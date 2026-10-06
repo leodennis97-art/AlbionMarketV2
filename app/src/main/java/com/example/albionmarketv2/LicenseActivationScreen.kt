@@ -131,7 +131,7 @@ fun LicenseActivationScreen(
                 )
 
                 Text(
-                    text = "🔒 Server Login & Authentifizierung",
+                    text = LanguageManager.translateUI("🔒 Server Login & Authentifizierung", currentAppLang),
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
@@ -142,7 +142,7 @@ fun LicenseActivationScreen(
                 val isConn = ServerSyncManager.isServerConnected
                 val statusBg = if (isConn) Color(0xFF065F46) else Color(0xFF991B1B)
                 val statusFg = if (isConn) Color(0xFF34D399) else Color(0xFFF87171)
-                val statusLabel = if (isConn) "🟢 Cloud verbunden (Render Pro)" else "🔴 Keine Verbindung zur Render Cloud"
+                val statusLabel = if (isConn) LanguageManager.translateUI("🟢 Cloud verbunden (Render Pro)", currentAppLang) else LanguageManager.translateUI("🔴 Keine Verbindung zur Render Cloud", currentAppLang)
 
                 Box(
                     modifier = Modifier
@@ -189,7 +189,7 @@ fun LicenseActivationScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "🔄 Auf Update prüfen / Installieren",
+                            text = LanguageManager.translateUI("🔄 Auf Update prüfen / Installieren", currentAppLang),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -199,7 +199,7 @@ fun LicenseActivationScreen(
                 }
 
                 Text(
-                    text = statusText,
+                    text = LanguageManager.translateUI(statusText, currentAppLang),
                     fontSize = 12.sp,
                     color = Color(0xFF94A3B8),
                     textAlign = TextAlign.Center,
@@ -221,7 +221,7 @@ fun LicenseActivationScreen(
                     OutlinedTextField(
                         value = usernameInput,
                         onValueChange = { usernameInput = it },
-                        label = { Text("Benutzername", color = Color(0xFF94A3B8)) },
+                        label = { Text(LanguageManager.translateUI("Benutzername", currentAppLang), color = Color(0xFF94A3B8)) },
                         singleLine = true,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFF3B82F6),
@@ -235,7 +235,7 @@ fun LicenseActivationScreen(
                     OutlinedTextField(
                         value = passwordInput,
                         onValueChange = { passwordInput = it },
-                        label = { Text("Passwort", color = Color(0xFF94A3B8)) },
+                        label = { Text(LanguageManager.translateUI("Passwort", currentAppLang), color = Color(0xFF94A3B8)) },
                         singleLine = true,
                         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         trailingIcon = {

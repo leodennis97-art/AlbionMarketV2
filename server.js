@@ -708,8 +708,8 @@ Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
     );
 });
 
-// Sitemap.xml & Sitemap.hml for Google Search Console
-app.get(['/sitemap.xml', '/sitemap.hml', '/sitemap.html', '/sitemap'], (req, res) => {
+// Sitemap.xml for Google Search Console
+app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     res.type('application/xml').send(
 `<?xml version="1.0" encoding="UTF-8"?>
@@ -734,6 +734,11 @@ app.get(['/sitemap.xml', '/sitemap.hml', '/sitemap.html', '/sitemap'], (req, res
    </url>
 </urlset>`
     );
+});
+
+// Redirects for alternative sitemap typos (/sitemap.hml, /sitemap.html, /sitemap)
+app.get(['/sitemap.hml', '/sitemap.html', '/sitemap'], (req, res) => {
+    res.redirect(301, '/sitemap.xml');
 });
 
 // Landing Page (Verkauf, Info & Download)

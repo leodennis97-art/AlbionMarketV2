@@ -480,7 +480,7 @@ class MainActivity : ComponentActivity() {
                                                 contentPadding = PaddingValues(vertical = 10.dp)
                                             ) {
                                                 Text(
-                                                    text = "🔑 Anmelden",
+                                                    text = "🔑 ${LanguageManager.translateUI("Anmelden", currentAppLang)}",
                                                     fontSize = 13.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = if (!isRegistrationMode) Color.White else Color(0xFF94A3B8)
@@ -497,7 +497,7 @@ class MainActivity : ComponentActivity() {
                                                 contentPadding = PaddingValues(vertical = 10.dp)
                                             ) {
                                                 Text(
-                                                    text = "📝 Registrieren",
+                                                    text = "📝 ${LanguageManager.translateUI("Registrieren", currentAppLang)}",
                                                     fontSize = 13.sp,
                                                     fontWeight = FontWeight.Bold,
                                                     color = if (isRegistrationMode) Color.White else Color(0xFF94A3B8)
@@ -565,7 +565,7 @@ class MainActivity : ComponentActivity() {
                                         OutlinedTextField(
                                             value = usernameInput,
                                             onValueChange = { usernameInput = it },
-                                            label = { Text("Benutzername", color = Color(0xFF94A3B8), fontSize = 12.sp) },
+                                            label = { Text(LanguageManager.translateUI("Benutzername", currentAppLang), color = Color(0xFF94A3B8), fontSize = 12.sp) },
                                             singleLine = true,
                                             shape = RoundedCornerShape(12.dp),
                                             leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF38BDF8)) },
@@ -585,7 +585,7 @@ class MainActivity : ComponentActivity() {
                                         OutlinedTextField(
                                             value = passwordInput,
                                             onValueChange = { passwordInput = it },
-                                            label = { Text("Passwort", color = Color(0xFF94A3B8), fontSize = 12.sp) },
+                                            label = { Text(LanguageManager.translateUI("Passwort", currentAppLang), color = Color(0xFF94A3B8), fontSize = 12.sp) },
                                             singleLine = true,
                                             shape = RoundedCornerShape(12.dp),
                                             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
