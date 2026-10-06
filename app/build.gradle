@@ -16,8 +16,8 @@ android {
         applicationId 'com.example.albionmarketv2'
         minSdk 26
         targetSdk 35
-        versionCode 336
-        versionName '3.2.16'
+        versionCode 337
+        versionName '3.2.17'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }

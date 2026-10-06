@@ -410,13 +410,13 @@ object TradeCalculator {
 
                         val candSellPrice = if (isBm) {
                             // Schwarzmarkt: Sofortverkauf an die höchste aktive Kauforder (buyPriceMax)
-                            cityPrices.maxOfOrNull { it.buyPriceMax } ?: 0
+                            cityPrices.map { it.buyPriceMax }.filter { it > 0 }.maxOrNull() ?: 0
                         } else {
-                            // Normale Städte: Suche die Stadt mit dem höchsten niedrigsten Kaufpreis (sellPriceMin)
-                            val lowestSellOrderInCity = cityPrices.filter { it.sellPriceMin > buyPrice }.minByOrNull { it.sellPriceMin }?.sellPriceMin ?: 0
-                            val highestBuyOrderInCity = cityPrices.maxOfOrNull { it.buyPriceMax } ?: 0
+                            // Normale Städte: Verkaufspreis ist das niedrigste Verkaufsangebot (sellPriceMin) in der Zielstadt
+                            val lowestSellOrderInCity = cityPrices.map { it.sellPriceMin }.filter { it > 0 }.minOrNull() ?: 0
+                            val highestBuyOrderInCity = cityPrices.map { it.buyPriceMax }.filter { it > 0 }.maxOrNull() ?: 0
                             
-                            maxOf(lowestSellOrderInCity, highestBuyOrderInCity)
+                            if (lowestSellOrderInCity > 0) lowestSellOrderInCity else highestBuyOrderInCity
                         }
 
                         if (candSellPrice <= buyPrice) continue

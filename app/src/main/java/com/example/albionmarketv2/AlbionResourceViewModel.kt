@@ -999,8 +999,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     )
                 }.toList()
 
-                // Overwrite older local prices with newer cloud and API market data
-                val combinedPrices = (cloudPrices + fetchedPrices).distinctBy { "${it.itemId}_${it.city}_${it.sellPriceMin}" }
+                // Live API prices take top priority and overwrite older cloud or cached market data
+                // Deduplicate strictly by (itemId, city, quality) so there is NEVER more than one price entry per city
+                val combinedPrices = (fetchedPrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }
 
                 val priceMap = if (combinedPrices.isNotEmpty()) {
                     combinedPrices.groupBy { it.itemId }

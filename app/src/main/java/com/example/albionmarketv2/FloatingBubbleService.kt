@@ -445,7 +445,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 )
             }.toList()
 
-            fetchedPrices = (livePrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.sellPriceMin}" }
+            fetchedPrices = (livePrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }
         }
 
         val localSnapshots = prefs.getPriceSnapshots(prefs.server)
@@ -462,7 +462,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             )
         }
 
-        val rawCombined = (fetchedPrices + localPrices).ifEmpty {
+        // Live prices take priority over local snapshots; deduplicate strictly by (itemId, city, quality)
+        val rawCombined = (fetchedPrices + localPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }.ifEmpty {
             AlbionMarketApi.getFallbackMarketPrices().values.flatten()
         }
 

@@ -301,9 +301,16 @@ class AppPreferences(private val context: Context) {
     }
 
     fun savePriceSnapshots(server: AlbionServer = AlbionServer.EUROPE, snapshots: List<PriceSnapshot>) {
+        // Keep only the latest snapshot for each (itemId, city) to prevent storing duplicate/old prices
+        val deduplicated = snapshots
+            .groupBy { "${it.itemId}_${it.city}" }
+            .mapValues { (_, list) -> list.maxByOrNull { it.timestampMs } ?: list.last() }
+            .values
+            .toList()
+            .takeLast(1500)
+
         val arr = JSONArray()
-        val trimmed = snapshots.takeLast(1500)
-        for (s in trimmed) {
+        for (s in deduplicated) {
             val obj = JSONObject()
             obj.put("itemId", s.itemId)
             obj.put("city", s.city)
@@ -316,7 +323,7 @@ class AppPreferences(private val context: Context) {
         prefs.edit().putString("price_snapshots_${server.name}_json", arr.toString()).apply()
 
         // Backup to external device folder Documents/AlbionDataPro
-        ExternalStorageBackupManager.backupSnapshots(context, trimmed)
+        ExternalStorageBackupManager.backupSnapshots(context, deduplicated)
     }
 
     // Trade Orders Persistence
