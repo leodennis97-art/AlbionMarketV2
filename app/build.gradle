@@ -1,0 +1,165 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.gms.google.services)
+}
+
+android {
+    namespace 'com.example.albionmarketv2'
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId 'com.example.albionmarketv2'
+        minSdk 26
+        targetSdk 35
+        versionCode 3700
+        versionName '3.7.0'
+
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        compose true
+    }
+}
+
+android.applicationVariants.all { variant ->
+    variant.assembleProvider.get().finalizedBy("uploadApkToRender")
+}
+
+// Autonomer Gradle-Task zum Hochladen der APK und Aktualisieren der Zielversion auf Render
+tasks.register("uploadApkToRender") {
+    doLast {
+        // Prüfe ob Debug- oder Release-APK existiert
+        def debugApk = file("${layout.buildDirectory.get()}/outputs/apk/debug/app-debug.apk")
+        def releaseApk = file("${layout.buildDirectory.get()}/outputs/apk/release/app-release.apk")
+        def apkFile = releaseApk.exists() ? releaseApk : debugApk
+
+        if (!apkFile.exists()) {
+            println("❌ APK nicht gefunden unter: ${apkFile.absolutePath}")
+            return
+        }
+
+        // versionName aus android block auslesen (z.B. "2.0.7")
+        def versionName = android.defaultConfig.versionName
+        println("🚀 Lade APK (v$versionName, ${apkFile.length() / (1024 * 1024)} MB) autonom auf Render & Ngrok hoch & setze targetVersion...")
+
+        try {
+            // Upload direkt zu Render
+            def url = new URL("https://albionmarketv2-1.onrender.com/api/admin/upload-apk?version=$versionName")
+            def conn = (HttpURLConnection) url.openConnection()
+            conn.setRequestMethod("POST")
+            conn.setDoOutput(true)
+            
+            def boundary = "----AndroidGradleBoundary" + System.currentTimeMillis()
+            conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary)
+            conn.setRequestProperty("Authorization", "Bearer AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+            conn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+            conn.setRequestProperty("x-admin-key", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+            conn.setRequestProperty("X-Target-Version", versionName)
+            
+            conn.outputStream.withCloseable { os ->
+                os.write(("--" + boundary + "\r\n").getBytes("UTF-8"))
+                os.write(("Content-Disposition: form-data; name=\"apkFile\"; filename=\"AlbionDataPro.apk\"\r\n").getBytes("UTF-8"))
+                os.write(("Content-Type: application/vnd.android.package-archive\r\n\r\n").getBytes("UTF-8"))
+                
+                apkFile.bytes.eachChunk { chunk, len ->
+                    os.write(chunk, 0, len)
+                }
+                
+                os.write(("\r\n--" + boundary + "--\r\n").getBytes("UTF-8"))
+            }
+            
+            println("📡 Render Server Antwort Code: ${conn.responseCode}")
+
+            // Parallel auch über den Ngrok-Tunnel (falls aktiv)
+            try {
+                def ngrokUrl = new URL("https://speller-importer-captivate.ngrok-free.dev/api/admin/upload-apk?version=$versionName")
+                def ngrokConn = (HttpURLConnection) ngrokUrl.openConnection()
+                ngrokConn.setRequestMethod("POST")
+                ngrokConn.setDoOutput(true)
+                ngrokConn.setRequestProperty("Content-Type", "application/vnd.android.package-archive")
+                ngrokConn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+                ngrokConn.setRequestProperty("X-Target-Version", versionName)
+                ngrokConn.setConnectTimeout(3000)
+                ngrokConn.setReadTimeout(5000)
+                
+                ngrokConn.outputStream.withCloseable { os ->
+                    apkFile.bytes.eachChunk { chunk, len ->
+                        os.write(chunk, 0, len)
+                    }
+                }
+                println("📡 Ngrok Tunnel Antwort Code: ${ngrokConn.responseCode}")
+            } catch (Exception ngrokEx) {
+                println("ℹ️ Ngrok Tunnel aktuell nicht erreichbar (wird übersprungen): ${ngrokEx.message}")
+            }
+
+            if (conn.responseCode == 200) {
+                println("✅ APK & Target-Version v$versionName erfolgreich autonom auf Render & Ngrok bereitgestellt!")
+                
+                // Ältere Versionen auf Render bereinigen
+                try {
+                    def cleanupUrl = new URL("https://albionmarketv2-1.onrender.com/api/admin/cleanup-apks?keepVersion=$versionName")
+                    def cleanupConn = (HttpURLConnection) cleanupUrl.openConnection()
+                    cleanupConn.setRequestMethod("POST")
+                    cleanupConn.setRequestProperty("X-Admin-Token", "AlbionDataPro_Military_Admin_SuperSecret_2026#Key")
+                    cleanupConn.setConnectTimeout(3000)
+                    cleanupConn.setReadTimeout(5000)
+                    println("🧹 Bereinigung alter APKs auf Render - Status Code: ${cleanupConn.responseCode}")
+                } catch (Exception cleanupEx) {
+                    println("ℹ️ Konnte alte APKs nicht automatisch bereinigen: ${cleanupEx.message}")
+                }
+            } else {
+                println("⚠️ Upload-Antwort: ${conn.responseMessage}")
+            }
+        } catch (Exception e) {
+            println("❌ Fehler beim autonomen APK-Upload: ${e.message}")
+        }
+    }
+}
+
+tasks.withType(KotlinCompile).configureEach {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
+    }
+}
+
+dependencies {
+    implementation platform(libs.androidx.compose.bom)
+    implementation libs.androidx.activity.compose
+    implementation libs.androidx.compose.material3
+    implementation libs.androidx.compose.ui
+    implementation libs.androidx.compose.ui.graphics
+    implementation libs.androidx.compose.ui.tooling.preview
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.androidx.lifecycle.service
+    implementation libs.androidx.lifecycle.viewmodel.compose
+    implementation libs.coil.compose
+    implementation libs.firebase.ai
+    implementation libs.play.billing.ktx
+    implementation libs.ngrok.java
+    runtimeOnly libs.ngrok.java.native
+    testImplementation libs.junit
+    androidTestImplementation platform(libs.androidx.compose.bom)
+    androidTestImplementation libs.androidx.compose.ui.test.junit4
+    androidTestImplementation libs.androidx.espresso.core
+    androidTestImplementation libs.androidx.junit
+    debugImplementation libs.androidx.compose.ui.test.manifest
+    debugImplementation libs.androidx.compose.ui.tooling
+}

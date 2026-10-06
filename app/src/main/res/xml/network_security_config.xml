@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Standardkonfiguration: Erlaube alle ausgehenden Verbindungen und Zertifikate für Render & Outbound Traffic -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- HTTPS & Outbound Domain Endpoints -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">AlbionDataPro.com</domain>
+        <domain includeSubdomains="true">onrender.com</domain>
+        <domain includeSubdomains="true">216.24.57.1</domain>
+        <domain includeSubdomains="true">albiononlinebuilds.com</domain>
+        <domain includeSubdomains="true">albion-online.com</domain>
+        <domain includeSubdomains="true">ngrok-free.dev</domain>
+        <domain includeSubdomains="true">loca.lt</domain>
+        <domain includeSubdomains="true">74.220.51.1</domain>
+        <domain includeSubdomains="true">74.220.59.1</domain>
+        <domain includeSubdomains="true">74.220.51.0</domain>
+        <domain includeSubdomains="true">74.220.59.0</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
