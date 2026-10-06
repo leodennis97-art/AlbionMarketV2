@@ -708,8 +708,8 @@ Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
     );
 });
 
-// Sitemap.xml for Google Search Console
-app.get('/sitemap.xml', (req, res) => {
+// Sitemap.xml & Sitemap.hml for Google Search Console
+app.get(['/sitemap.xml', '/sitemap.hml', '/sitemap.html', '/sitemap'], (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     res.type('application/xml').send(
 `<?xml version="1.0" encoding="UTF-8"?>
