@@ -628,9 +628,13 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             }
         }
 
-        // Extra KI-Anomalie Filter: Unrealistische Spitzen verworfen
+        // Verschärfter KI-Anomalie & Preis-Prüfungs-Filter: Nur 100% reale Handelschancen (ROI 0.5% bis 150%, Profit >= 20 Silber, kein Wucher)
         val aiSanitizedOpportunities = rawOpportunities.filter { opp ->
-            (opp.roiPercent in 0.1..500.0) && (opp.unitNetProfit in 1..50_000_000)
+            (opp.roiPercent in 0.5..150.0) && 
+            (opp.unitNetProfit in 20..10_000_000) &&
+            (!opp.isScamPriceWarning) &&
+            (opp.buyPrice >= 10) &&
+            (opp.sellPrice <= opp.buyPrice * 2.5)
         }
 
         return aiSanitizedOpportunities.asSequence().sortedByDescending { it.updatedTimestamp }.take(50).toList()

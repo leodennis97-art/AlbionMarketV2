@@ -420,7 +420,7 @@ object TradeCalculator {
                         }
 
                         if (candSellPrice <= buyPrice) continue
-                        if (candSellPrice > buyPrice * 5.0) continue // Anomaly check
+                        if (candSellPrice > buyPrice * 2.2) continue // Verschärfter KI-Anomalie- & Scam-Schutz (max 120% Preis-Aufschlag)
 
                         val bestMarketPriceForCity = cityPrices.find { 
                             it.sellPriceMin == candSellPrice || it.buyPriceMax == candSellPrice 
@@ -459,10 +459,10 @@ object TradeCalculator {
                 val netSellPrice = sellPrice - taxPerUnit - setupFeePerUnit
                 val unitProfit = netSellPrice - buyPrice
 
-                if (unitProfit <= 0) continue
+                if (unitProfit < 20) continue
 
                 val marginPercent = (unitProfit.toDouble() / buyPrice) * 100.0
-                if (marginPercent < targetMarginPercent) continue
+                if (marginPercent < targetMarginPercent || marginPercent > 150.0) continue
 
                 val unitWeight = getItemWeightKg(resource)
 
