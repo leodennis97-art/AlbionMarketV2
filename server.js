@@ -781,12 +781,17 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     res.type('application/xml').send(
 `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">
    <url>
       <loc>https://albionmarketv2-1.onrender.com/</loc>
       <lastmod>${today}</lastmod>
       <changefreq>always</changefreq>
       <priority>1.0</priority>
+      <xhtml:link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/"/>
+      <xhtml:link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/"/>
    </url>
    <url>
       <loc>https://albionmarketv2-1.onrender.com/hack</loc>
