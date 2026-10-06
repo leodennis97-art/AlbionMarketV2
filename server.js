@@ -628,7 +628,7 @@ app.get(['/api/download/token', '/download/token'], (req, res) => {
 });
 
 // High-End Protected Streaming APK Download with Rate-Limiting & Memory Overflow Protection
-app.get(['/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/latest.apk'], (req, res) => {
+app.get(['/download', '/download/', '/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/latest.apk', '/download/latest', '/download/app'], (req, res) => {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const token = req.query.token;
     const adminKey = req.query.key || req.query.adminKey || req.headers['x-admin-key'];
