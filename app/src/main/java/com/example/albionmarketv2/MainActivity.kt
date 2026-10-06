@@ -17,6 +17,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -285,10 +286,13 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background,
-                ) {
+                var currentAppLang by remember { mutableStateOf(prefs.appLanguage) }
+
+                CompositionLocalProvider(LocalAppLanguage provides currentAppLang) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background,
+                    ) {
                     // Show Lockscreen Login when NOT logged in or license invalid
                     if (!isUserLoggedInState || !LicenseManager.isLicenseValid(context)) {
                         var usernameInput by remember { mutableStateOf(prefs.savedUsername) }
@@ -994,6 +998,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                }
                 }
             }
         }

@@ -1,5 +1,9 @@
 package com.example.albionmarketv2
 
+import androidx.compose.runtime.compositionLocalOf
+
+val LocalAppLanguage = compositionLocalOf { "DE" }
+
 object LanguageManager {
 
     enum class AppLanguage(val code: String, val displayName: String, val flag: String) {

@@ -739,7 +739,8 @@ fun BubbleOverlayContent(
     val lang = prefs.appLanguage
     val currentOnDrag by rememberUpdatedState(onDrag)
 
-    val configuration = LocalConfiguration.current
+    CompositionLocalProvider(LocalAppLanguage provides lang) {
+        val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var isCompactMode by remember { mutableStateOf(value = true) }
     var bubbleOpacity by remember { mutableFloatStateOf(prefs.bubbleOpacity) }
@@ -2143,6 +2144,7 @@ fun BubbleOverlayContent(
             }
         }
     }
+}
 
 @Composable
 fun BubbleSmugglerRadarTab(
