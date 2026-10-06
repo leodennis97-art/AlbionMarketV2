@@ -168,7 +168,7 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.2.14";
+    return "3.2.19";
 }
 
 let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
@@ -772,7 +772,6 @@ Allow: /
 Disallow: /api/admin/
 Disallow: /admin
 
-Sitemap: https://www.AlbionDataPro.com/sitemap.xml
 Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
     );
 });
@@ -784,73 +783,67 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
    <url>
-      <loc>https://www.AlbionDataPro.com/</loc>
+      <loc>https://albionmarketv2-1.onrender.com/</loc>
       <lastmod>${today}</lastmod>
-      <changefreq>daily</changefreq>
+      <changefreq>always</changefreq>
       <priority>1.0</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/hack</loc>
+      <loc>https://albionmarketv2-1.onrender.com/hack</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/bot</loc>
+      <loc>https://albionmarketv2-1.onrender.com/bot</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/arbitrage</loc>
+      <loc>https://albionmarketv2-1.onrender.com/arbitrage</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/blackmarket</loc>
+      <loc>https://albionmarketv2-1.onrender.com/blackmarket</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/calculator</loc>
+      <loc>https://albionmarketv2-1.onrender.com/calculator</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/overlay</loc>
+      <loc>https://albionmarketv2-1.onrender.com/overlay</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/mobile</loc>
+      <loc>https://albionmarketv2-1.onrender.com/mobile</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/guide</loc>
+      <loc>https://albionmarketv2-1.onrender.com/guide</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://www.AlbionDataPro.com/app</loc>
+      <loc>https://albionmarketv2-1.onrender.com/app</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/</loc>
-      <lastmod>${today}</lastmod>
-      <changefreq>daily</changefreq>
-      <priority>0.8</priority>
-   </url>
-   <url>
-      <loc>https://www.AlbionDataPro.com/download/AlbionDataPro.apk</loc>
+      <loc>https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.8</priority>
@@ -906,27 +899,27 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
     <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
     <meta name="description" content="${pageDesc}">
-    <meta name="keywords" content="Albion Online Hack, Albion Online Mod, Albion Online Cheat, Albion Online Market Hack, Albion Online Silver Hack, Albion Online Mobile Hack, Albion Online Radar Mod, Albion Online Bot, Albion Market Bot, Albion Online Trading Mod, Albion Online Overlay, Albion Online Silber Rechner, Black Market Albion, Caerleon Trade Bot, Albion Online Price Checker, Albion Data Project">
+    <meta name="keywords" content="Albion Online, Albion Online Market, Albion Online Prices, Albion Online Gold Price, Albion Online Calculator, Albion Online Crafting, Albion Online Black Market, Albion Market Pro, Albion Market Helper, Albion Online Trade Assistant, Albion Online Mobile Hack, Albion Online Mod, Albion Online Cheat, Albion Online Market Hack, Albion Online Silver Hack">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-    <meta name="author" content="AlbionDataPro Team" />
-    <link rel="canonical" href="https://www.AlbionDataPro.com/" />
-    <link rel="alternate" hreflang="de" href="https://www.AlbionDataPro.com/" />
-    <link rel="alternate" hreflang="en" href="https://www.AlbionDataPro.com/" />
-    <link rel="alternate" hreflang="x-default" href="https://www.AlbionDataPro.com/" />
+    <meta name="author" content="Albion Online Market Pro Team" />
+    <link rel="canonical" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://albionmarketv2-1.onrender.com/" />
 
     <!-- OpenGraph SEO -->
-    <meta property="og:site_name" content="AlbionDataPro" />
-    <meta property="og:title" content="AlbionDataPro - #1 Albion Online Hack, Markt Mod, Arbitrage & Overlay" />
-    <meta property="og:description" content="Dominiere den Albion Markt mit dem #1 Albion Online Hack & Mod. Echtzeit-Arbitrage, In-Game Overlay & KI Trade Bot für Android & PC." />
+    <meta property="og:site_name" content="Albion Online Market Pro" />
+    <meta property="og:title" content="Albion Online - Official Market Assistant, Prices & Gold Calculator" />
+    <meta property="og:description" content="Official #1 Albion Online Market Assistant. Real-time prices for Europe, Americas, Asia, Gold Market rates, crafting calculator, and floating overlay app." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://www.AlbionDataPro.com/" />
-    <meta property="og:image" content="https://www.AlbionDataPro.com/download" />
+    <meta property="og:url" content="https://albionmarketv2-1.onrender.com/" />
+    <meta property="og:image" content="https://albionmarketv2-1.onrender.com/download" />
     <meta property="og:locale" content="de_DE" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AlbionDataPro - Albion Online Hack & Trading Mod" />
-    <meta name="twitter:description" content="Das ultimative Markt-Tool, Hack & Mod für Albion Online. In-Game Overlay, KI Bot & Arbitrage." />
+    <meta name="twitter:title" content="Albion Online - Market Assistant & Real-Time Price Database" />
+    <meta name="twitter:description" content="Official #1 Albion Online Market Assistant. Real-time prices, Gold market, and floating overlay." />
 
     <!-- JSON-LD Structured Data Schema for Google Rich Snippets -->
     <script type="application/ld+json">
