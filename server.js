@@ -25,6 +25,7 @@ app.set('trust proxy', true);
 const PORT = process.env.PORT || 10000;
 const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
 const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'AlbionDataPro_Military_Admin_SuperSecret_2026#Key';
+const GOOGLE_PLAY_API_KEY = process.env.GOOGLE_PLAY_API_KEY || '';
 
 const ACME_DIR = path.join(__dirname, '.well-known', 'acme-challenge');
 if (!fs.existsSync(ACME_DIR)) fs.mkdirSync(ACME_DIR, { recursive: true });
