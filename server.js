@@ -119,7 +119,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-let marketCache = { items: [], lastUpdated: null };
 let registeredDevices = [];
 let registeredUsers = [];
 let generatedLicenses = [];
@@ -1908,17 +1907,25 @@ app.get(['/', '/get', '/app'], (req, res) => {
 // API Endpoints
 app.get('/api/health', (req, res) => res.json({ status: 'healthy', timestamp: Date.now(), version: CURRENT_SERVER_VERSION, subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
 app.get('/api/tunnel', (req, res) => res.json({ tunnelUrl: getActiveTunnelUrl(), subnets: ['74.220.51.0/24', '74.220.59.0/24'] }));
-app.get('/api/prices', (req, res) => res.json(marketCache));
+app.get('/api/prices', (req, res) => {
+    const srv = (req.query.server || 'europe').toLowerCase();
+    res.json(marketCache[srv] || marketCache['europe']);
+});
 
 // 24/7 Global Data-Brain: Echtzeit Abruf aller Items
 app.get('/api/prices/recent', (req, res) => {
-    res.json(Object.values(globalMarketPrices));
+    const srv = (req.query.server || 'europe').toLowerCase();
+    res.json(Object.values(globalMarketPrices[srv] || globalMarketPrices['europe']));
 });
 app.get('/api/market/prices/live', (req, res) => {
-    res.json(Object.values(globalMarketPrices));
+    const srv = (req.query.server || 'europe').toLowerCase();
+    res.json(Object.values(globalMarketPrices[srv] || globalMarketPrices['europe']));
 });
 
-app.get('/api/prices/albion2d', (req, res) => res.json(albion2dCache));
+app.get('/api/prices/albion2d', (req, res) => {
+    const srv = (req.query.server || 'europe').toLowerCase();
+    res.json(albion2dCache[srv] || albion2dCache['europe']);
+});
 
 // PayPal IPN (Instant Payment Notification) Webhook - Automatische Lizenzausgabe
 app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) => {
@@ -2604,7 +2611,8 @@ app.get('/api/admin/telemetry', (req, res) => res.json(deviceTelemetryLogs));
 
 // Predictive Analytics & Market Trends
 app.get('/api/market-trends', (req, res) => {
-    const items = (marketCache && Array.isArray(marketCache.items)) ? marketCache.items : [];
+    const srv = (req.query.server || 'europe').toLowerCase();
+    const items = (marketCache[srv] && Array.isArray(marketCache[srv].items)) ? marketCache[srv].items : [];
     const highProfitItems = items
         .filter(i => i.sell_price_min > 0 && i.buy_price_max > 0 && (i.sell_price_min - i.buy_price_max) > 5000)
         .map(i => ({
