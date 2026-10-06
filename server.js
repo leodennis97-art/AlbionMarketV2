@@ -157,7 +157,7 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.2.10";
+    return "3.2.11";
 }
 
 let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
@@ -692,8 +692,48 @@ app.get('/apk', (req, res) => {
 });
 
 // Google Search Console Verification Endpoint & File
-app.get(['/google999f0d6f9c312079.html', '/google999f0d6f9c312079'], (req, res) => {
+app.get(['/google999f0d6f9c312079.html', '/google999f0d6f9c312079', '/google:id.html'], (req, res) => {
     res.type('text/html').send('google-site-verification: google999f0d6f9c312079.html');
+});
+
+// Robots.txt for Search Engines
+app.get('/robots.txt', (req, res) => {
+    res.type('text/plain').send(
+`User-agent: *
+Allow: /
+Disallow: /api/admin/
+Disallow: /admin
+
+Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
+    );
+});
+
+// Sitemap.xml for Google Search Console
+app.get('/sitemap.xml', (req, res) => {
+    const today = new Date().toISOString().split('T')[0];
+    res.type('application/xml').send(
+`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+   <url>
+      <loc>https://albionmarketv2-1.onrender.com/</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>1.0</priority>
+   </url>
+   <url>
+      <loc>https://albionmarketv2-1.onrender.com/app</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.9</priority>
+   </url>
+   <url>
+      <loc>https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk</loc>
+      <lastmod>${today}</lastmod>
+      <changefreq>daily</changefreq>
+      <priority>0.8</priority>
+   </url>
+</urlset>`
+    );
 });
 
 // Landing Page (Verkauf, Info & Download)
@@ -703,8 +743,40 @@ app.get(['/', '/get', '/app'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
+    <meta name="description" content="AlbionDataPro - Das professionelle Markt- & Trading-Overlay für Albion Online Mobile. In-Game Overlay, Arbitrage-Radar, KI-Trading Bot & Live-Preise.">
+    <meta name="keywords" content="Albion Online, Albion Market, Albion Arbitrage, Albion Bot, Albion Overlay, Albion Mobile, Silber Rechner, Market Bot">
+    <link rel="canonical" href="https://albionmarketv2-1.onrender.com/" />
+
+    <!-- OpenGraph SEO -->
+    <meta property="og:title" content="AlbionDataPro v${CURRENT_SERVER_VERSION} - Markt & Trading Tool" />
+    <meta property="og:description" content="Dominiere den Albion Markt mit Echtzeit-Arbitrage & KI. Schwebendes In-Game Overlay für Android." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://albionmarketv2-1.onrender.com/" />
+    <meta property="og:image" content="https://albionmarketv2-1.onrender.com/download" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AlbionDataPro - Albion Online Trading Overlay" />
+    <meta name="twitter:description" content="Das ultimative Markt-Tool für Albion Online. In-Game Overlay, KI Bot & Arbitrage." />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "AlbionDataPro",
+      "operatingSystem": "Android",
+      "applicationCategory": "GameApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "url": "https://albionmarketv2-1.onrender.com/",
+      "softwareVersion": "${CURRENT_SERVER_VERSION}"
+    }
+    </script>
     <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - Das ultimative Markt- & Overlay-Tool für Albion Online</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">

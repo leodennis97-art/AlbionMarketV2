@@ -54,13 +54,12 @@ object LanguageManager {
         "gold_notif_toggle" to "Gold-Portfolio Benachrichtigungen",
         "gold_notif_desc" to "Zeigt automatische Live-Einnahmen Alerts bei Goldkurs-Updates an",
         "background_btn" to "🔋 App im Hintergrund unbegrenzt ausführen",
-        "lang_select" to "Sprache / Language / 语言:",
+        "lang_select" to "Sprache / Language:",
         "save" to "Speichern",
         "close" to "Schließen",
         "roi" to "Marge",
         "no_price_data" to "Bisher kein Preis",
         
-        // Bubble translations
         "bubble_options" to "⚙️ Bubble Optionen",
         "bubble_lang" to "Sprache:",
         "bubble_category" to "Kategorie Filter:",
@@ -103,7 +102,6 @@ object LanguageManager {
         "crafting_req_ingredients" to "Benötigte Ressourcen & günstigster Markt:",
         "cheapest_at" to "Günstigster Einkauf",
 
-        // Cities
         "city_caerleon" to "Caerleon",
         "city_brecilien" to "Brecilien",
         "city_arthurs_rest" to "Arthurs Rast",
@@ -156,13 +154,12 @@ object LanguageManager {
         "gold_notif_toggle" to "Gold Portfolio Notifications",
         "gold_notif_desc" to "Sends automatic live income alerts on gold price updates",
         "background_btn" to "🔋 Run App Unrestricted in Background",
-        "lang_select" to "Language / Sprache / 语言:",
+        "lang_select" to "Language / Sprache:",
         "save" to "Save",
         "close" to "Close",
         "roi" to "ROI",
         "no_price_data" to "No price yet",
 
-        // Bubble translations
         "bubble_options" to "⚙️ Bubble Settings",
         "bubble_lang" to "Language:",
         "bubble_category" to "Category Filter:",
@@ -198,11 +195,10 @@ object LanguageManager {
         "tab_island" to "🏝️ Island Guide",
         "tab_monsters" to "👹 Monsters & Bosses",
         "crafting_search" to "Search item to craft...",
-        "monster_search" to "Search monster, boss, region, or drop...",
-        "crafting_req_ingredients" to "Required ingredients & cheapest market:",
+        "monster_search" to "Search monster, boss, region or drop...",
+        "crafting_req_ingredients" to "Required resources & cheapest market:",
         "cheapest_at" to "Cheapest buy",
 
-        // Cities
         "city_caerleon" to "Caerleon",
         "city_brecilien" to "Brecilien",
         "city_arthurs_rest" to "Arthur's Rest",
@@ -218,113 +214,154 @@ object LanguageManager {
         "black_zone" to "⚫ BLACK ZONE"
     )
 
+    private val esMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Análisis en tiempo real",
+        "tab_orders" to "📋 Pedidos e Historial",
+        "tab_calculator" to "🧮 Calculadora y Margen",
+        "tab_catalog" to "📖 Catálogo del Mercado",
+        "tab_builds" to "⚔️ Equipo de IA",
+        "tab_order_stats" to "📊 Estadísticas",
+        "tab_events" to "🔥 Eventos y Jefes",
+        "tab_gold" to "🪙 Mercado de Oro",
+        "server_select" to "Seleccionar Servidor:",
+        "silver_budget" to "Presupuesto de Plata",
+        "carry_capacity" to "Capacidad (kg)",
+        "min_margin" to "Margen Mínimo (%)",
+        "settings_title" to "⚙️ Ajustes",
+        "save" to "Guardar",
+        "close" to "Cerrar",
+        "lang_select" to "Idioma / Language:"
+    )
+
+    private val frMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Analyse en temps réel",
+        "tab_orders" to "📋 Commandes et Historique",
+        "tab_calculator" to "🧮 Calculateur et Marge",
+        "tab_catalog" to "📖 Catalogue du Marché",
+        "settings_title" to "⚙️ Paramètres",
+        "save" to "Enregistrer",
+        "close" to "Fermer",
+        "lang_select" to "Langue / Language:"
+    )
+
+    private val ptMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Análise em tempo real",
+        "tab_orders" to "📋 Pedidos e Histórico",
+        "tab_calculator" to "🧮 Calculadora e Margem",
+        "tab_catalog" to "📖 Catálogo do Mercado",
+        "settings_title" to "⚙️ Configurações",
+        "save" to "Salvar",
+        "close" to "Fechar",
+        "lang_select" to "Idioma / Language:"
+    )
+
+    private val ruMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Анализ рынка в реальном времени",
+        "tab_orders" to "📋 Заказы и История",
+        "tab_calculator" to "🧮 Калькулятор и Маржа",
+        "tab_catalog" to "📖 Каталог рынка",
+        "settings_title" to "⚙️ Настройки",
+        "save" to "Сохранить",
+        "close" to "Закрыть",
+        "lang_select" to "Язык / Language:"
+    )
+
     private val zhMap = mapOf(
-        "app_title" to "阿尔比恩在线 市场资源助手",
-        "app_subtitle" to "实时分析 & 交易警报",
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "实时市场分析",
         "tab_orders" to "📋 订单与历史",
-        "tab_calculator" to "🧮 利润计算器 (前50热门)",
+        "tab_calculator" to "🧮 计算器与利润",
         "tab_catalog" to "📖 市场目录",
-        "tab_builds" to "⚔️ AI 装备与套装",
-        "tab_order_stats" to "📊 订单与市场统计 (1日-1年)",
-        "tab_events" to "🔥 活动与战利品",
-        "tab_gold" to "🪙 黄金市场",
-        "tab_map" to "🗺️ 阿尔比恩地图",
-        "server_select" to "选择服务器:",
-        "silver_budget" to "银币预算",
-        "carry_capacity" to "负重上限 (kg)",
-        "min_margin" to "最低利润率 (%)",
-        "premium_tax" to "会员 4% 税率",
-        "standard_tax" to "标准 8% 税率",
-        "avoid_danger" to "避开危险区域 (卡尔利昂 / 红区)",
-        "avoid_danger_desc" to "排除卡尔利昂及全掉落 PvP 区域",
-        "top_opportunities" to "最高利润交易机会",
-        "buy_in" to "购买地",
-        "sell_in" to "出售地",
-        "quantity" to "数量",
-        "weight" to "重量",
-        "investment" to "总投资",
-        "profit_per_unit" to "单件利润",
-        "accept_order" to "接受并保存订单",
-        "gold_buy" to "🪙 黄金买入",
-        "gold_sell" to "🪙 黄金卖出",
-        "settings_title" to "⚙️ 设置与警报",
-        "bubble_toggle" to "悬浮气泡 Overlay",
-        "bubble_desc" to "在阿尔比恩游戏上方永久显示可拖动悬浮气泡",
-        "sys_notif_toggle" to "系统推送通知",
-        "sys_notif_desc" to "实时接收热门交易机会推送",
-        "gold_notif_toggle" to "黄金投资组合通知",
-        "gold_notif_desc" to "在黄金价格更新时自动发送实时收益警报",
-        "background_btn" to "允许后台无限制运行",
-        "lang_select" to "语言 / Language / 语言:",
+        "settings_title" to "⚙️ 设置",
         "save" to "保存",
         "close" to "关闭",
-        "roi" to "利润率",
-        "no_price_data" to "暂无价格",
+        "lang_select" to "语言 / Language:"
+    )
 
-        // Bubble translations
-        "bubble_options" to "⚙️ 悬浮窗设置",
-        "bubble_lang" to "语言:",
-        "bubble_category" to "分类过滤:",
-        "bubble_active_order" to "📦 当前订单",
-        "bubble_top_margin" to "🔥 利润前三",
-        "bubble_book" to "记账",
-        "bubble_cancel" to "取消订单",
-        "bubble_abort" to "取消",
-        "bubble_save_book" to "保存并记账",
-        "bubble_location" to "🏙️ 位置:",
-        "bubble_all_cities" to "所有城市",
-        "bubble_all" to "全部",
-        "bubble_click_accept" to "点击接受",
-        "bubble_calculating" to "计算最佳机会中...",
-        "bubble_no_opps" to "未找到合适的市场机会。",
-        "bubble_search" to "市场搜索...",
-        "bubble_hold_move" to "长按移动",
-        "bubble_exit" to "退出",
-        "bubble_kauf" to "买入:",
-        "bubble_verkauf" to "卖出:",
-        "bubble_buy_price" to "买入单价 (银币)",
-        "bubble_sell_price" to "卖出单价 (银币)",
-        "bubble_bought_amount" to "已买数量",
-        "bubble_spent" to "支出",
-        "bubble_earned" to "收入",
-        "bubble_profit_loss" to "利润/亏损",
-        "bubble_include_brecilien" to "将 Brecilien 纳入路线",
-        "bubble_compact_mode" to "📱 紧凑悬浮窗模式",
-        "bubble_compact_desc" to "缩小悬浮窗尺寸、边距与字体大小",
-        "bubble_opacity" to "👁️ 悬浮窗不透明度",
-        "bubble_scale" to "🔍 悬浮窗缩放比例",
-        "tab_crafting" to "🛠️ 制造指南",
-        "tab_island" to "🏝️ 岛屿指南",
-        "crafting_search" to "搜索要制造的物品...",
-        "crafting_req_ingredients" to "所需资源与最低价格市场:",
-        "cheapest_at" to "最低价购买",
+    private val jaMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "リアルタイム市場分析",
+        "tab_orders" to "📋 注文と履歴",
+        "tab_calculator" to "🧮 計算機とマージン",
+        "tab_catalog" to "📖 市場カタログ",
+        "settings_title" to "⚙️ 設定",
+        "save" to "保存",
+        "close" to "閉じる",
+        "lang_select" to "言語 / Language:"
+    )
 
-        // Cities
-        "city_caerleon" to "卡尔利昂",
-        "city_brecilien" to "布雷西林",
-        "city_arthurs_rest" to "亚瑟的休息地",
-        "city_merlyns_rest" to "梅林的休息地",
-        "city_morganas_rest" to "莫甘娜的休息地",
-        "city_bridgewatch" to "桥区",
-        "city_martlock" to "马特洛克",
-        "city_lymhurst" to "绿荫",
-        "city_fort_sterling" to "雪山",
-        "city_thetford" to "紫城",
-        "city_cairn_drain" to "Cairn Drain",
-        "red_zone" to "🔴 红区",
-        "black_zone" to "⚫ 黑区"
+    private val koMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "실시간 시장 분석",
+        "tab_orders" to "📋 주문 및 내역",
+        "tab_calculator" to "🧮 계산기 및 마진",
+        "tab_catalog" to "📖 시장 카탈로그",
+        "settings_title" to "⚙️ 설정",
+        "save" to "저장",
+        "close" to "닫기",
+        "lang_select" to "언어 / Language:"
+    )
+
+    private val trMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Anlık Pazar Analizi",
+        "tab_orders" to "📋 Siparişler ve Geçmiş",
+        "tab_calculator" to "🧮 Hesaplayıcı ve Kar",
+        "tab_catalog" to "📖 Pazar Kataloğu",
+        "settings_title" to "⚙️ Ayarlar",
+        "save" to "Kaydet",
+        "close" to "Kapat",
+        "lang_select" to "Dil / Language:"
+    )
+
+    private val idMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Analisis Pasar Real-time",
+        "tab_orders" to "📋 Pesanan & Riwayat",
+        "tab_calculator" to "🧮 Kalkulator & Margin",
+        "tab_catalog" to "📖 Katalog Pasar",
+        "settings_title" to "⚙️ Pengaturan",
+        "save" to "Simpan",
+        "close" to "Tutup",
+        "lang_select" to "Bahasa / Language:"
+    )
+
+    private val plMap = mapOf(
+        "app_title" to "AlbionDataPro",
+        "app_subtitle" to "Analiza rynku w czasie rzeczywistym",
+        "tab_orders" to "📋 Zamówienia i Historia",
+        "tab_calculator" to "🧮 Kalkulator i Marża",
+        "tab_catalog" to "📖 Katalog Rynku",
+        "settings_title" to "⚙️ Ustawienia",
+        "save" to "Zapisz",
+        "close" to "Zamknij",
+        "lang_select" to "Język / Language:"
     )
 
     fun getString(key: String, langCode: String): String {
+        val cleanLang = langCode.trim().uppercase()
         val baseDe = deMap[key] ?: key
-        if (langCode.equals("DE", ignoreCase = true)) return baseDe
+        if (cleanLang == "DE") return baseDe
 
-        val staticTrans = when (langCode.uppercase()) {
+        val translated = when (cleanLang) {
             "EN" -> enMap[key]
             "ZH" -> zhMap[key]
+            "ES" -> esMap[key]
+            "FR" -> frMap[key]
+            "PT" -> ptMap[key]
+            "RU" -> ruMap[key]
+            "JA" -> jaMap[key]
+            "KO" -> koMap[key]
+            "TR" -> trMap[key]
+            "ID" -> idMap[key]
+            "PL" -> plMap[key]
             else -> null
         }
-        return staticTrans ?: enMap[key] ?: baseDe
+        return translated ?: enMap[key] ?: baseDe
     }
 
     fun getCityTranslation(city: String, langCode: String): String {
