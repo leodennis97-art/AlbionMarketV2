@@ -76,8 +76,9 @@ class BillingManager(private val context: Context) : PurchasesUpdatedListener {
             .setProductList(productList)
             .build()
 
-        billingClient.queryProductDetailsAsync(params) { billingResult, productDetailsList ->
-            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && productDetailsList.isNotEmpty()) {
+        billingClient.queryProductDetailsAsync(params) { billingResult, queryProductDetailsResult ->
+            val productDetailsList = queryProductDetailsResult.productDetailsList
+            if (billingResult.responseCode == BillingClient.BillingResponseCode.OK && !productDetailsList.isNullOrEmpty()) {
                 _productDetails.value = productDetailsList[0]
             } else {
                 Log.e(TAG, "Product details query failed: ${billingResult.debugMessage}")

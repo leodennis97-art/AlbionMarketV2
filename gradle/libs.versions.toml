@@ -12,7 +12,7 @@ composeBom = "2024.10.01"
 coil = "2.7.0"
 firebaseAi = "17.17.0"
 googleGmsGoogleServices = "4.4.2"
-playBilling = "7.1.1"
+playBilling = "8.0.0"
 ngrok = "1.1.1"
 
 [libraries]
