@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>AlbionDataPro Logo Export (512x512 PNG)</title>
+    <title>DataPro Logo Export (512x512 PNG)</title>
     <style>
         body { background: #0f172a; color: #fff; font-family: sans-serif; text-align: center; padding: 50px; }
         .card { background: #1e293b; padding: 40px; border-radius: 16px; display: inline-block; border: 1px solid #334155; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
@@ -13,7 +13,7 @@
 </head>
 <body>
     <div class="card">
-        <h1>AlbionDataPro - Logo Export</h1>
+        <h1>DataPro - Market Companion Logo Export</h1>
         <p>Klicke auf den Button, um das Logo als hochauflösendes <strong>512x512 PNG-Bild</strong> für den Google Play Store herunterzuladen.</p>
         <br>
         <canvas id="canvas" width="512" height="512"></canvas>
@@ -26,12 +26,15 @@
         const ctx = canvas.getContext('2d');
 
         const svgString = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128">
-            <path d="M64,8 L112,28 L112,68 C112,96 64,120 64,120 C64,120 16,96 16,68 L16,28 Z" fill="#1E293B" stroke="#06B6D4" stroke-width="4" />
-            <path d="M64,16 L104,33 L104,66 C104,89 64,110 64,110 C64,110 24,89 24,66 L24,33 Z" fill="#0F172A" stroke="#F59E0B" stroke-width="2" />
-            <path d="M38,78 L48,46 L58,78 M41,70 L55,70" stroke="#06B6D4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-            <path d="M62,46 L72,46 C80,46 84,52 84,62 C84,72 80,78 72,78 L62,78 Z" stroke="#F59E0B" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-            <path d="M88,78 L88,46 L98,46 C104,46 108,50 108,56 C108,62 104,66 98,66 L88,66" stroke="#10B981" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none" />
-            <path d="M64,28 L69,38 L64,48 L59,38 Z" fill="#F59E0B" />
+            <path d="M64,6 L112,28 L112,76 L64,122 L16,76 L16,28 Z" fill="#0F172A" stroke="#38BDF8" stroke-width="4" />
+            <path d="M64,14 L104,32 L104,72 L64,110 L24,72 L24,32 Z" fill="#1E293B" stroke="#F59E0B" stroke-width="2" />
+            <path d="M36,42 L52,42 C64,42 70,48 70,58 C70,68 64,74 52,74 L36,74 Z" stroke="#38BDF8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M72,86 L72,42 L88,42 C96,42 100,46 100,52 C100,58 96,62 88,62 L72,62" stroke="#10B981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M32,82 L48,68 L64,78 L96,46" stroke="#F59E0B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <path d="M84,46 L96,46 L96,58" stroke="#F59E0B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+            <circle cx="48" cy="68" r="3" fill="#38BDF8" />
+            <circle cx="64" cy="78" r="3" fill="#F59E0B" />
+            <circle cx="96" cy="46" r="4" fill="#10B981" />
         </svg>`;
 
         const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
@@ -47,7 +50,7 @@
 
         document.getElementById('downloadBtn').addEventListener('click', function () {
             const link = document.createElement('a');
-            link.download = 'AlbionDataPro_Logo_512x512.png';
+            link.download = 'DataPro_Logo_512x512.png';
             link.href = canvas.toDataURL('image/png');
             link.click();
         });

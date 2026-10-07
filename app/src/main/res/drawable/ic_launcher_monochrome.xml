@@ -5,38 +5,41 @@
     android:viewportWidth="108"
     android:viewportHeight="108">
 
-    <!-- Dark Mode / Themed Monochromatic Shield Frame -->
+    <!-- Hexagonal Shield / Badge Base -->
     <path
-        android:pathData="M54,12 L90,28 L90,62 C90,84 54,98 54,98 C54,98 18,84 18,62 L18,28 Z"
+        android:pathData="M54,8 L92,26 L92,68 L54,100 L16,68 L16,26 Z"
         android:strokeColor="#FFFFFF"
         android:strokeWidth="3.5" />
 
-    <!-- Stylized Monochromatic "A" -->
+    <!-- Stylized "D" (Data) -->
     <path
-        android:pathData="M34,68 L42,42 L50,68 M36,62 L48,62"
+        android:pathData="M32,38 L45,38 C55,38 60,43 60,52 C60,61 55,66 45,66 L32,66 Z"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="4"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- Stylized Monochromatic "D" -->
+    <!-- Stylized "P" (Pro) -->
     <path
-        android:pathData="M52,42 L60,42 C67,42 71,47 71,55 C71,63 67,68 60,68 L52,68 Z"
+        android:pathData="M61,76 L61,38 L74,38 C81,38 85,42 85,47 C85,52 81,56 74,56 L61,56"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="4"
+        android:strokeWidth="5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- Stylized Monochromatic "P" -->
+    <!-- Ascending Market Line Graph -->
     <path
-        android:pathData="M74,68 L74,42 L82,42 C87,42 90,45 90,51 C90,57 87,60 82,60 L74,60"
+        android:pathData="M28,72 L41,60 L54,68 L81,40"
         android:strokeColor="#FFFFFF"
-        android:strokeWidth="4"
+        android:strokeWidth="3.5"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- Core Diamond Emblem -->
+    <!-- Upward Trend Arrowhead -->
     <path
-        android:pathData="M54,25 L58,32 L54,39 L50,32 Z"
-        android:fillColor="#FFFFFF" />
+        android:pathData="M71,40 L81,40 L81,50"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
 </vector>
