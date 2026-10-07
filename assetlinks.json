@@ -2,7 +2,7 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.example.albionmarketv2",
+    "package_name": "com.AlbionDataPro",
     "sha256_cert_fingerprints": [
       "C7:BB:11:06:00:06:6F:C7:74:EF:4B:81:5F:98:21:5A:9C:9E:27:87:16:97:1F:28:14:0B:2B:7A:7F:72:37:A7"
     ]
