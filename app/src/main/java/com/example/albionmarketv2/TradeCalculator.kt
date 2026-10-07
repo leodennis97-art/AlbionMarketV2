@@ -490,21 +490,21 @@ object TradeCalculator {
                 val currentNowMs = System.currentTimeMillis()
                 val buyDateMs = parseIsoToEpochMs(bestBuy.sellPriceMinDate)
                 val sellDateMs = parseIsoToEpochMs(bestSell.sellPriceMinDate)
-                val parsedLatestMs = maxOf(buyDateMs, sellDateMs)
 
-                val effectiveTimestamp = if (parsedLatestMs > 0 && (currentNowMs - parsedLatestMs) <= 2 * 3600 * 1000L) {
-                    parsedLatestMs
-                } else {
-                    currentNowMs
-                }
-
-                // Strenger Filter: Nur Handelschancen zulassen, die weniger als 10 Minuten alt sind (600.000 ms)
+                // Strikter Filter: Sowohl Kaufpreis als auch Verkaufspreis MÜSSEN vorhanden
+                // UND jeweils weniger als 10 Minuten alt sein (600.000 ms = 10 Min.)
                 val maxAgeMs = 10 * 60 * 1000L
-                if (effectiveTimestamp <= 0 || (currentNowMs - effectiveTimestamp) > maxAgeMs) {
+                if (buyDateMs <= 0 || sellDateMs <= 0) continue
+
+                val buyAgeMs = currentNowMs - buyDateMs
+                val sellAgeMs = currentNowMs - sellDateMs
+
+                if (buyAgeMs > maxAgeMs || sellAgeMs > maxAgeMs || buyAgeMs < 0 || sellAgeMs < 0) {
                     continue
                 }
 
-                val ageStr = formatPriceAge(effectiveTimestamp)
+                val effectiveTimestamp = maxOf(buyDateMs, sellDateMs)
+                val ageStr = "Kauf: ${formatPriceAge(buyDateMs)} | Verkauf: ${formatPriceAge(sellDateMs)}"
                 val goldProfit = if (currentGoldPrice > 0) totalNetProfit / currentGoldPrice else 0L
                 val priority = calculatePriorityScore(resource, roi, bestBuy.city, bestSell.city, effectiveTimestamp)
                 val zonesWalked = CityDistanceCalculator.getZonesDistance(bestBuy.city, bestSell.city)
@@ -747,18 +747,22 @@ object TradeCalculator {
         return 0L
     }
 
+    fun formatEpochToIso(epochMs: Long): String {
+        if (epochMs <= 0L) return ""
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        return sdf.format(Date(epochMs))
+    }
+
     fun formatPriceAge(epochMs: Long): String {
         if (epochMs <= 0) return "Gerade eben"
         val diffMs = System.currentTimeMillis() - epochMs
         val diffSec = TimeUnit.MILLISECONDS.toSeconds(diffMs).coerceAtLeast(0)
         val diffMin = TimeUnit.MILLISECONDS.toMinutes(diffMs)
-        val diffHours = TimeUnit.MILLISECONDS.toHours(diffMs)
 
         return when {
             diffSec < 60 -> "vor $diffSec Sek."
-            diffMin < 60 -> "vor $diffSec Sek. ($diffMin Min.)"
-            diffHours < 24 -> "vor $diffSec Sek. ($diffHours Std.)"
-            else -> "vor $diffSec Sek. (${diffHours / 24} T.)"
+            else -> "vor $diffMin Min."
         }
     }
 }

@@ -433,14 +433,15 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             }
 
             val cloudPrices = cloudSnapshots.asSequence().filter { it.sellPriceMin > 0 }.map {
+                val isoDate = TradeCalculator.formatEpochToIso(it.timestampMs)
                 MarketPrice(
                     itemId = it.itemId,
                     city = it.city,
                     quality = 1,
                     sellPriceMin = it.sellPriceMin,
-                    sellPriceMinDate = "",
+                    sellPriceMinDate = isoDate,
                     buyPriceMax = it.buyPriceMax,
-                    buyPriceMaxDate = "",
+                    buyPriceMaxDate = isoDate,
                     sellPriceMinAmount = it.sellPriceMinAmount,
                 )
             }.toList()
@@ -450,14 +451,15 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
         val localSnapshots = prefs.getPriceSnapshots(prefs.server)
         val localPrices = localSnapshots.map { s ->
+            val isoDate = TradeCalculator.formatEpochToIso(s.timestampMs)
             MarketPrice(
                 itemId = s.itemId,
                 city = s.city,
                 quality = 1,
                 sellPriceMin = s.sellPriceMin,
-                sellPriceMinDate = "",
+                sellPriceMinDate = isoDate,
                 buyPriceMax = s.buyPriceMax,
-                buyPriceMaxDate = "",
+                buyPriceMaxDate = isoDate,
                 sellPriceMinAmount = s.sellPriceMinAmount,
             )
         }
@@ -472,7 +474,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             val isNotZero = p.sellPriceMin > 0
             val isNotUnrealistic = !AlbionMarketApi.isUnrealisticPrice(p.itemId, p.sellPriceMin)
             val isWithinBounds = (p.sellPriceMin >= 5) && (p.sellPriceMin <= 500_000_000)
-            val isBuyOrderValid = p.buyPriceMax == 0 || p.buyPriceMax < (p.sellPriceMin * 3)
+            val isBuyOrderValid = (p.buyPriceMax == 0) || (p.buyPriceMax < (p.sellPriceMin * 3))
 
             isNotZero && isNotUnrealistic && isWithinBounds && isBuyOrderValid
         }
@@ -803,7 +805,7 @@ fun BubbleOverlayContent(
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
                         painter = painterResource(id = R.drawable.aot_logo),
-                        contentDescription = "AlbionDataPro Overlay",
+                        contentDescription = "DataPro Overlay",
                         tint = Color.Unspecified,
                         modifier = Modifier.size(minIconSize),
                     )
@@ -866,7 +868,7 @@ fun BubbleOverlayContent(
                             )
                             Spacer(modifier = Modifier.width(if (isCompactMode) 4.dp else 6.dp))
                             RainbowBlinkingText(
-                                rainbowName = "AlbionDataPro",
+                                rainbowName = "DataPro - Market Companion (Unofficial)",
                                 fontSize = if (isCompactMode) 11.sp else 13.sp,
                                 fontWeight = FontWeight.Bold,
                             )
@@ -2572,7 +2574,14 @@ fun BubbleCatalogTab(
                         it.city != "Brecilien" 
                     }
                     val bestBuy = validPrices.minByOrNull { it.sellPriceMin }
-                    val bestSell = validPrices.maxByOrNull { it.sellPriceMin }
+                    val bestSell = if (bestBuy != null) {
+                        validPrices
+                            .filter { !TradeCalculator.citiesMatch(it.city, bestBuy.city) }
+                            .groupBy { TradeCalculator.normalizeCityName(it.city) }
+                            .mapNotNull { (_, cityList) -> cityList.minByOrNull { it.sellPriceMin } }
+                            .filter { it.sellPriceMin > bestBuy.sellPriceMin && it.sellPriceMin <= bestBuy.sellPriceMin * 5.0 }
+                            .maxByOrNull { it.sellPriceMin }
+                    } else null
 
                     Surface(
                         shape = RoundedCornerShape(10.dp),

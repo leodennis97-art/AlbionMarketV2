@@ -92,7 +92,7 @@ fun ShimmerLoadingCard(modifier: Modifier = Modifier, height: Dp = 90.dp) {
 @Composable
 fun RainbowBlinkingText(
     textPrefix: String = "",
-    rainbowName: String = "AlbionDataPro",
+    rainbowName: String = "DataPro - Market Companion (Unofficial)",
     textSuffix: String = "",
     modifier: Modifier = Modifier,
     fontSize: TextUnit = TextUnit.Unspecified,

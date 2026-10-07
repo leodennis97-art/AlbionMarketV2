@@ -457,7 +457,7 @@ fun WebsiteLicensePurchaseSection(context: Context) {
                 horizontalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                RainbowBlinkingText(rainbowName = "AlbionDataPro", fontSize = if (isLandscape) 14.sp else 16.sp)
+                RainbowBlinkingText(rainbowName = "DataPro - Market Companion (Unofficial)", fontSize = if (isLandscape) 13.sp else 15.sp)
             }
 
             Text(

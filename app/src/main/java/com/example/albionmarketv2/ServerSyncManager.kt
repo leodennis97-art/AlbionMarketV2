@@ -60,8 +60,8 @@ object ServerSyncManager {
 
     fun getServerBaseUrls(context: Context? = null): List<String> {
         val urls = mutableListOf<String>()
-        urls.add("https://www.AlbionDataPro.com")
         urls.add("https://albionmarketv2-1.onrender.com")
+        urls.add("https://www.AlbionDataPro.com")
         if (context != null) {
             urls.addAll(ServerConfigManager.getCustomServerUrls(context))
         }

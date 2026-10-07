@@ -134,7 +134,7 @@ class PersistentServerSyncService : LifecycleService() {
         )
 
         val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("AlbionDataPro Server-Plugin Verbunden")
+            .setContentTitle("DataPro Server-Plugin Verbunden")
             .setContentText("Dauerhafte 24/7 Hintergrund-Verbindung zum Server aktiv")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)

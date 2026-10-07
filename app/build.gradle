@@ -16,8 +16,8 @@ android {
         applicationId 'com.AlbionDataPro'
         minSdk 26
         targetSdk 36
-        versionCode 3330
-        versionName '3.3.3'
+        versionCode 3500
+        versionName '3.3.4'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
     }
@@ -46,10 +46,6 @@ android {
     buildFeatures {
         compose true
     }
-}
-
-android.applicationVariants.all { variant ->
-    variant.assembleProvider.get().finalizedBy("uploadApkToRender")
 }
 
 // Autonomer Gradle-Task zum Hochladen der APK und Aktualisieren der Zielversion auf Render

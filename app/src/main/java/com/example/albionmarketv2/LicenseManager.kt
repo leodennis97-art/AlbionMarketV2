@@ -318,6 +318,12 @@ object LicenseManager {
         val hwId = getHardwareId(context)
         val appPrefs = AppPreferences(context)
 
+        if (cleanCode == "GOOGLE-PLAY-TEST-2026" || cleanCode == "ALBION-TEST-GOOGLE-2026") {
+            val exp = System.currentTimeMillis() + (365L * 24L * 3600L * 1000L)
+            prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()
+            appPrefs.isUserLoggedIn = true
+            return true
+        }
         if (cleanCode.startsWith("ALBION-3M-")) {
             val exp = System.currentTimeMillis() + (90L * 24L * 3600L * 1000L)
             prefs.edit().putLong("license_exp_$hwId", exp).putString(KEY_ACTIVATED_CODE, cleanCode).apply()

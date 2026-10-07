@@ -24,7 +24,7 @@ object LanguageManager {
     }
 
     private val deMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Echtzeit-Analyse & Trade Alerts",
         "tab_orders" to "📋 Aufträge & Historie",
         "tab_calculator" to "🧮 Rechner & Marge (Top 50)",
@@ -224,7 +224,7 @@ object LanguageManager {
     )
 
     private val esMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Análisis en tiempo real y alertas",
         "tab_orders" to "📋 Pedidos e Historial",
         "tab_calculator" to "🧮 Calculadora y Margen (Top 50)",
@@ -322,7 +322,7 @@ object LanguageManager {
     )
 
     private val frMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Analyse en temps réel et alertes",
         "tab_orders" to "📋 Commandes et Historique",
         "tab_calculator" to "🧮 Calculateur et Marge (Top 50)",
@@ -420,7 +420,7 @@ object LanguageManager {
     )
 
     private val ptMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Análise em tempo real e alertas",
         "tab_orders" to "📋 Pedidos e Histórico",
         "tab_calculator" to "🧮 Calculadora e Margem (Top 50)",
@@ -518,7 +518,7 @@ object LanguageManager {
     )
 
     private val ruMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Анализ рынка в реальном времени",
         "tab_orders" to "📋 Заказы и История",
         "tab_calculator" to "🧮 Калькулятор и Маржа (Топ 50)",
@@ -616,7 +616,7 @@ object LanguageManager {
     )
 
     private val zhMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "实时市场分析与交易预警",
         "tab_orders" to "📋 订单与历史",
         "tab_calculator" to "🧮 计算器与利润 (Top 50)",
@@ -714,7 +714,7 @@ object LanguageManager {
     )
 
     private val jaMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "リアルタイム市場分析＆取引アラート",
         "tab_orders" to "📋 注文と履歴",
         "tab_calculator" to "🧮 計算機とマージン (Top 50)",
@@ -812,7 +812,7 @@ object LanguageManager {
     )
 
     private val koMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "실시간 시장 분석 및 거래 알림",
         "tab_orders" to "📋 주문 및 내역",
         "tab_calculator" to "🧮 계산기 및 마진 (Top 50)",
@@ -910,7 +910,7 @@ object LanguageManager {
     )
 
     private val trMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Anlık Pazar Analizi ve Ticaret Bildirimleri",
         "tab_orders" to "📋 Siparişler ve Geçmiş",
         "tab_calculator" to "🧮 Hesaplayıcı ve Kar (Top 50)",
@@ -1008,7 +1008,7 @@ object LanguageManager {
     )
 
     private val idMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Analisis Pasar & Peringatan Real-time",
         "tab_orders" to "📋 Pesanan & Riwayat",
         "tab_calculator" to "🧮 Kalkulator & Margin (Top 50)",
@@ -1106,7 +1106,7 @@ object LanguageManager {
     )
 
     private val plMap = mapOf(
-        "app_title" to "AlbionDataPro",
+        "app_title" to "DataPro - Market Companion (Unofficial)",
         "app_subtitle" to "Analiza Rynku w Czasie Rzeczywistym",
         "tab_orders" to "📋 Zamówienia i Historia",
         "tab_calculator" to "🧮 Kalkulator i Marża (Top 50)",

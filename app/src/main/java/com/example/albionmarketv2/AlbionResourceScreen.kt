@@ -181,7 +181,7 @@ class NumberCommaTransformation : VisualTransformation {
 }
 
 @Composable
-fun RainbowAlbionDataProTitle() {
+fun RainbowDataProTitle() {
     val infiniteTransition = rememberInfiniteTransition(label = "RainbowTitle")
     val hueOffset by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -204,12 +204,12 @@ fun RainbowAlbionDataProTitle() {
     )
 
     Text(
-        text = "AlbionDataPro",
+        text = "DataPro - Market Companion (Unofficial)",
         style = TextStyle(
             brush = Brush.horizontalGradient(rainbowColors),
             fontWeight = FontWeight.Black,
-            fontSize = 18.sp,
-            letterSpacing = 1.sp
+            fontSize = 16.sp,
+            letterSpacing = 0.5.sp
         )
     )
 }
@@ -285,7 +285,7 @@ fun AlbionResourceScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                RainbowAlbionDataProTitle()
+                                RainbowDataProTitle()
                                 Text(
                                     text = "Echtzeit-Analyse & Trade Alerts",
                                     fontSize = 11.sp,
@@ -5708,7 +5708,7 @@ fun AppSettingsDialog(
                     )
                 }
 
-                // AlbionDataProAdmin Button (Only visible for admin accounts)
+                // DataProAdmin Button (Only visible for admin accounts)
                 if (prefs.isAdmin) {
                     Button(
                         onClick = { showAdminControlDialog = true },
@@ -5717,7 +5717,7 @@ fun AppSettingsDialog(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "🛡️ AlbionDataProAdmin - Live-Zentrale",
+                            text = "🛡️ DataProAdmin - Live-Zentrale",
                             color = Color.White,
                             fontWeight = FontWeight.Bold,
                             fontSize = 12.sp

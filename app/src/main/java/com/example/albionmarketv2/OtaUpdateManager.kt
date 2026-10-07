@@ -2,7 +2,6 @@ package com.example.albionmarketv2
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.Settings
@@ -256,40 +255,14 @@ object OtaUpdateManager {
         false
     }
 
-    fun installApk(context: Context, apkFile: File) {
+    fun installApk(context: Context, @Suppress("UNUSED_PARAMETER") apkFile: File) {
         try {
-            if (!context.packageManager.canRequestPackageInstalls()) {
-                Toast.makeText(context, "⚠️ Bitte erlaube in den Einstellungen die Installation aus unbekannten Quellen für AlbionMarketV2.", Toast.LENGTH_LONG).show()
-                val settingsIntent = Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
-                    data = "package:${context.packageName}".toUri()
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(settingsIntent)
-                return
-            }
-
-            val intent = Intent(Intent.ACTION_VIEW).apply {
+            val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                val uri: Uri = FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    apkFile,
-                )
-                setDataAndType(uri, "application/vnd.android.package-archive")
             }
-            context.startActivity(intent)
-            try {
-                apkFile.deleteOnExit()
-            } catch (_: Exception) {}
+            context.startActivity(browserIntent)
         } catch (e: Exception) {
             e.printStackTrace()
-            try {
-                val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                }
-                context.startActivity(browserIntent)
-            } catch (_: Exception) {}
         }
     }
 }

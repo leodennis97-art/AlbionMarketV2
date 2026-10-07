@@ -1014,14 +1014,15 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 val fetchedPrices = AlbionMarketApi.fetchPrices(_uiState.value.server, itemIds)
                 val cloudSnapshots = try { ServerSyncManager.fetchCloudPrices(getApplication()) } catch (_: Exception) { emptyList() }
                 val cloudPrices = cloudSnapshots.asSequence().filter { it.sellPriceMin > 0 }.map {
+                    val isoDate = TradeCalculator.formatEpochToIso(it.timestampMs)
                     MarketPrice(
                         itemId = it.itemId,
                         city = it.city,
                         quality = 1,
                         sellPriceMin = it.sellPriceMin,
-                        sellPriceMinDate = "",
+                        sellPriceMinDate = isoDate,
                         buyPriceMax = it.buyPriceMax,
-                        buyPriceMaxDate = ""
+                        buyPriceMaxDate = isoDate
                     )
                 }.toList()
 
@@ -1035,14 +1036,15 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     _uiState.value.marketPrices.ifEmpty {
                         val cached = prefs.getPriceSnapshots(server = _uiState.value.server)
                         cached.asSequence().map {
+                            val isoDate = TradeCalculator.formatEpochToIso(it.timestampMs)
                             MarketPrice(
                                 itemId = it.itemId,
                                 city = it.city,
                                 quality = 1,
                                 sellPriceMin = it.sellPriceMin,
-                                sellPriceMinDate = "",
+                                sellPriceMinDate = isoDate,
                                 buyPriceMax = it.buyPriceMax,
-                                buyPriceMaxDate = ""
+                                buyPriceMaxDate = isoDate
                             )
                         }.groupBy { it.itemId }.ifEmpty {
                             AlbionMarketApi.getFallbackMarketPrices()

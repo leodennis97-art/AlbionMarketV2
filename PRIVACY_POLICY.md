@@ -1,16 +1,16 @@
-# Datenschutzerklärung für AlbionDataPro (AlbionMarketV2)
+# Datenschutzerklärung für DataPro (AlbionMarketV2)
 
 **Stand:** Januar 2026
 
-Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten (nachfolgend „Daten“) innerhalb unserer Android-App **AlbionDataPro** (sowie der zugehörigen Webdienste und APIs unter `albionmarketv2-1.onrender.com` und `www.AlbionDataPro.com`) auf.
+Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten (nachfolgend „Daten“) innerhalb unserer Android-App **DataPro** (sowie der zugehörigen Webdienste und APIs unter `albionmarketv2-1.onrender.com` und `www.DataPro.com`) auf.
 
 ---
 
 ### 1. Verantwortlicher
 Verantwortlicher im Sinne der Datenschutzgesetze ist:
-* **Entwickler / Betreiber:** AlbionDataPro Team / Leo Dennis
+* **Entwickler / Betreiber:** DataPro Team / Leo Dennis
 * **Kontakt-E-Mail:** [Deine E-Mail-Adresse einfügen]
-* **Website:** [https://www.AlbionDataPro.com](https://www.AlbionDataPro.com)
+* **Website:** [https://www.DataPro.com](https://www.DataPro.com)
 
 ---
 
@@ -34,7 +34,7 @@ Die Datenverarbeitung erfolgt zu folgenden Zwecken:
 
 ### 4. Einsatz von Drittanbietern und APIs
 Unsere App kommuniziert mit folgenden externen Diensten und APIs:
-* **Eigenes Backend (Render / Custom Server):** `https://albionmarketv2-1.onrender.com` & `https://www.AlbionDataPro.com` zur Daten- und Lizenzsynchronisation.
+* **Eigenes Backend (Render / Custom Server):** `https://albionmarketv2-1.onrender.com` & `https://www.DataPro.com` zur Daten- und Lizenzsynchronisation.
 * **Firebase (Google):** Für Authentifizierung, Push-Benachrichtigungen und Crash-Reporting (gemäß den Datenschutzbestimmungen von Google).
 * **Albion Online Data Project APIs:** Zum Abrufen öffentlicher Spielmarktstatistiken (`*.albion-online-data.com`).
 * **PayPal:** Zur Abwicklung von Lizenzkäufen und Spenden.

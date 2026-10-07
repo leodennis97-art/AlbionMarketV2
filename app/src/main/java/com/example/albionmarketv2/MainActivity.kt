@@ -60,7 +60,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.foundation.layout.PaddingValues
 import android.content.Context
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -303,8 +302,6 @@ class MainActivity : ComponentActivity() {
                         var licenseKeyInput by remember { mutableStateOf("") }
                         var isRegistrationMode by remember { mutableStateOf(false) }
                         var showLoginUpdatesDialog by remember { mutableStateOf(false) }
-                        var isCheckingUpdate by remember { mutableStateOf(false) }
-                        var updateCheckResult by remember { mutableStateOf<String?>(null) }
                         val coroutineScope = rememberCoroutineScope()
 
                         if (showLoginUpdatesDialog) {
@@ -332,7 +329,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 text = {
                                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("Willkommen bei AlbionDataPro v$CURRENT_APP_VERSION!", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                                        Text("Willkommen bei DataPro - Market Companion (Unofficial) v$CURRENT_APP_VERSION!", fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
                                         Text("• v$CURRENT_APP_VERSION: Blitzschneller 24/7 Cloud-Sync, Sicherheitssperre & automatisches OTA-Update.", fontSize = 12.sp, color = Color.White)
                                         Text("• v3.1.4: Live 24/7 Server-Sync, Anti-Cheat Schutz, Echtzeit-Uhrzeit & Gold-Bot Signale.", fontSize = 12.sp, color = Color(0xFF94A3B8))
                                         Text("Gib deine Zugangsdaten ein und verifiziere dich, um das Spiel zu betreten.", fontSize = 12.sp, color = Color(0xFF94A3B8))
@@ -399,7 +396,7 @@ class MainActivity : ComponentActivity() {
                                     // 1. BRANDING LOGO HEADER
                                     Image(
                                         painter = painterResource(id = R.drawable.adp_logo),
-                                        contentDescription = "AlbionDataPro Logo",
+                                        contentDescription = "DataPro Logo",
                                         modifier = Modifier.size(72.dp)
                                     )
 
@@ -408,8 +405,8 @@ class MainActivity : ComponentActivity() {
                                         horizontalArrangement = Arrangement.Center
                                     ) {
                                         Text(
-                                            text = "AlbionDataPro",
-                                            fontSize = 22.sp,
+                                            text = "DataPro - Market Companion",
+                                            fontSize = 20.sp,
                                             fontWeight = FontWeight.Black,
                                             color = Color(0xFF38BDF8)
                                         )

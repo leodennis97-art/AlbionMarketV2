@@ -1,6 +1,6 @@
 /**
- * AlbionDataPro Central Market & OTA Server (Node.js / Express)
- * Collects public Albion Online market data 24/7 and serves it to installed apps via Public Tunnel.
+ * DataPro Central Market & OTA Server (Node.js / Express)
+ * Collects public Royal MMO market data 24/7 and serves it to installed apps via Public Tunnel.
  * Includes Cloud Backup & Restore for User Data, Full Account & Device Management, and License Generator.
  */
 
@@ -23,8 +23,8 @@ process.on('unhandledRejection', (reason, promise) => {
 const app = express();
 app.set('trust proxy', true);
 const PORT = process.env.PORT || 10000;
-const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'AlbionDataProSecretKey2026_HMAC_SHA256_Secure';
-const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'AlbionDataPro_Military_Admin_SuperSecret_2026#Key';
+const SERVER_HMAC_SECRET = process.env.SERVER_HMAC_SECRET || 'DataProSecretKey2026_HMAC_SHA256_Secure';
+const ADMIN_API_KEY = process.env.ADMIN_API_KEY || 'DataPro_Military_Admin_SuperSecret_2026#Key';
 const GOOGLE_PLAY_API_KEY = process.env.GOOGLE_PLAY_API_KEY || '';
 
 const ACME_DIR = path.join(__dirname, '.well-known', 'acme-challenge');
@@ -175,7 +175,7 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.3.3";
+    return "3.4.0";
 }
 
 let CURRENT_SERVER_VERSION = getAppVersionFromGradle();
@@ -209,7 +209,7 @@ function triggerAutoOtaUpdateForAllDevices(reason = 'Neue Version bereitgestellt
         targetVersion: CURRENT_SERVER_VERSION,
         force: true,
         reason: reason,
-        downloadUrl: 'https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk',
+        downloadUrl: 'https://albionmarketv2-1.onrender.com/download/DataPro.apk',
         timestamp: new Date().toISOString()
     });
 }
@@ -241,7 +241,7 @@ app.post('/api/admin/upload-apk', requireAdminAuth, upload.single('apkFile'), (r
         console.error('Fehler beim Bereinigen alter APKs:', e.message);
     }
 
-    const targetPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+    const targetPath = path.join(DOWNLOADS_DIR, 'DataPro.apk');
     fs.renameSync(req.file.path, targetPath);
 
     const uploadedVer = req.query.version || req.headers['x-target-version'];
@@ -260,7 +260,7 @@ app.post('/api/admin/cleanup-apks', requireAdminAuth, (req, res) => {
         const files = fs.readdirSync(DOWNLOADS_DIR);
         let count = 0;
         files.forEach(file => {
-            if (file !== 'AlbionDataPro.apk' && file.endsWith('.apk')) {
+            if (file !== 'DataPro.apk' && file.endsWith('.apk')) {
                 fs.unlinkSync(path.join(DOWNLOADS_DIR, file));
                 count++;
             }
@@ -281,7 +281,7 @@ app.post('/api/admin/restart', requireAdminAuth, (req, res) => {
 
 function syncLatestApk() {
     try {
-        const apkPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+        const apkPath = path.join(DOWNLOADS_DIR, 'DataPro.apk');
         if (fs.existsSync(apkPath)) {
             const stat = fs.statSync(apkPath);
             if (lastApkMtime === 0) {
@@ -303,7 +303,7 @@ function syncLatestApk() {
 async function autonomousApkSyncLoop() {
     try {
         const currentGradleVersion = getAppVersionFromGradle();
-        const apkPath = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+        const apkPath = path.join(DOWNLOADS_DIR, 'DataPro.apk');
         const versionPath = path.join(DOWNLOADS_DIR, 'version.txt');
         const localBuildDebug = path.join(__dirname, 'app', 'build', 'outputs', 'apk', 'debug', 'app-debug.apk');
         const localBuildRelease = path.join(__dirname, 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
@@ -731,12 +731,12 @@ app.get(['/api/download/token', '/download/token'], (req, res) => {
         status: 'success',
         token: signedToken,
         expiresAt: expiresAt,
-        downloadUrl: `/download/AlbionDataPro.apk?token=${signedToken}`
+        downloadUrl: `/download/DataPro.apk?token=${signedToken}`
     });
 });
 
 // High-End Protected Streaming APK Download with Rate-Limiting & Memory Overflow Protection
-app.get(['/download', '/download/', '/download/AlbionDataPro.apk', '/download/app-update.apk', '/download/latest.apk', '/download/latest', '/download/app'], (req, res) => {
+app.get(['/download', '/download/', '/download/DataPro.apk', '/download/app-update.apk', '/download/latest.apk', '/download/latest', '/download/app'], (req, res) => {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
     const token = req.query.token;
     const adminKey = req.query.key || req.query.adminKey || req.headers['x-admin-key'];
@@ -769,7 +769,7 @@ app.get(['/download', '/download/', '/download/AlbionDataPro.apk', '/download/ap
         `);
     }
 
-    const apkFile = path.join(DOWNLOADS_DIR, 'AlbionDataPro.apk');
+    const apkFile = path.join(DOWNLOADS_DIR, 'DataPro.apk');
     if (!fs.existsSync(apkFile)) {
         return res.status(404).send(`
             <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
@@ -784,7 +784,7 @@ app.get(['/download', '/download/', '/download/AlbionDataPro.apk', '/download/ap
     res.writeHead(200, {
         'Content-Type': 'application/vnd.android.package-archive',
         'Content-Length': stat.size,
-        'Content-Disposition': 'attachment; filename="AlbionDataPro.apk"',
+        'Content-Disposition': 'attachment; filename="DataPro.apk"',
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
@@ -798,13 +798,13 @@ app.get(['/download', '/download/', '/download/AlbionDataPro.apk', '/download/ap
 app.get('/dl', (req, res) => {
     const expiresAt = Date.now() + (15 * 60 * 1000);
     const token = generateSignedDownloadToken(expiresAt);
-    res.redirect(`/download/AlbionDataPro.apk?token=${token}`);
+    res.redirect(`/download/DataPro.apk?token=${token}`);
 });
 
 app.get('/apk', (req, res) => {
     const expiresAt = Date.now() + (15 * 60 * 1000);
     const token = generateSignedDownloadToken(expiresAt);
-    res.redirect(`/download/AlbionDataPro.apk?token=${token}`);
+    res.redirect(`/download/DataPro.apk?token=${token}`);
 });
 
 // Google Search Console Verification Endpoint & File
@@ -896,7 +896,7 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk</loc>
+      <loc>https://albionmarketv2-1.onrender.com/download/DataPro.apk</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.8</priority>
@@ -917,7 +917,7 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Datenschutzerklärung - AlbionDataPro</title>
+    <title>Datenschutzerklärung - DataPro</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; line-height: 1.6; padding: 20px; max-width: 800px; margin: 0 auto; }
         h1 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
@@ -931,14 +931,14 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
 </head>
 <body>
     <div class="card">
-        <h1>Datenschutzerklärung für AlbionDataPro (AlbionMarketV2)</h1>
+        <h1>Datenschutzerklärung für DataPro (AlbionMarketV2)</h1>
         <p><strong>Stand:</strong> Januar 2026</p>
-        <p>Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten innerhalb unserer Android-App <strong>AlbionDataPro</strong> (sowie der zugehörigen Webdienste und APIs unter <code>albionmarketv2-1.onrender.com</code> und <code>www.AlbionDataPro.com</code>) auf.</p>
+        <p>Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten innerhalb unserer Android-App <strong>DataPro</strong> (sowie der zugehörigen Webdienste und APIs unter <code>albionmarketv2-1.onrender.com</code> und <code>www.DataPro.com</code>) auf.</p>
 
         <h2>1. Verantwortlicher</h2>
         <p>Verantwortlicher im Sinne der Datenschutzgesetze ist:<br>
-        <strong>Entwickler / Betreiber:</strong> AlbionDataPro Team / Leo Dennis<br>
-        <strong>Website:</strong> <a href="https://www.AlbionDataPro.com">https://www.AlbionDataPro.com</a></p>
+        <strong>Entwickler / Betreiber:</strong> DataPro Team / Leo Dennis<br>
+        <strong>Website:</strong> <a href="https://www.DataPro.com">https://www.DataPro.com</a></p>
 
         <h2>2. Arten der verarbeiteten Daten</h2>
         <ul>
@@ -959,7 +959,7 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
         <ul>
             <li><strong>Eigenes Backend (Render):</strong> <code>https://albionmarketv2-1.onrender.com</code> zur Daten- und Lizenzsynchronisation.</li>
             <li><strong>Firebase (Google):</strong> Für Authentifizierung, Push-Benachrichtigungen und Crash-Reporting.</li>
-            <li><strong>Albion Online Data Project APIs:</strong> Zum Abrufen öffentlicher Spielmarktstatistiken.</li>
+            <li><strong>Royal MMO Data Project APIs:</strong> Zum Abrufen öffentlicher Spielmarktstatistiken.</li>
             <li><strong>PayPal:</strong> Zur Abwicklung von Lizenzkäufen und Spenden.</li>
         </ul>
 
@@ -979,33 +979,33 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
 app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/calculator', '/overlay', '/mobile', '/guide'], (req, res) => {
     const route = req.path.toLowerCase();
 
-    let pageTitle = `AlbionDataPro v${CURRENT_SERVER_VERSION} - #1 Albion Online Hack, Markt Mod, Arbitrage & Overlay`;
-    let pageDesc = `AlbionDataPro ist der #1 Albion Online Hack & Markt-Mod für Mobile & PC. Das ultimative Markt-Overlay, Arbitrage Radar, Silber Rechner, Schwarzmarkt Bot & Preissuchmaschine. Jetzt Silber verdoppeln!`;
+    let pageTitle = `DataPro - Market Companion (Unofficial) v${CURRENT_SERVER_VERSION}`;
+    let pageDesc = `DataPro - Market Companion (Unofficial) ist das ultimative Markt-Overlay, Arbitrage Radar, Silber Rechner, Schwarzmarkt Bot & Preissuchmaschine. Jetzt Gewinne verdoppeln!`;
 
     if (route.includes('hack')) {
-        pageTitle = `Albion Online Hack & Mod 2026 - #1 Markt & Trading Overlay | AlbionDataPro`;
-        pageDesc = `Der beste Albion Online Hack & Mod für Android & PC. In-Game Markt-Overlay, Live-Preise, Arbitrage Radar & KI Trade Bot. Jetzt Silber verdoppeln!`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | #1 Markt & Trading Overlay`;
+        pageDesc = `Das beste Markt-Overlay für Android & PC. In-Game Markt-Overlay, Live-Preise, Arbitrage Radar & KI Trade Bot. Jetzt Gewinne verdoppeln!`;
     } else if (route.includes('bot')) {
-        pageTitle = `Albion Online Market Bot & KI Signals 2026 | AlbionDataPro`;
-        pageDesc = `Automatische KI-Kauf- & Verkaufsaufträge für Albion Online. Verdopple deine Silber-Erträge mit dem #1 Albion Trading Bot.`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | KI Trading Signals 2026`;
+        pageDesc = `Automatische KI-Kauf- & Verkaufsaufträge. Verdopple deine Erträge mit DataPro - Market Companion (Unofficial).`;
     } else if (route.includes('arbitrage')) {
-        pageTitle = `Albion Online Arbitrage Radar & Routen-Planner | AlbionDataPro`;
-        pageDesc = `Finde die lukrativsten Handelsrouten in Albion Online. Exakte Reingewinn-Berechnung zwischen Caerleon, Brecilien & königlichen Hauptstädten.`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | Arbitrage Radar & Routen-Planner`;
+        pageDesc = `Finde die lukrativsten Handelsrouten. Exakte Reingewinn-Berechnung zwischen Caerleon, Brecilien & königlichen Hauptstädten.`;
     } else if (route.includes('blackmarket')) {
-        pageTitle = `Albion Online Schwarzmarkt Rechner & Caerleon Bot | AlbionDataPro`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | Schwarzmarkt Rechner & Caerleon Bot`;
         pageDesc = `Maximierte Gewinne am Caerleon Schwarzmarkt. Berechne Ausrüstungs-Preise, Margen und Beutelgewicht in Echtzeit.`;
     } else if (route.includes('calculator')) {
-        pageTitle = `Albion Online Silber & Crafting Rechner 2026 | AlbionDataPro`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | Silber & Crafting Rechner 2026`;
         pageDesc = `Berechne Veredelungs- & Herstellungskosten, Stadt-Rückgaberaten (Return Rates), Stationsgebühren und Reingewinn.`;
     } else if (route.includes('overlay')) {
-        pageTitle = `Albion Online In-Game Overlay Bubble Mod for Mobile | AlbionDataPro`;
-        pageDesc = `Schwebendes In-Game Markt-Overlay direkt über Albion Online Mobile. Preise, Arbitrage & KI-Signale im Spiel anzeigen ohne Minimieren.`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | In-Game Overlay Bubble Mod`;
+        pageDesc = `Schwebendes In-Game Markt-Overlay direkt auf Android. Preise, Arbitrage & KI-Signale im Spiel anzeigen ohne Minimieren.`;
     } else if (route.includes('mobile')) {
-        pageTitle = `Albion Online Mobile Mod Package (Android APK) | AlbionDataPro`;
-        pageDesc = `Lade das offizielle Albion Online Mobile Mod Package herunter. In-Game Overlay, 24/7 Cloud Sync & automatische Updates.`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | Mobile Mod Package (Android APK)`;
+        pageDesc = `Lade das offizielle DataPro - Market Companion (Unofficial) Package herunter. In-Game Overlay, 24/7 Cloud Sync & automatische Updates.`;
     } else if (route.includes('guide')) {
-        pageTitle = `Albion Online Silber Verdienen Guide 2026 | AlbionDataPro`;
-        pageDesc = `Der ultimative Guide für maximalen Silber-Gewinn in Albion Online. Handels-Strategien, Markt-Lücken & KI-Tipps.`;
+        pageTitle = `DataPro - Market Companion (Unofficial) | Silber Verdienen Guide 2026`;
+        pageDesc = `Der ultimative Guide für maximalen Gewinn. Handels-Strategien, Markt-Lücken & KI-Tipps.`;
     }
 
     res.send(`<!DOCTYPE html>
@@ -1017,18 +1017,18 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
     <meta name="google-site-verification" content="google999f0d6f9c312079" />
     <meta name="google-site-verification" content="google999f0d6f9c312079.html" />
     <meta name="description" content="${pageDesc}">
-    <meta name="keywords" content="Albion Online, Albion Online Market, Albion Online Prices, Albion Online Gold Price, Albion Online Calculator, Albion Online Crafting, Albion Online Black Market, Albion Market Pro, Albion Market Helper, Albion Online Trade Assistant, Albion Online Mobile Hack, Albion Online Mod, Albion Online Cheat, Albion Online Market Hack, Albion Online Silver Hack">
+    <meta name="keywords" content="Royal MMO, Royal MMO Market, Royal MMO Prices, Royal MMO Gold Price, Royal MMO Calculator, Royal MMO Crafting, Royal MMO Black Market, Albion Market Pro, Albion Market Helper, Royal MMO Trade Assistant, Royal MMO Mobile Hack, Royal MMO Mod, Royal MMO Cheat, Royal MMO Market Hack, Royal MMO Silver Hack">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
-    <meta name="author" content="Albion Online Market Pro Team" />
+    <meta name="author" content="Royal MMO Market Pro Team" />
     <link rel="canonical" href="https://albionmarketv2-1.onrender.com/" />
     <link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/" />
     <link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/" />
     <link rel="alternate" hreflang="x-default" href="https://albionmarketv2-1.onrender.com/" />
 
     <!-- OpenGraph SEO -->
-    <meta property="og:site_name" content="Albion Online Market Pro" />
-    <meta property="og:title" content="Albion Online - Official Market Assistant, Prices & Gold Calculator" />
-    <meta property="og:description" content="Official #1 Albion Online Market Assistant. Real-time prices for Europe, Americas, Asia, Gold Market rates, crafting calculator, and floating overlay app." />
+    <meta property="og:site_name" content="Royal MMO Market Pro" />
+    <meta property="og:title" content="Royal MMO - Official Market Assistant, Prices & Gold Calculator" />
+    <meta property="og:description" content="Official #1 Royal MMO Market Assistant. Real-time prices for Europe, Americas, Asia, Gold Market rates, crafting calculator, and floating overlay app." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://albionmarketv2-1.onrender.com/" />
     <meta property="og:image" content="https://albionmarketv2-1.onrender.com/download" />
@@ -1036,8 +1036,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Albion Online - Market Assistant & Real-Time Price Database" />
-    <meta name="twitter:description" content="Official #1 Albion Online Market Assistant. Real-time prices, Gold market, and floating overlay." />
+    <meta name="twitter:title" content="Royal MMO - Market Assistant & Real-Time Price Database" />
+    <meta name="twitter:description" content="Official #1 Royal MMO Market Assistant. Real-time prices, Gold market, and floating overlay." />
 
     <!-- JSON-LD Structured Data Schema for Google Rich Snippets -->
     <script type="application/ld+json">
@@ -1046,7 +1046,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
       "@graph": [
         {
           "@type": "SoftwareApplication",
-          "name": "AlbionDataPro - Albion Online Hack & Mod",
+          "name": "DataPro - Royal MMO Hack & Mod",
           "operatingSystem": "Android, Windows, macOS",
           "applicationCategory": "GameApplication",
           "aggregateRating": {
@@ -1063,7 +1063,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
             "priceCurrency": "EUR",
             "availability": "https://schema.org/InStock"
           },
-          "description": "Der #1 Albion Online Hack & Markt-Mod für Mobile & PC. In-Game Bubble Overlay, Live-Preise, Arbitrage Radar & KI Trading Bot.",
+          "description": "Der #1 Royal MMO Hack & Markt-Mod für Mobile & PC. In-Game Bubble Overlay, Live-Preise, Arbitrage Radar & KI Trading Bot.",
           "url": "https://albionmarketv2-1.onrender.com/",
           "softwareVersion": "${CURRENT_SERVER_VERSION}"
         },
@@ -1072,10 +1072,10 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
           "mainEntity": [
             {
               "@type": "Question",
-              "name": "Was ist der AlbionDataPro Hack & Markt-Mod?",
+              "name": "Was ist der DataPro Hack & Markt-Mod?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "AlbionDataPro ist der führende Albion Online Hack & Markt-Mod. Es ist ein In-Game Overlay & Analysetool für Albion Online Mobile & PC, welches Live-Preise über alle Städte vergleicht, profitabelste Handelsrouten berechnet und KI-basierte Buy- und Sell-Orders liefert."
+                "text": "DataPro ist der führende Royal MMO Hack & Markt-Mod. Es ist ein In-Game Overlay & Analysetool für Royal MMO Mobile & PC, welches Live-Preise über alle Städte vergleicht, profitabelste Handelsrouten berechnet und KI-basierte Buy- und Sell-Orders liefert."
               }
             },
             {
@@ -1083,15 +1083,15 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
               "name": "Wie funktioniert das In-Game Floating Overlay?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile auf Android. Durch Antippen öffnest du Live-Preise, Handelschancen und KI-Signale direkt im Spiel ohne Minimieren."
+                "text": "Die schwebende Overlay-Bubble läuft direkt über Royal MMO Mobile auf Android. Durch Antippen öffnest du Live-Preise, Handelschancen und KI-Signale direkt im Spiel ohne Minimieren."
               }
             },
             {
               "@type": "Question",
-              "name": "Ist dieser Albion Online Mod & Hack sicher?",
+              "name": "Ist dieser Royal MMO Mod & Hack sicher?",
               "acceptedAnswer": {
                 "@type": "Answer",
-                "text": "Ja! AlbionDataPro nutzt externe Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch."
+                "text": "Ja! DataPro nutzt externe Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch."
               }
             },
             {
@@ -1107,7 +1107,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
       ]
     }
     </script>
-    <title>AlbionDataPro v${CURRENT_SERVER_VERSION} - #1 Albion Online Hack, Markt Mod, Arbitrage & Overlay</title>
+    <title>DataPro v${CURRENT_SERVER_VERSION} - #1 Royal MMO Hack, Markt Mod, Arbitrage & Overlay</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1144,7 +1144,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                     </svg>
                 </div>
                 <div>
-                    <span class="text-2xl font-black tracking-tight text-white">Albion<span class="text-sky-400">Data</span><span class="text-amber-400">Pro</span></span>
+                    <span class="text-2xl font-black tracking-tight text-white"><span class="text-sky-400">Data</span><span class="text-amber-400">Pro</span> <span class="text-xs text-slate-400 font-semibold">(Unofficial)</span></span>
                     <span class="ml-2 text-xs px-2.5 py-0.5 bg-sky-500/20 text-sky-300 font-bold rounded-full border border-sky-500/30">v${CURRENT_SERVER_VERSION}</span>
                 </div>
             </div>
@@ -1168,7 +1168,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                     </select>
                 </div>
 
-                <a href="/download/AlbionDataPro.apk?v=${CURRENT_SERVER_VERSION}" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
+                <a href="/download/DataPro.apk?v=${CURRENT_SERVER_VERSION}" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
                     <i class="fa-solid fa-download"></i> APK Download
                 </a>
             </div>
@@ -1202,10 +1202,10 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
         </div>
 
         <h1 class="text-4xl md:text-7xl font-black mb-6 leading-tight tracking-tight text-white">
-            <span class="gradient-text">AlbionDataPro</span>
+            <span class="gradient-text">DataPro</span>
         </h1>
         <p data-i18n="hero_subtitle" class="text-xl md:text-3xl font-extrabold text-slate-200 mb-6 max-w-3xl mx-auto leading-snug">
-            Das mächtigste Handels- & Markt-Overlay für Albion Online Mobile
+            Das mächtigste Handels- & Markt-Overlay für Royal MMO Mobile
         </p>
         <p data-i18n="hero_desc" class="text-base md:text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
             Verdoppeln Sie Ihr Silber ohne stundenlanges Suchen. Nutzen Sie sekundengenaue Live-Preise, Arbitrage-Scanner & KI-Preise direkt als schwebendes In-Game Overlay über Ihrem Spiel!
@@ -1213,7 +1213,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
 
         <!-- DOWNLOAD BUTTON SECTION -->
         <div class="flex flex-col items-center gap-4 mb-16 max-w-md mx-auto w-full">
-            <a href="/download/AlbionDataPro.apk?v=${CURRENT_SERVER_VERSION}" class="pulse-glow bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black py-5 px-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 flex items-center justify-center gap-4 text-2xl border border-emerald-300/40 w-full">
+            <a href="/download/DataPro.apk?v=${CURRENT_SERVER_VERSION}" class="pulse-glow bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black py-5 px-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 flex items-center justify-center gap-4 text-2xl border border-emerald-300/40 w-full">
                 <i class="fa-solid fa-download text-3xl"></i>
                 <div class="text-left">
                     <div data-i18n="download_btn_subtitle" class="text-xs uppercase tracking-wider font-extrabold text-emerald-200">Kostenlos Herunterladen</div>
@@ -1259,9 +1259,9 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
         <!-- WHY YOU NEED THIS TOOL (SALES PITCH) -->
         <div class="mb-20 text-left">
             <div class="text-center mb-12">
-                <h2 data-i18n-html="why_title" class="text-3xl md:text-5xl font-black text-white mb-4">Warum du <span class="gradient-text">AlbionDataPro</span> brauchst</h2>
+                <h2 data-i18n-html="why_title" class="text-3xl md:text-5xl font-black text-white mb-4">Warum du <span class="gradient-text">DataPro</span> brauchst</h2>
                 <p data-i18n="why_sub" class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
-                    Handeln in Albion Online ohne Live-Daten kostet dich täglich Millionen Silber. AlbionDataPro gibt dir den entscheidenden Vorteil gegenüber anderen Spielern.
+                    Handeln in Royal MMO ohne Live-Daten kostet dich täglich Millionen Silber. DataPro gibt dir den entscheidenden Vorteil gegenüber anderen Spielern.
                 </p>
             </div>
 
@@ -1300,7 +1300,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 </div>
                 <h2 data-i18n="overlay_title" class="text-3xl md:text-5xl font-black text-white mb-4">Das In-Game Bubble Overlay</h2>
                 <p data-i18n="overlay_sub" class="text-slate-400 text-base md:text-lg max-w-2xl mx-auto">
-                    Die revolutionäre schwebende Overlay-Bubble läuft direkt über Albion Online Mobile. Du musst das Spiel niemals verlassen!
+                    Die revolutionäre schwebende Overlay-Bubble läuft direkt über Royal MMO Mobile. Du musst das Spiel niemals verlassen!
                 </p>
             </div>
 
@@ -1382,7 +1382,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 <h4 data-i18n="install_title" class="font-extrabold text-2xl text-white mb-2">Einfache Installation auf Android</h4>
                 <ol class="list-decimal list-inside text-slate-300 text-sm md:text-base space-y-2">
                     <li data-i18n-html="install_step1">Klicke oben auf <strong class="text-emerald-400">"APK Download"</strong> und speichere die Datei.</li>
-                    <li data-i18n-html="install_step2">Öffne <code class="bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono">AlbionDataPro.apk</code> und erlaube die Installation.</li>
+                    <li data-i18n-html="install_step2">Öffne <code class="bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono">DataPro.apk</code> und erlaube die Installation.</li>
                     <li data-i18n="install_step3">Starte die App, erstelle deinen Account und schalte deine Lizenz direkt in der App frei!</li>
                 </ol>
             </div>
@@ -1392,28 +1392,28 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
         <div class="mb-20 text-left max-w-4xl mx-auto my-12">
             <div class="text-center mb-12">
                 <h2 data-i18n="faq_title" class="text-3xl font-bold mb-3 text-white">Häufig gestellte Fragen (FAQ)</h2>
-                <p data-i18n="faq_sub" class="text-slate-400">Alles, was du über AlbionDataPro wissen musst.</p>
+                <p data-i18n="faq_sub" class="text-slate-400">Alles, was du über DataPro wissen musst.</p>
             </div>
 
             <div class="space-y-4">
                 <div class="glass-panel p-6 rounded-2xl border border-slate-800">
-                    <h3 data-i18n="faq1_q" class="text-lg font-bold text-sky-400 mb-2">Was ist AlbionDataPro?</h3>
+                    <h3 data-i18n="faq1_q" class="text-lg font-bold text-sky-400 mb-2">Was ist DataPro?</h3>
                     <p data-i18n="faq1_a" class="text-slate-300 text-sm leading-relaxed">
-                        AlbionDataPro ist das führende In-Game Overlay & Markt-Analysetool für Albion Online. Es vergleicht Preise über alle Städte (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Schwarzmarkt), berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders.
+                        DataPro ist das führende In-Game Overlay & Markt-Analysetool für Royal MMO. Es vergleicht Preise über alle Städte (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Schwarzmarkt), berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders.
                     </p>
                 </div>
 
                 <div class="glass-panel p-6 rounded-2xl border border-slate-800">
                     <h3 data-i18n="faq2_q" class="text-lg font-bold text-sky-400 mb-2">Wie funktioniert das In-Game Floating Overlay?</h3>
                     <p data-i18n="faq2_a" class="text-slate-300 text-sm leading-relaxed">
-                        Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile auf Android. Durch einfaches Antippen blendest du Live-Preise, Arbitrage-Chancen und KI-Signale direkt im Spiel ein, ohne das Spiel minimieren zu müssen.
+                        Die schwebende Overlay-Bubble läuft direkt über Royal MMO Mobile auf Android. Durch einfaches Antippen blendest du Live-Preise, Arbitrage-Chancen und KI-Signale direkt im Spiel ein, ohne das Spiel minimieren zu müssen.
                     </p>
                 </div>
 
                 <div class="glass-panel p-6 rounded-2xl border border-slate-800">
-                    <h3 data-i18n="faq3_q" class="text-lg font-bold text-sky-400 mb-2">Ist AlbionDataPro sicher und erlaubt?</h3>
+                    <h3 data-i18n="faq3_q" class="text-lg font-bold text-sky-400 mb-2">Ist DataPro sicher und erlaubt?</h3>
                     <p data-i18n="faq3_a" class="text-slate-300 text-sm leading-relaxed">
-                        Ja! AlbionDataPro nutzt öffentliche Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch und ist somit 100% sicher zu bedienen.
+                        Ja! DataPro nutzt öffentliche Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch und ist somit 100% sicher zu bedienen.
                     </p>
                 </div>
 
@@ -1441,9 +1441,9 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                     <path d="M64,28 L69,38 L64,48 L59,38 Z" fill="#F59E0B" />
                 </svg>
             </div>
-            <span class="font-bold text-slate-400">AlbionDataPro v${CURRENT_SERVER_VERSION}</span>
+            <span class="font-bold text-slate-400">DataPro v${CURRENT_SERVER_VERSION}</span>
         </div>
-        <p data-i18n-html="footer_copyright">&copy; 2026 AlbionDataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.</p>
+        <p data-i18n-html="footer_copyright">&copy; 2026 DataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.</p>
         <div class="mt-2 text-xs">
             <a href="/privacy" class="text-sky-400 hover:underline">Datenschutzerklärung / Privacy Policy</a>
         </div>
@@ -1454,7 +1454,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
         const WEB_TRANSLATIONS = {
             de: {
                 badge_release: "Offizieller Version Release v${CURRENT_SERVER_VERSION} — 24/7 Cloud & In-Game Overlay",
-                hero_subtitle: "Das mächtigste Handels- & Markt-Overlay für Albion Online Mobile",
+                hero_subtitle: "Das mächtigste Handels- & Markt-Overlay für Royal MMO Mobile",
                 hero_desc: "Verdoppeln Sie Ihr Silber ohne stundenlanges Suchen. Nutzen Sie sekundengenaue Live-Preise, Arbitrage-Scanner & KI-Preise direkt als schwebendes In-Game Overlay über Ihrem Spiel!",
                 download_btn_subtitle: "Kostenlos Herunterladen",
                 download_virus_free: "100% Virenfrei • Direktes Android APK Package",
@@ -1463,8 +1463,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Sofortige Freischaltung",
                 badge_paypal: "Sichere PayPal-Zahlung",
                 badge_cloud: "24/7 Cloud-Verbindung",
-                why_title: "Warum du <span class='gradient-text'>AlbionDataPro</span> brauchst",
-                why_sub: "Handeln in Albion Online ohne Live-Daten kostet dich täglich Millionen Silber. AlbionDataPro gibt dir den entscheidenden Vorteil gegenüber anderen Spielern.",
+                why_title: "Warum du <span class='gradient-text'>DataPro</span> brauchst",
+                why_sub: "Handeln in Royal MMO ohne Live-Daten kostet dich täglich Millionen Silber. DataPro gibt dir den entscheidenden Vorteil gegenüber anderen Spielern.",
                 why_card1_title: "Maximaler Profit ohne Risiko",
                 why_card1_desc: "Schluss mit Fehlkäufen! Der präzise ROI-Rechner zeigt dir vor jedem Deal exakt deinen Reingewinn nach Marktsteuern und Stationsgebühren an.",
                 why_card2_title: "Gewaltige Zeitersparnis",
@@ -1473,7 +1473,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Unser Algorithmus analysiert 7-Tage-Preisschwankungen und findet die idealen Buy- & Sell-Order Schwellenwerte für schnellen Umschlag.",
                 overlay_section_tag: "In-Game Floating Overlay",
                 overlay_title: "Das In-Game Bubble Overlay",
-                overlay_sub: "Die revolutionäre schwebende Overlay-Bubble läuft direkt über Albion Online Mobile. Du musst das Spiel niemals verlassen!",
+                overlay_sub: "Die revolutionäre schwebende Overlay-Bubble läuft direkt über Royal MMO Mobile. Du musst das Spiel niemals verlassen!",
                 feat1_title: "Permanentes In-Game Overlay",
                 feat1_desc: "Ein dezentes, schwebendes Symbol direkt auf deinem Bildschirm. Tippe einfach darauf, um Preise, Arbitrage und KI-Empfehlungen sofort einzublenden.",
                 feat2_title: "Städte & Schwarzmarkt Radar",
@@ -1488,24 +1488,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Deine Einstellungen und Favoriten sind sicher in der Cloud gespeichert. Automatische OTA-Updates halten deine App stets aktuell.",
                 install_title: "Einfache Installation auf Android",
                 install_step1: "Klicke oben auf <strong class='text-emerald-400'>'APK Download'</strong> und speichere die Datei.",
-                install_step2: "Öffne <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> und erlaube die Installation.",
+                install_step2: "Öffne <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> und erlaube die Installation.",
                 install_step3: "Starte die App, erstelle deinen Account und schalte deine Lizenz direkt in der App frei!",
                 faq_title: "Häufig gestellte Fragen (FAQ)",
-                faq_sub: "Alles, was du über AlbionDataPro wissen musst.",
-                faq1_q: "Was ist AlbionDataPro?",
-                faq1_a: "AlbionDataPro ist das führende In-Game Overlay & Markt-Analysetool für Albion Online. Es vergleicht Preise über alle Städte (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Schwarzmarkt), berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders.",
+                faq_sub: "Alles, was du über DataPro wissen musst.",
+                faq1_q: "Was ist DataPro?",
+                faq1_a: "DataPro ist das führende In-Game Overlay & Markt-Analysetool für Royal MMO. Es vergleicht Preise über alle Städte (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Schwarzmarkt), berechnet profitabelste Handelsrouten und empfiehlt KI-basierte Buy- und Sell-Orders.",
                 faq2_q: "Wie funktioniert das In-Game Floating Overlay?",
-                faq2_a: "Die schwebende Overlay-Bubble läuft direkt über Albion Online Mobile auf Android. Durch einfaches Antippen blendest du Live-Preise, Arbitrage-Chancen und KI-Signale direkt im Spiel ein, ohne das Spiel minimieren zu müssen.",
-                faq3_q: "Ist AlbionDataPro sicher und erlaubt?",
-                faq3_a: "Ja! AlbionDataPro nutzt öffentliche Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch und ist somit 100% sicher zu bedienen.",
+                faq2_a: "Die schwebende Overlay-Bubble läuft direkt über Royal MMO Mobile auf Android. Durch einfaches Antippen blendest du Live-Preise, Arbitrage-Chancen und KI-Signale direkt im Spiel ein, ohne das Spiel minimieren zu müssen.",
+                faq3_q: "Ist DataPro sicher und erlaubt?",
+                faq3_a: "Ja! DataPro nutzt öffentliche Markt-APIs und arbeitet als rein visuelles Analyse-Overlay. Es führt keine automatischen Tastatureingaben oder Memory-Injections durch und ist somit 100% sicher zu bedienen.",
                 faq4_q: "Wie schalte ich meinen Account frei?",
                 faq4_a: "Installiere das kostenlose APK-Package oben, erstelle deinen Account in der App und schalte ihn über den PayPal-Bezahllink direkt frei. Dein Account wird nach der Zahlung automatisch auf den Servern freigeschaltet.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. Alle Rechte vorbehalten. Gehostet auf Render Cloud.",
                 footer_disclaimer: "Dieses Analyse-Tool steht in keiner offiziellen Verbindung zu Sandbox Interactive."
             },
             en: {
                 badge_release: "Official Version Release v${CURRENT_SERVER_VERSION} — 24/7 Cloud & In-Game Overlay",
-                hero_subtitle: "The most powerful trading & market overlay for Albion Online Mobile",
+                hero_subtitle: "The most powerful trading & market overlay for Royal MMO Mobile",
                 hero_desc: "Double your silver without endless searching. Use real-time live prices, arbitrage scanners & AI price signals directly as a floating overlay over your game!",
                 download_btn_subtitle: "Free Download",
                 download_virus_free: "100% Virus Free • Direct Android APK Package",
@@ -1514,8 +1514,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Instant Activation",
                 badge_paypal: "Secure PayPal Payment",
                 badge_cloud: "24/7 Cloud Connection",
-                why_title: "Why you need <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Trading in Albion Online without live data costs you millions of silver daily. AlbionDataPro gives you the decisive edge over other players.",
+                why_title: "Why you need <span class='gradient-text'>DataPro</span>",
+                why_sub: "Trading in Royal MMO without live data costs you millions of silver daily. DataPro gives you the decisive edge over other players.",
                 why_card1_title: "Maximum Profit Without Risk",
                 why_card1_desc: "No more bad purchases! The precise ROI calculator displays your exact net profit after market taxes and crafting fees before every deal.",
                 why_card2_title: "Massive Time Savings",
@@ -1524,7 +1524,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Our algorithm analyzes 7-day price fluctuations and determines the ideal buy & sell order thresholds for fast turnover.",
                 overlay_section_tag: "In-Game Floating Overlay",
                 overlay_title: "The In-Game Bubble Overlay",
-                overlay_sub: "The revolutionary floating overlay bubble runs directly over Albion Online Mobile. You never have to leave the game!",
+                overlay_sub: "The revolutionary floating overlay bubble runs directly over Royal MMO Mobile. You never have to leave the game!",
                 feat1_title: "Permanent In-Game Overlay",
                 feat1_desc: "A subtle floating icon right on your screen. Just tap it to reveal live prices, arbitrage deals and AI signals instantly.",
                 feat2_title: "Cities & Black Market Radar",
@@ -1539,24 +1539,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Your settings and favorites are stored securely in the cloud. Automatic OTA updates keep your app always up to date.",
                 install_title: "Easy Installation on Android",
                 install_step1: "Click <strong class='text-emerald-400'>'APK Download'</strong> above and save the file.",
-                install_step2: "Open <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> and allow installation.",
+                install_step2: "Open <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> and allow installation.",
                 install_step3: "Launch the app, create your account and unlock your license directly inside the app!",
                 faq_title: "Frequently Asked Questions (FAQ)",
-                faq_sub: "Everything you need to know about AlbionDataPro.",
-                faq1_q: "What is AlbionDataPro?",
-                faq1_a: "AlbionDataPro is the premier in-game overlay & market analysis tool for Albion Online. It compares prices across all cities (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Black Market), calculates profitable trade routes, and recommends AI buy & sell orders.",
+                faq_sub: "Everything you need to know about DataPro.",
+                faq1_q: "What is DataPro?",
+                faq1_a: "DataPro is the premier in-game overlay & market analysis tool for Royal MMO. It compares prices across all cities (Caerleon, Martlock, Lymhurst, Bridgewatch, Fort Sterling, Thetford, Black Market), calculates profitable trade routes, and recommends AI buy & sell orders.",
                 faq2_q: "How does the in-game floating overlay work?",
-                faq2_a: "The floating overlay bubble runs directly over Albion Online Mobile on Android. With a simple tap, you overlay live prices, arbitrage opportunities, and AI signals directly in-game without minimizing the app.",
-                faq3_q: "Is AlbionDataPro safe and allowed?",
-                faq3_a: "Yes! AlbionDataPro uses public market APIs and operates purely as a visual analysis overlay. It performs no automated input, keypresses, or memory injections, making it 100% safe to use.",
+                faq2_a: "The floating overlay bubble runs directly over Royal MMO Mobile on Android. With a simple tap, you overlay live prices, arbitrage opportunities, and AI signals directly in-game without minimizing the app.",
+                faq3_q: "Is DataPro safe and allowed?",
+                faq3_a: "Yes! DataPro uses public market APIs and operates purely as a visual analysis overlay. It performs no automated input, keypresses, or memory injections, making it 100% safe to use.",
                 faq4_q: "How do I unlock my account?",
                 faq4_a: "Install the free APK package above, create your account inside the app, and unlock it directly using the PayPal link. Your account will be activated automatically on our servers right after payment.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. All rights reserved. Hosted on Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. All rights reserved. Hosted on Render Cloud.",
                 footer_disclaimer: "This analysis tool is not affiliated with Sandbox Interactive."
             },
             es: {
                 badge_release: "Lanzamiento oficial v${CURRENT_SERVER_VERSION} — Nube 24/7 y Overlay",
-                hero_subtitle: "El overlay de comercio y mercado más potente para Albion Online Mobile",
+                hero_subtitle: "El overlay de comercio y mercado más potente para Royal MMO Mobile",
                 hero_desc: "¡Duplica tu plata sin perder tiempo buscando! Usa precios en tiempo real, escáner de arbitraje y señales de IA como overlay flotante sobre tu juego.",
                 download_btn_subtitle: "Descargar Gratis",
                 download_virus_free: "100% Libre de Virus • Paquete APK para Android",
@@ -1565,8 +1565,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Activación Inmediata",
                 badge_paypal: "Pago Seguro con PayPal",
                 badge_cloud: "Conexión a la Nube 24/7",
-                why_title: "Por qué necesitas <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Comerciar sin datos en vivo te cuesta millones de plata al día. AlbionDataPro te da la ventaja decisiva frente a otros jugadores.",
+                why_title: "Por qué necesitas <span class='gradient-text'>DataPro</span>",
+                why_sub: "Comerciar sin datos en vivo te cuesta millones de plata al día. DataPro te da la ventaja decisiva frente a otros jugadores.",
                 why_card1_title: "Máximo beneficio sin riesgo",
                 why_card1_desc: "¡Se acabaron las malas compras! El calculador de ROI te muestra tu beneficio neto exacto tras impuestos y tarifas antes de cada trato.",
                 why_card2_title: "Ahorro enorme de tiempo",
@@ -1575,7 +1575,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Nuestro algoritmo analiza fluctuaciones de 7 días y encuentra los umbrales ideales de compra y venta para alta rotación.",
                 overlay_section_tag: "Overlay Flotante En El Juego",
                 overlay_title: "El Overlay Flotante De Burbuja",
-                overlay_sub: "La revolucionaria burbuja flotante funciona directamente sobre Albion Online Mobile. ¡Nunca tienes que salir del juego!",
+                overlay_sub: "La revolucionaria burbuja flotante funciona directamente sobre Royal MMO Mobile. ¡Nunca tienes que salir del juego!",
                 feat1_title: "Overlay Permanente En Juego",
                 feat1_desc: "Un icono flotante discreto en tu pantalla. Toca para ver precios, arbitraje y señales de IA al instante.",
                 feat2_title: "Radar de Ciudades y Mercado Negro",
@@ -1590,24 +1590,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Tus ajustes y favoritos guardados de forma segura en la nube. Actualizaciones OTA automáticas mantienen tu app al día.",
                 install_title: "Instalación fácil en Android",
                 install_step1: "Haz clic en <strong class='text-emerald-400'>'APK Download'</strong> arriba y guarda el archivo.",
-                install_step2: "Abre <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> y permite la instalación.",
+                install_step2: "Abre <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> y permite la instalación.",
                 install_step3: "¡Abre la app, crea tu cuenta y activa tu licencia directamente en la aplicación!",
                 faq_title: "Preguntas Frecuentes (FAQ)",
-                faq_sub: "Todo lo que necesitas saber sobre AlbionDataPro.",
-                faq1_q: "¿Qué es AlbionDataPro?",
-                faq1_a: "AlbionDataPro es la herramienta líder de análisis de mercado y overlay en juego para Albion Online. Compara precios en todas las ciudades, calcula rutas y recomienda órdenes de compra/venta por IA.",
+                faq_sub: "Todo lo que necesitas saber sobre DataPro.",
+                faq1_q: "¿Qué es DataPro?",
+                faq1_a: "DataPro es la herramienta líder de análisis de mercado y overlay en juego para Royal MMO. Compara precios en todas las ciudades, calcula rutas y recomienda órdenes de compra/venta por IA.",
                 faq2_q: "¿Cómo funciona el overlay flotante en el juego?",
-                faq2_a: "La burbuja flotante funciona sobre Albion Online Mobile en Android. Con un toque muestra precios, arbitraje y señales de IA sin minimizar el juego.",
-                faq3_q: "¿Es seguro y permitido AlbionDataPro?",
+                faq2_a: "La burbuja flotante funciona sobre Royal MMO Mobile en Android. Con un toque muestra precios, arbitraje y señales de IA sin minimizar el juego.",
+                faq3_q: "¿Es seguro y permitido DataPro?",
                 faq3_a: "¡Sí! Utiliza APIs públicas y funciona como un overlay de análisis visual. No realiza automatizaciones de teclado ni inyecciones de memoria, siendo 100% seguro.",
                 faq4_q: "¿Cómo activo mi cuenta?",
                 faq4_a: "Instala el paquete APK gratuito, crea tu cuenta en la app y actívala con el enlace de PayPal. Tu cuenta se activará automáticamente tras el pago.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Todos los derechos reservados. Alojado en Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. Todos los derechos reservados. Alojado en Render Cloud.",
                 footer_disclaimer: "Esta herramienta no está afiliada a Sandbox Interactive."
             },
             fr: {
                 badge_release: "Version officielle v${CURRENT_SERVER_VERSION} — Nuage 24/7 & Overlay",
-                hero_subtitle: "L'overlay de commerce et de marché le plus puissant pour Albion Online Mobile",
+                hero_subtitle: "L'overlay de commerce et de marché le plus puissant pour Royal MMO Mobile",
                 hero_desc: "Doublez votre argent sans chercher pendant des heures. Utilisez des prix en direct, des scanners d'arbitrage et l'IA en overlay flottant sur votre jeu !",
                 download_btn_subtitle: "Téléchargement Gratuit",
                 download_virus_free: "100% Sans Virus • Package APK Android Direct",
@@ -1616,8 +1616,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Activation Immédiate",
                 badge_paypal: "Paiement Sécurisé PayPal",
                 badge_cloud: "Connexion Cloud 24/7",
-                why_title: "Pourquoi vous avez besoin de <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Commercer sans données en direct vous coûte des millions d'argent chaque jour. AlbionDataPro vous donne l'avantage décisif.",
+                why_title: "Pourquoi vous avez besoin de <span class='gradient-text'>DataPro</span>",
+                why_sub: "Commercer sans données en direct vous coûte des millions d'argent chaque jour. DataPro vous donne l'avantage décisif.",
                 why_card1_title: "Profit maximum sans risque",
                 why_card1_desc: "Fini les mauvais achats ! Le calculateur de ROI affiche votre profit net exact après taxes et frais avant chaque transaction.",
                 why_card2_title: "Gain de temps massif",
@@ -1626,7 +1626,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Notre algorithme analyse les fluctuations sur 7 jours et trouve les seuils d'achat/vente idéaux pour une rotation rapide.",
                 overlay_section_tag: "Overlay Flottant En Jeu",
                 overlay_title: "L'Overlay Bulle En Jeu",
-                overlay_sub: "La bulle flottante révolutionnaire s'exécute directement au-dessus d'Albion Online Mobile. Vous n'avez jamais à quitter le jeu !",
+                overlay_sub: "La bulle flottante révolutionnaire s'exécute directement au-dessus d'Royal MMO Mobile. Vous n'avez jamais à quitter le jeu !",
                 feat1_title: "Overlay Permanent En Jeu",
                 feat1_desc: "Une icône discrète sur votre écran. Appuyez dessus pour afficher immédiatement les prix, l'arbitrage et les signaux IA.",
                 feat2_title: "Radar Villes & Marché Noir",
@@ -1641,24 +1641,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Vos paramètres et favoris sauvegardés en sécurité dans le cloud. Mises à jour OTA automatiques.",
                 install_title: "Installation facile sur Android",
                 install_step1: "Cliquez sur <strong class='text-emerald-400'>'Télécharger APK'</strong> ci-dessus et enregistrez le fichier.",
-                install_step2: "Ouvrez <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> et autorisez l'installation.",
+                install_step2: "Ouvrez <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> et autorisez l'installation.",
                 install_step3: "Lancez l'application, créez votre compte et débloquez votre licence directement dans l'application !",
                 faq_title: "Foire Aux Questions (FAQ)",
-                faq_sub: "Tout ce que vous devez savoir sur AlbionDataPro.",
-                faq1_q: "Qu'est-ce qu'AlbionDataPro ?",
-                faq1_a: "AlbionDataPro est le premier outil d'analyse de marché et d'overlay en jeu pour Albion Online. Il compare les prix entre toutes les villes, calcule les routes rentables et recommande des ordres IA.",
+                faq_sub: "Tout ce que vous devez savoir sur DataPro.",
+                faq1_q: "Qu'est-ce qu'DataPro ?",
+                faq1_a: "DataPro est le premier outil d'analyse de marché et d'overlay en jeu pour Royal MMO. Il compare les prix entre toutes les villes, calcule les routes rentables et recommande des ordres IA.",
                 faq2_q: "Comment fonctionne l'overlay flottant en jeu ?",
-                faq2_a: "La bulle flottante s'exécute directement sur Albion Online Mobile. Un simple clic affiche les prix, l'arbitrage et l'IA en jeu sans réduire le jeu.",
-                faq3_q: "AlbionDataPro est-il sûr et autorisé ?",
+                faq2_a: "La bulle flottante s'exécute directement sur Royal MMO Mobile. Un simple clic affiche les prix, l'arbitrage et l'IA en jeu sans réduire le jeu.",
+                faq3_q: "DataPro est-il sûr et autorisé ?",
                 faq3_a: "Oui ! Il utilise des API publiques et fonctionne comme un overlay d'analyse visuelle. Aucune saisie automatique ni injection mémoire, 100% sûr.",
                 faq4_q: "Comment débloquer mon compte ?",
                 faq4_a: "Installez l'APK gratuit, créez votre compte dans l'application et débloquez-le via le lien PayPal. Votre compte sera activé automatiquement.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Tous droits réservés. Hébergé sur Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. Tous droits réservés. Hébergé sur Render Cloud.",
                 footer_disclaimer: "Cet outil d'analyse n'est pas affilié à Sandbox Interactive."
             },
             pt: {
                 badge_release: "Lançamento oficial v${CURRENT_SERVER_VERSION} — Nuvem 24/7 e Overlay",
-                hero_subtitle: "O overlay de comércio e mercado mais poderoso para Albion Online Mobile",
+                hero_subtitle: "O overlay de comércio e mercado mais poderoso para Royal MMO Mobile",
                 hero_desc: "Dobre sua prata sem perder tempo procurando. Use preços em tempo real, scanners de arbitragem e IA em um overlay flutuante sobre seu jogo!",
                 download_btn_subtitle: "Baixar Grátis",
                 download_virus_free: "100% Livre de Vírus • Pacote APK Android Direto",
@@ -1667,8 +1667,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Ativação Imediata",
                 badge_paypal: "Pagamento Seguro via PayPal",
                 badge_cloud: "Conexão de Nuvem 24/7",
-                why_title: "Por que você precisa do <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Negociar sem dados em tempo real custa milhões de prata diariamente. O AlbionDataPro dá a você a vantagem decisiva.",
+                why_title: "Por que você precisa do <span class='gradient-text'>DataPro</span>",
+                why_sub: "Negociar sem dados em tempo real custa milhões de prata diariamente. O DataPro dá a você a vantagem decisiva.",
                 why_card1_title: "Lucro máximo sem risco",
                 why_card1_desc: "Sem mais compras erradas! A calculadora de ROI exibe seu lucro líquido exato após impostos e taxas antes de cada negócio.",
                 why_card2_title: "Enorme economia de tempo",
@@ -1677,7 +1677,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Nosso algoritmo analisa flutuações de 7 dias e encontra os limites ideais de compra e venda para um giro rápido.",
                 overlay_section_tag: "Overlay Flutuante No Jogo",
                 overlay_title: "O Overlay Flutuante Em Bolha",
-                overlay_sub: "A revolucionária bolha flutuante funciona diretamente sobre o Albion Online Mobile. Você nunca precisa sair do jogo!",
+                overlay_sub: "A revolucionária bolha flutuante funciona diretamente sobre o Royal MMO Mobile. Você nunca precisa sair do jogo!",
                 feat1_title: "Overlay Permanente No Jogo",
                 feat1_desc: "Um ícone flutuante discreto na sua tela. Toque para ver preços, arbitragem e sinais de IA instantaneamente.",
                 feat2_title: "Radar de Cidades e Mercado Negro",
@@ -1692,24 +1692,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Suas configurações e favoritos salvos com segurança na nuvem. Atualizações OTA automáticas.",
                 install_title: "Instalação fácil no Android",
                 install_step1: "Clique em <strong class='text-emerald-400'>'Baixar APK'</strong> acima e salve o arquivo.",
-                install_step2: "Abra o <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> e permita a instalação.",
+                install_step2: "Abra o <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> e permita a instalação.",
                 install_step3: "Inicie o aplicativo, crie sua conta e ative sua licença diretamente no aplicativo!",
                 faq_title: "Perguntas Frequentes (FAQ)",
-                faq_sub: "Tudo o que você precisa saber sobre o AlbionDataPro.",
-                faq1_q: "O que é o AlbionDataPro?",
-                faq1_a: "O AlbionDataPro é a principal ferramenta de análise de mercado e overlay em jogo para Albion Online. Ele compara preços entre todas as cidades, calcula rotas e recomenda ordens por IA.",
+                faq_sub: "Tudo o que você precisa saber sobre o DataPro.",
+                faq1_q: "O que é o DataPro?",
+                faq1_a: "O DataPro é a principal ferramenta de análise de mercado e overlay em jogo para Royal MMO. Ele compara preços entre todas as cidades, calcula rotas e recomenda ordens por IA.",
                 faq2_q: "Como funciona o overlay flutuante no jogo?",
-                faq2_a: "A bolha flutuante funciona sobre o Albion Online Mobile no Android. Com um toque, exibe preços, arbitragem e sinais de IA sem minimizar o jogo.",
-                faq3_q: "O AlbionDataPro é seguro e permitido?",
+                faq2_a: "A bolha flutuante funciona sobre o Royal MMO Mobile no Android. Com um toque, exibe preços, arbitragem e sinais de IA sem minimizar o jogo.",
+                faq3_q: "O DataPro é seguro e permitido?",
                 faq3_a: "Sim! Usa APIs públicas e opera puramente como um overlay de análise visual. Sem automações de teclado ou injeção de memória, sendo 100% seguro.",
                 faq4_q: "Como ativo minha conta?",
                 faq4_a: "Instale o pacote APK gratuito, crie sua conta no aplicativo e ative pelo link do PayPal. Sua conta será liberada automaticamente.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Todos os direitos reservados. Hospedado na Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. Todos os direitos reservados. Hospedado na Render Cloud.",
                 footer_disclaimer: "Esta ferramenta não possui afiliação com a Sandbox Interactive."
             },
             ru: {
                 badge_release: "Официальный релиз v${CURRENT_SERVER_VERSION} — 24/7 Облако и Оверлей",
-                hero_subtitle: "Самый мощный торговый и рыночный оверлей для Albion Online Mobile",
+                hero_subtitle: "Самый мощный торговый и рыночный оверлей для Royal MMO Mobile",
                 hero_desc: "Удвойте свое серебро без долгих поисков. Используйте точные цены, арбитражный сканер и ИИ-сигналы прямо в игре!",
                 download_btn_subtitle: "Скачать бесплатно",
                 download_virus_free: "100% Без вирусов • Прямой APK-пакет Android",
@@ -1718,8 +1718,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Мгновенная активация",
                 badge_paypal: "Безопасная оплата PayPal",
                 badge_cloud: "24/7 Облачное соединение",
-                why_title: "Зачем вам нужен <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Торговля без живых данных стоит вам миллионов серебра ежедневно. AlbionDataPro дает вам решающее преимущество.",
+                why_title: "Зачем вам нужен <span class='gradient-text'>DataPro</span>",
+                why_sub: "Торговля без живых данных стоит вам миллионов серебра ежедневно. DataPro дает вам решающее преимущество.",
                 why_card1_title: "Максимальная прибыль без риска",
                 why_card1_desc: "Никаких ошибочных покупок! Калькулятор ROI показывает чистую прибыль с учетом налогов и сборов перед каждой сделкой.",
                 why_card2_title: "Огромная экономия времени",
@@ -1728,7 +1728,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Наш алгоритм анализирует колебания цен за 7 дней и находит идеальные пороги ордеров покупки и продажи.",
                 overlay_section_tag: "Плавающий оверлей в игре",
                 overlay_title: "Плавающий оверлей в виде баббла",
-                overlay_sub: "Революционный плавающий баббл работает прямо поверх Albion Online Mobile. Вам больше не нужно сворачивать игру!",
+                overlay_sub: "Революционный плавающий баббл работает прямо поверх Royal MMO Mobile. Вам больше не нужно сворачивать игру!",
                 feat1_title: "Постоянный оверлей в игре",
                 feat1_desc: "Сдержанный плавающий значок на экране. Нажмите, чтобы открыть живые цены, арбитраж и сигналы ИИ.",
                 feat2_title: "Радар городов и Черного рынка",
@@ -1743,24 +1743,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Настройки и избранное надежно хранятся в облаке. Автоматические обновления OTA поддерживают актуальность.",
                 install_title: "Простая установка на Android",
                 install_step1: "Нажмите <strong class='text-emerald-400'>'Скачать APK'</strong> выше и сохраните файл.",
-                install_step2: "Откройте <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> и разрешите установку.",
+                install_step2: "Откройте <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> и разрешите установку.",
                 install_step3: "Запустите приложение, создайте аккаунт и активируйте лицензию прямо в приложении!",
                 faq_title: "Часто задаваемые вопросы (FAQ)",
-                faq_sub: "Все, что вам нужно знать об AlbionDataPro.",
-                faq1_q: "Что такое AlbionDataPro?",
-                faq1_a: "AlbionDataPro — ведущий игровой оверлей и инструмент анализа рынка для Albion Online. Он сравнивает цены во всех городах, считает прибыльные маршруты и рекомендует ИИ-ордера.",
+                faq_sub: "Все, что вам нужно знать об DataPro.",
+                faq1_q: "Что такое DataPro?",
+                faq1_a: "DataPro — ведущий игровой оверлей и инструмент анализа рынка для Royal MMO. Он сравнивает цены во всех городах, считает прибыльные маршруты и рекомендует ИИ-ордера.",
                 faq2_q: "Как работает плавающий оверлей в игре?",
-                faq2_a: "Плавающий баббл отображается поверх Albion Online Mobile на Android. Касание показывает живые цены, арбитраж и сигналы ИИ прямо в игре без сворачивания.",
-                faq3_q: "Безопасен и разрешен ли AlbionDataPro?",
+                faq2_a: "Плавающий баббл отображается поверх Royal MMO Mobile на Android. Касание показывает живые цены, арбитраж и сигналы ИИ прямо в игре без сворачивания.",
+                faq3_q: "Безопасен и разрешен ли DataPro?",
                 faq3_a: "Да! Приложение использует публичные API и работает как чисто визуальный оверлей. Оно не делает кликов и инъекций в память, поэтому на 100% безопасно.",
                 faq4_q: "Как активировать аккаунт?",
                 faq4_a: "Установите бесплатный APK-пакет, создайте аккаунт в приложении и активируйте его через ссылку PayPal. Аккаунт разблокируется автоматически.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Все права защищены. Размещено на Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. Все права защищены. Размещено на Render Cloud.",
                 footer_disclaimer: "Этот инструмент не связан с Sandbox Interactive."
             },
             zh: {
                 badge_release: "官方发布版本 v${CURRENT_SERVER_VERSION} — 24/7 云端与游戏内浮窗",
-                hero_subtitle: "Albion Online 移动端最强大的交易与市场浮窗",
+                hero_subtitle: "Royal MMO 移动端最强大的交易与市场浮窗",
                 hero_desc: "无需繁琐搜索即可使您的银币翻倍。利用秒级实时价格、套利扫描器与 AI 信号，作为游戏上方的悬浮窗口直接使用！",
                 download_btn_subtitle: "免费下载",
                 download_virus_free: "100% 无病毒 • 直接 Android APK 安装包",
@@ -1769,8 +1769,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "即时激活",
                 badge_paypal: "安全 PayPal 支付",
                 badge_cloud: "24/7 云端连接",
-                why_title: "为什么你需要 <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "在没有实时数据的情况下在 Albion Online 中交易，每天会损失数百万银币。AlbionDataPro 赋予您超越其他玩家的决胜优势。",
+                why_title: "为什么你需要 <span class='gradient-text'>DataPro</span>",
+                why_sub: "在没有实时数据的情况下在 Royal MMO 中交易，每天会损失数百万银币。DataPro 赋予您超越其他玩家的决胜优势。",
                 why_card1_title: "无风险最大化利润",
                 why_card1_desc: "告别盲目购买！精准的 ROI 计算器可在每次交易前显示扣除市场税和加工费后的净利润。",
                 why_card2_title: "节省大量时间",
@@ -1779,7 +1779,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "我们的算法分析 7 天内的价格波动，找出理想的买入与卖出挂单阈值，以实现快速周转。",
                 overlay_section_tag: "游戏内悬浮 Overlay",
                 overlay_title: "游戏内 Bubble 悬浮窗",
-                overlay_sub: "革命性的悬浮 Bubble 直接在 Albion Online 移动端上方运行。您无需离开游戏！",
+                overlay_sub: "革命性的悬浮 Bubble 直接在 Royal MMO 移动端上方运行。您无需离开游戏！",
                 feat1_title: "常驻游戏内悬浮窗",
                 feat1_desc: "屏幕上精致的悬浮图标。只需轻触即可立即查看实时价格、套利机会与 AI 建议。",
                 feat2_title: "城市与黑市雷达",
@@ -1794,24 +1794,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "您的设置与收藏安全地存储在云端。自动 OTA 更新让您的 App 保持最新。",
                 install_title: "Android 端极简安装",
                 install_step1: "点击上方的 <strong class='text-emerald-400'>'APK 下载'</strong> 保存安装包。",
-                install_step2: "打开 <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> 并允许安装。",
+                install_step2: "打开 <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> 并允许安装。",
                 install_step3: "启动 App，创建您的账户，然后直接在 App 内解锁许可证！",
                 faq_title: "常见问题解答 (FAQ)",
-                faq_sub: "关于 AlbionDataPro 您需要了解的一切。",
-                faq1_q: "什么是 AlbionDataPro？",
-                faq1_a: "AlbionDataPro 是 Albion Online 领军的游戏内悬浮分析工具。它横跨所有城市（Caerleon、Martlock、Lymhurst、Bridgewatch、Fort Sterling、Thetford、黑市）对比实时价格，计算盈利交易路线并推荐基于 AI 的挂单策略。",
+                faq_sub: "关于 DataPro 您需要了解的一切。",
+                faq1_q: "什么是 DataPro？",
+                faq1_a: "DataPro 是 Royal MMO 领军的游戏内悬浮分析工具。它横跨所有城市（Caerleon、Martlock、Lymhurst、Bridgewatch、Fort Sterling、Thetford、黑市）对比实时价格，计算盈利交易路线并推荐基于 AI 的挂单策略。",
                 faq2_q: "游戏内 Floating Overlay 是如何工作的？",
-                faq2_a: "悬浮 Bubble 在 Android 版 Albion Online 移动端上方直接运行。轻触一下即可在游戏中直接弹窗显示实时价格、套利机会与 AI 信号，无需最小化游戏。",
-                faq3_q: "AlbionDataPro 安全且被允许吗？",
-                faq3_a: "是的！AlbionDataPro 使用公开的市场 API，纯粹作为视觉分析浮窗运行。它不执行任何自动按键或内存注入，因此 100% 安全。",
+                faq2_a: "悬浮 Bubble 在 Android 版 Royal MMO 移动端上方直接运行。轻触一下即可在游戏中直接弹窗显示实时价格、套利机会与 AI 信号，无需最小化游戏。",
+                faq3_q: "DataPro 安全且被允许吗？",
+                faq3_a: "是的！DataPro 使用公开的市场 API，纯粹作为视觉分析浮窗运行。它不执行任何自动按键或内存注入，因此 100% 安全。",
                 faq4_q: "如何解锁我的账户？",
                 faq4_a: "安装上方免费的 APK 安装包，在 App 内创建您的账户，然后通过 PayPal 支付链接直接解锁。支付完成后，您的账户将在服务器上自动激活。",
-                footer_copyright: "&copy; 2026 AlbionDataPro. 保留所有权利。托管于 Render Cloud。",
+                footer_copyright: "&copy; 2026 DataPro. 保留所有权利。托管于 Render Cloud。",
                 footer_disclaimer: "本分析工具与 Sandbox Interactive 无官方关联。"
             },
             ja: {
                 badge_release: "公式リリース v${CURRENT_SERVER_VERSION} — 24/7 クラウド＆ゲーム内オーバーレイ",
-                hero_subtitle: "Albion Online モバイル向けの最も強力な取引＆市場オーバーレイ",
+                hero_subtitle: "Royal MMO モバイル向けの最も強力な取引＆市場オーバーレイ",
                 hero_desc: "検索に時間を費やすことなくシルバーを倍増。ライブ価格、アービトラージスキャナー、AIシグナルをゲーム上に表示！",
                 download_btn_subtitle: "無料ダウンロード",
                 download_virus_free: "100% ウイルスフリー • Android APK パッケージ",
@@ -1820,8 +1820,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "即時有効化",
                 badge_paypal: "安全な PayPal 決済",
                 badge_cloud: "24/7 クラウド接続",
-                why_title: "<span class='gradient-text'>AlbionDataPro</span> が必要な理由",
-                why_sub: "リアルタイムデータなしでの取引は毎日何百万ものシルバー strike 失います。AlbionDataPro が圧倒的アドバンテージを提供します。",
+                why_title: "<span class='gradient-text'>DataPro</span> が必要な理由",
+                why_sub: "リアルタイムデータなしでの取引は毎日何百万ものシルバー strike 失います。DataPro が圧倒的アドバンテージを提供します。",
                 why_card1_title: "リスクなしで最大利益",
                 why_card1_desc: "失敗した買い物はもう不要！精密なROI計算機が税金や手数料を差し引いた純利益を表示。",
                 why_card2_title: "大幅な時間短縮",
@@ -1830,7 +1830,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "アルゴリズムが7日間の価格変動を分析し、迅速な回転のための最適な買い/売り注文のしきい値を割り出します。",
                 overlay_section_tag: "ゲーム内浮遊オーバーレイ",
                 overlay_title: "ゲーム内バブルオーバーレイ",
-                overlay_sub: "革新的なバブルオーバーレイが Albion Online モバイル上に直接表示。ゲームを閉じる必要はもうありません！",
+                overlay_sub: "革新的なバブルオーバーレイが Royal MMO モバイル上に直接表示。ゲームを閉じる必要はもうありません！",
                 feat1_title: "常駐ゲーム内オーバーレイ",
                 feat1_desc: "画面上の控えめな浮遊アイコン。タップするだけで価格、アービトラージ、AIシグナルを即座に表示。",
                 feat2_title: "都市＆ブラックマーケットレーダー",
@@ -1845,24 +1845,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "設定とお気に入りはクラウドに安全に保存。自動OTAアップデートで常に最新の状態を維持。",
                 install_title: "Android への簡単インストール",
                 install_step1: "上の <strong class='text-emerald-400'>'APK ダウンロード'</strong> をクリックしてファイルを保存。",
-                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> を開いてインストールを許可。",
+                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> を開いてインストールを許可。",
                 install_step3: "アプリを起動してアカウントを作成し、アプリ内でライセンスを解除！",
                 faq_title: "よくある質問 (FAQ)",
-                faq_sub: "AlbionDataPro に関するすべての情報。",
-                faq1_q: "AlbionDataPro とは何ですか？",
-                faq1_a: "AlbionDataPro は Albion Online 向けの最先端ゲーム内オーバーレイ＆市場分析ツールです。全都市の価格を比較し、収益性の高い交易ルートを計算、AIによる買い/売り注文をアドバイスします。",
+                faq_sub: "DataPro に関するすべての情報。",
+                faq1_q: "DataPro とは何ですか？",
+                faq1_a: "DataPro は Royal MMO 向けの最先端ゲーム内オーバーレイ＆市場分析ツールです。全都市の価格を比較し、収益性の高い交易ルートを計算、AIによる買い/売り注文をアドバイスします。",
                 faq2_q: "ゲーム内バブルオーバーレイの仕組みは？",
-                faq2_a: "浮遊バブルが Android の Albion Online モバイル上に表示。タップするだけでゲームを最小化せずにリアルタイム価格やAIシグナルを表示できます。",
-                faq3_q: "AlbionDataPro は safe で許可されていますか？",
+                faq2_a: "浮遊バブルが Android の Royal MMO モバイル上に表示。タップするだけでゲームを最小化せずにリアルタイム価格やAIシグナルを表示できます。",
+                faq3_q: "DataPro は safe で許可されていますか？",
                 faq3_a: "はい！公開市場APIを使用し、視acularな分析オーバーレイとしてのみ動作します。自動入力やメモリ注入は一切行わないため100%安全です。",
                 faq4_q: "アカウントを有効化するには？",
                 faq4_a: "無料のAPKをインストールしてアプリ内でアカウントを作成し、PayPalリンクから直接解除。決済後、サーバー上で自動的に有効化されます。",
-                footer_copyright: "&copy; 2026 AlbionDataPro. All rights reserved. Hosted on Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. All rights reserved. Hosted on Render Cloud.",
                 footer_disclaimer: "この分析ツールは Sandbox Interactive とは関係ありません。"
             },
             ko: {
                 badge_release: "공식 릴리스 v${CURRENT_SERVER_VERSION} — 24/7 클라우드 및 게임 내 오버레이",
-                hero_subtitle: "Albion Online 모바일을 위한 가장 강력한 거래 및 시장 오버레이",
+                hero_subtitle: "Royal MMO 모바일을 위한 가장 강력한 거래 및 시장 오버레이",
                 hero_desc: "끝없는 검색 없이 실버를 두 배로 늘리세요. 실시간 가격, 차익 거래 스캐너 및 AI 신호를 게임 내 플로팅 오버레이로 바로 사용하세요!",
                 download_btn_subtitle: "무료 다운로드",
                 download_virus_free: "100% 바이러스 없음 • 직접 Android APK 패키지",
@@ -1871,8 +1871,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "즉시 활성화",
                 badge_paypal: "안전한 PayPal 결제",
                 badge_cloud: "24/7 클라우드 연결",
-                why_title: "<span class='gradient-text'>AlbionDataPro</span>가 필요한 이유",
-                why_sub: "실시간 데이터 없이 거래하면 매일 수백만 실버의 손실이 발생합니다. AlbionDataPro가 결정적인 우위를 제공합니다.",
+                why_title: "<span class='gradient-text'>DataPro</span>가 필요한 이유",
+                why_sub: "실시간 데이터 없이 거래하면 매일 수백만 실버의 손실이 발생합니다. DataPro가 결정적인 우위를 제공합니다.",
                 why_card1_title: "위험 없는 최대 이익",
                 why_card1_desc: "더 이상의 잘못된 구매는 없습니다! 정확한 ROI 계산기가 세금과 수수료를 제외한 순이익을 거래 전에 보여줍니다.",
                 why_card2_title: "엄청난 시간 절약",
@@ -1881,7 +1881,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "알고리즘이 7일간의 가격 변동을 분석하여 빠른 회전을 위한 최적의 매수/매도 주문 임계값을 찾습니다.",
                 overlay_section_tag: "게임 내 플로팅 오버레이",
                 overlay_title: "게임 내 버블 오버레이",
-                overlay_sub: "혁신적인 플로팅 버블 오버레이가 Albion Online 모바일 위에 직접 실행됩니다. 게임을 나갈 필요가 전혀 없습니다!",
+                overlay_sub: "혁신적인 플로팅 버블 오버레이가 Royal MMO 모바일 위에 직접 실행됩니다. 게임을 나갈 필요가 전혀 없습니다!",
                 feat1_title: "상시 게임 내 오버레이",
                 feat1_desc: "화면 위의 깔끔한 플로팅 아이콘. 탭 한 번으로 실시간 가격, 차익 거래, AI 신호를 즉시 확인하세요.",
                 feat2_title: "도시 및 암시장 레이더",
@@ -1896,24 +1896,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "설정과 즐겨찾기가 클라우드에 안전하게 저장됩니다. 자동 OTA 업데이트로 앱을 항상 최신 상태로 유지하세요.",
                 install_title: "간편한 Android 설치",
                 install_step1: "위의 <strong class='text-emerald-400'>'APK 다운로드'</strong>를 클릭하고 파일을 저장합니다.",
-                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code>를 열고 설치를 허용합니다.",
+                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code>를 열고 설치를 허용합니다.",
                 install_step3: "앱을 실행하고 계정을 생성한 다음 앱 내에서 라이선스를 바로 잠금 해제하세요!",
                 faq_title: "자주 묻는 질문 (FAQ)",
-                faq_sub: "AlbionDataPro에 대해 알아야 할 모든 것.",
-                faq1_q: "AlbionDataPro란 무엇인가요?",
-                faq1_a: "AlbionDataPro는 Albion Online을 위한 선도적인 게임 내 오버레이 및 시장 분석 도구입니다. 모든 도시의 가격을 비교하고 수익성 있는 거래 경로를 계산하며 AI 기반 매수/매도 주문을 추천합니다.",
+                faq_sub: "DataPro에 대해 알아야 할 모든 것.",
+                faq1_q: "DataPro란 무엇인가요?",
+                faq1_a: "DataPro는 Royal MMO을 위한 선도적인 게임 내 오버레이 및 시장 분석 도구입니다. 모든 도시의 가격을 비교하고 수익성 있는 거래 경로를 계산하며 AI 기반 매수/매도 주문을 추천합니다.",
                 faq2_q: "게임 내 플로팅 오버레이는 어떻게 작동하나요?",
-                faq2_a: "플로팅 버블 오버레이는 Android의 Albion Online 모바일 위에 직접 실행됩니다. 앱을 최소화할 필요 없이 한번의 탭으로 실시간 가격, 차익 거래, AI 신호를 게임 내에서 오버레이하세요.",
-                faq3_q: "AlbionDataPro는 안전하고 허용되나요?",
-                faq3_a: "네! AlbionDataPro는 공개 시장 API를 사용하며 시각적 분석 오버레이로만 작동합니다. 자동 입력이나 메모리 주입을 하지 않으므로 100% 안전합니다.",
+                faq2_a: "플로팅 버블 오버레이는 Android의 Royal MMO 모바일 위에 직접 실행됩니다. 앱을 최소화할 필요 없이 한번의 탭으로 실시간 가격, 차익 거래, AI 신호를 게임 내에서 오버레이하세요.",
+                faq3_q: "DataPro는 안전하고 허용되나요?",
+                faq3_a: "네! DataPro는 공개 시장 API를 사용하며 시각적 분석 오버레이로만 작동합니다. 자동 입력이나 메모리 주입을 하지 않으므로 100% 안전합니다.",
                 faq4_q: "계정을 어떻게 잠금 해제하나요?",
                 faq4_a: "위의 무료 APK 패키지를 설치하고 앱 내에서 계정을 생성한 후 PayPal 링크를 통해 바로 잠금 해제하세요. 결제 후 서버에서 계정이 자동으로 활성화됩니다.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. All rights reserved. Hosted on Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. All rights reserved. Hosted on Render Cloud.",
                 footer_disclaimer: "이 분석 도구는 Sandbox Interactive와 관련이 없습니다."
             },
             tr: {
                 badge_release: "Resmi Sürüm v${CURRENT_SERVER_VERSION} — 24/7 Bulut ve Oyun İçi Overlay",
-                hero_subtitle: "Albion Online Mobile için en güçlü ticaret ve pazar overlay'i",
+                hero_subtitle: "Royal MMO Mobile için en güçlü ticaret ve pazar overlay'i",
                 hero_desc: "Saatlerce aramadan gümüşünüzü ikiye katlayın. Canlı fiyatları, arbitraj tarayıcısını ve YAZ sinyallerini oyun içinde overlay olarak kullanın!",
                 download_btn_subtitle: "Ücretsiz İndir",
                 download_virus_free: "%100 Virüssüz • Doğrudan Android APK Paketi",
@@ -1922,8 +1922,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Anında Etkinleştirme",
                 badge_paypal: "Güvenli PayPal Ödemesi",
                 badge_cloud: "24/7 Bulut Bağlantısı",
-                why_title: "Neden <span class='gradient-text'>AlbionDataPro</span>'ya ihtiyacınız var",
-                why_sub: "Canlı veri olmadan ticaret yapmak size her gün milyonlarca gümüşe mal olur. AlbionDataPro size rakiplerinize karşı üstünlük sağlar.",
+                why_title: "Neden <span class='gradient-text'>DataPro</span>'ya ihtiyacınız var",
+                why_sub: "Canlı veri olmadan ticaret yapmak size her gün milyonlarca gümüşe mal olur. DataPro size rakiplerinize karşı üstünlük sağlar.",
                 why_card1_title: "Rissiz Maksimum Kar",
                 why_card1_desc: "Hatalı satın alımlara son! ROI hesaplayıcı, vergiler ve ücretler düşüldükten sonraki net karınızı gösterir.",
                 why_card2_title: "Büyük Zaman Tasarrufu",
@@ -1932,7 +1932,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Algoritmamız 7 günlük fiyat dalgalanmalarını analiz eder ve hızlı devir için ideal alış ve satış emri eşiklerini bulur.",
                 overlay_section_tag: "Oyun İçi Floating Overlay",
                 overlay_title: "Oyun İçi Baloncuk Overlay",
-                overlay_sub: "Devrim niteliğindeki baloncuk overlay doğrudan Albion Online Mobile üzerinde çalışır. Oyundan asla çıkmanız gerekmez!",
+                overlay_sub: "Devrim niteliğindeki baloncuk overlay doğrudan Royal MMO Mobile üzerinde çalışır. Oyundan asla çıkmanız gerekmez!",
                 feat1_title: "Kalıcı Oyun İçi Overlay",
                 feat1_desc: "Ekranınızda şık bir baloncuk simgesi. Canlı fiyatları, arbitrajı ve YAZ sinyallerini görmek için dokunmanız yeterli.",
                 feat2_title: "Şehirler ve Kara Borsa Radarı",
@@ -1947,24 +1947,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Ayarlarınız ve favorileriniz bulutta güvenle saklanır. Otomatik OTA güncellemeleri uygulamanızı güncel tutar.",
                 install_title: "Android'de Kolay Kurulum",
                 install_step1: "Yukarıdaki <strong class='text-emerald-400'>'APK İndir'</strong> butonuna tıklayın ve dosyayı kaydedin.",
-                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> dosyasını açın ve kuruluma izin verin.",
+                install_step2: "<code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> dosyasını açın ve kuruluma izin verin.",
                 install_step3: "Uygulamayı başlatın, hesabınızı oluşturun ve lisansınızı doğrudan uygulama içinden etkinleştirin!",
                 faq_title: "Sıkça Sorulan Sorular (SSS)",
-                faq_sub: "AlbionDataPro hakkında bilmeniz gereken her şey.",
-                faq1_q: "AlbionDataPro Nedir?",
-                faq1_a: "AlbionDataPro, Albion Online için lider oyun içi overlay ve pazar analiz aracıdır. Tüm şehirlerdeki fiyatları karşılaştırır, karlı rotaları hesaplar ve YAZ emirleri önerir.",
+                faq_sub: "DataPro hakkında bilmeniz gereken her şey.",
+                faq1_q: "DataPro Nedir?",
+                faq1_a: "DataPro, Royal MMO için lider oyun içi overlay ve pazar analiz aracıdır. Tüm şehirlerdeki fiyatları karşılaştırır, karlı rotaları hesaplar ve YAZ emirleri önerir.",
                 faq2_q: "Oyun içi floating overlay nasıl çalışır?",
-                faq2_a: "Baloncuk overlay Android üzerinde doğrudan Albion Online Mobile üzerinde çalışır. Dokunarak oyunu küçültmeden canlı fiyatları ve YAZ sinyallerini görün.",
-                faq3_q: "AlbionDataPro güvenli ve izinli mi?",
+                faq2_a: "Baloncuk overlay Android üzerinde doğrudan Royal MMO Mobile üzerinde çalışır. Dokunarak oyunu küçültmeden canlı fiyatları ve YAZ sinyallerini görün.",
+                faq3_q: "DataPro güvenli ve izinli mi?",
                 faq3_a: "Evet! Kamu pazar API'lerini kullanır ve yalnızca görsel bir analiz overlay'i olarak çalışır. Otomatik girdi veya bellek enjeksiyonu yapmaz, %100 güvenlidir.",
                 faq4_q: "Hesabımı nasıl etkinleştiririm?",
                 faq4_a: "Ücretsiz APK paketini indirin, uygulama içinde hesabınızı oluşturun ve PayPal bağlantısı ile etkinleştirin. Hesabınız ödemeden sonra otomatik açılır.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Tüm hakları saklıdır. Render Cloud üzerinde barındırılmaktadır.",
+                footer_copyright: "&copy; 2026 DataPro. Tüm hakları saklıdır. Render Cloud üzerinde barındırılmaktadır.",
                 footer_disclaimer: "Bu analiz aracının Sandbox Interactive ile resmi bir bağlantısı yoktur."
             },
             id: {
                 badge_release: "Rilis Resmi v${CURRENT_SERVER_VERSION} — Cloud 24/7 & Overlay",
-                hero_subtitle: "Overlay perdagangan & pasar paling andal untuk Albion Online Mobile",
+                hero_subtitle: "Overlay perdagangan & pasar paling andal untuk Royal MMO Mobile",
                 hero_desc: "Gandakan perak Anda tanpa perlu mencari berjam-jam. Gunakan harga langsung real-time, pemindai arbitrase & sinyal AI langsung sebagai overlay melayang!",
                 download_btn_subtitle: "Unduh Gratis",
                 download_virus_free: "100% Bebas Virus • Paket APK Android Langsung",
@@ -1973,8 +1973,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Aktivasi Instan",
                 badge_paypal: "Pembayaran PayPal Aman",
                 badge_cloud: "Koneksi Cloud 24/7",
-                why_title: "Mengapa Anda membutuhkan <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Berdagang tanpa data langsung menghabiskan jutaan perak Anda setiap hari. AlbionDataPro memberi Anda keunggulan mutlak.",
+                why_title: "Mengapa Anda membutuhkan <span class='gradient-text'>DataPro</span>",
+                why_sub: "Berdagang tanpa data langsung menghabiskan jutaan perak Anda setiap hari. DataPro memberi Anda keunggulan mutlak.",
                 why_card1_title: "Keuntungan Maksimal Tanpa Risiko",
                 why_card1_desc: "Tidak ada lagi salah beli! Kalkulator ROI yang presisi menampilkan keuntungan bersih Anda setelah pajak dan biaya.",
                 why_card2_title: "Hemat Waktu Luar Biasa",
@@ -1983,7 +1983,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Algoritma kami menganalisis fluktuasi harga 7 hari dan menemukan ambang batas pesanan beli & jual yang ideal.",
                 overlay_section_tag: "Overlay Melayang Di Dalam Game",
                 overlay_title: "Overlay Gelembung Di Dalam Game",
-                overlay_sub: "Gelembung overlay melayang revolusioner berjalan langsung di atas Albion Online Mobile. Anda tidak perlu keluar dari game!",
+                overlay_sub: "Gelembung overlay melayang revolusioner berjalan langsung di atas Royal MMO Mobile. Anda tidak perlu keluar dari game!",
                 feat1_title: "Overlay Permanen Di Dalam Game",
                 feat1_desc: "Ikon melayang sederhana di layar Anda. Cukup ketuk untuk menampilkan harga langsung, arbitrase & sinyal AI.",
                 feat2_title: "Radar Kota & Pasar Gelap",
@@ -1998,24 +1998,24 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Pengaturan dan favorit Anda disimpan dengan aman di cloud. Pembaruan OTA otomatis menjaga aplikasi selalu terbaru.",
                 install_title: "Instalasi Mudah di Android",
                 install_step1: "Klik <strong class='text-emerald-400'>'APK Download'</strong> di atas dan simpan file.",
-                install_step2: "Buka <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> dan izinkan penginstalan.",
+                install_step2: "Buka <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> dan izinkan penginstalan.",
                 install_step3: "Luncurkan aplikasi, buat akun Anda, dan buka lisensi Anda langsung di dalam aplikasi!",
                 faq_title: "Pertanyaan yang Sering Diajukan (FAQ)",
-                faq_sub: "Semua yang perlu Anda ketahui tentang AlbionDataPro.",
-                faq1_q: "Apa itu AlbionDataPro?",
-                faq1_a: "AlbionDataPro adalah alat analisis pasar & overlay terkemuka untuk Albion Online. Ini membandingkan harga di semua kota, menghitung rute perdagangan, & merekomendasikan pesanan AI.",
+                faq_sub: "Semua yang perlu Anda ketahui tentang DataPro.",
+                faq1_q: "Apa itu DataPro?",
+                faq1_a: "DataPro adalah alat analisis pasar & overlay terkemuka untuk Royal MMO. Ini membandingkan harga di semua kota, menghitung rute perdagangan, & merekomendasikan pesanan AI.",
                 faq2_q: "Bagaimana cara kerja overlay melayang di dalam game?",
-                faq2_a: "Gelembung overlay melayang berjalan di atas Albion Online Mobile di Android. Dengan sekali ketuk, tampilkan harga & sinyal AI tanpa meminimalkan game.",
-                faq3_q: "Apakah AlbionDataPro aman dan diizinkan?",
+                faq2_a: "Gelembung overlay melayang berjalan di atas Royal MMO Mobile di Android. Dengan sekali ketuk, tampilkan harga & sinyal AI tanpa meminimalkan game.",
+                faq3_q: "Apakah DataPro aman dan diizinkan?",
                 faq3_a: "Ya! Menggunakan API pasar publik dan beroperasi murni sebagai overlay analisis visual. Tidak ada klip otomatis atau injeksi memori, 100% aman.",
                 faq4_q: "Bagaimana cara membuka akun saya?",
                 faq4_a: "Instal paket APK gratis di atas, buat akun Anda di dalam aplikasi, dan buka langsung menggunakan tautan PayPal. Akun akan aktif secara otomatis.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Hak cipta dilindungi undang-undang. Dihosting di Render Cloud.",
+                footer_copyright: "&copy; 2026 DataPro. Hak cipta dilindungi undang-undang. Dihosting di Render Cloud.",
                 footer_disclaimer: "Alat analisis ini tidak berafiliasi dengan Sandbox Interactive."
             },
             pl: {
                 badge_release: "Oficjalna wersja v${CURRENT_SERVER_VERSION} — Chmura 24/7 i Nakładka",
-                hero_subtitle: "Najpotężniejsza nakładka handlowa i rynkowa dla Albion Online Mobile",
+                hero_subtitle: "Najpotężniejsza nakładka handlowa i rynkowa dla Royal MMO Mobile",
                 hero_desc: "Podwój swoje srebro bez wielogodzinnych poszukiwań. Korzystaj z cen w czasie rzeczywistym, skanerów arbitrażu i sygnałów AI jako pływającej nakładki!",
                 download_btn_subtitle: "Pobierz Za Darmo",
                 download_virus_free: "100% Wolne Od Wirusów • Bezpośredni Pakiet APK",
@@ -2024,8 +2024,8 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 badge_instant: "Natychmiastowa Aktywacja",
                 badge_paypal: "Bezpieczna Płatność PayPal",
                 badge_cloud: "Połączenie Chmury 24/7",
-                why_title: "Dlaczego potrzebujesz <span class='gradient-text'>AlbionDataPro</span>",
-                why_sub: "Handel bez danych na żywo kosztuje Cię miliony srebra dziennie. AlbionDataPro daje Ci przewagę nad innymi graczymi.",
+                why_title: "Dlaczego potrzebujesz <span class='gradient-text'>DataPro</span>",
+                why_sub: "Handel bez danych na żywo kosztuje Cię miliony srebra dziennie. DataPro daje Ci przewagę nad innymi graczymi.",
                 why_card1_title: "Maksymalny Zysk Bez Ryzyka",
                 why_card1_desc: "Koniec z nieudanymi zakupami! Precyzyjny kalkulator ROI pokazuje czysty zysk po podatkach i opłatach.",
                 why_card2_title: "Ogromna Oszczędność Czasu",
@@ -2034,7 +2034,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 why_card3_desc: "Nasz algorytm analizuje 7-dniowe wahania cen i znajduje idealne progi zleceń kupna i sprzedaży.",
                 overlay_section_tag: "Pływająca Nakładka W Grze",
                 overlay_title: "Pływająca Nakładka Bąbelkowa W Grze",
-                overlay_sub: "Rewolucyjny bąbel pływający działa bezpośrednio nad Albion Online Mobile. Nigdy nie musisz wychodzić z gry!",
+                overlay_sub: "Rewolucyjny bąbel pływający działa bezpośrednio nad Royal MMO Mobile. Nigdy nie musisz wychodzić z gry!",
                 feat1_title: "Stała Nakładka W Grze",
                 feat1_desc: "Dyskretna pływająca ikonka na ekranie. Stuknij, aby natychmiast zobaczyć ceny, arbitraż i sygnały AI.",
                 feat2_title: "Radar Miast i Czarnego Rynku",
@@ -2049,19 +2049,19 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                 feat6_desc: "Twoje ustawienia i ulubione są bezpiecznie przechowywane w chmurze. Automatyczne aktualizacje OTA utrzymują aplikację w gotowości.",
                 install_title: "Prosta Instalacja na Androidzie",
                 install_step1: "Kliknij <strong class='text-emerald-400'>'Pobierz APK'</strong> powyżej i zapisz plik.",
-                install_step2: "Otwórz <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>AlbionDataPro.apk</code> i zezwól na instalację.",
+                install_step2: "Otwórz <code class='bg-slate-900 px-2 py-0.5 rounded text-sky-400 font-mono'>DataPro.apk</code> i zezwól na instalację.",
                 install_step3: "Uruchom aplikację, utwórz konto i odblokuj licencję bezpośrednio w aplikacji!",
                 faq_title: "Często Zadawane Pytania (FAQ)",
-                faq_sub: "Wszystko, co musisz wiedzieć o AlbionDataPro.",
-                faq1_q: "Czym jest AlbionDataPro?",
-                faq1_a: "AlbionDataPro to wiodące narzędzie do analizy rynku i nakładka w grze dla Albion Online. Porównuje ceny we wszystkich miastach, oblicza opłacalne trasy i poleca zlecenia AI.",
+                faq_sub: "Wszystko, co musisz wiedzieć o DataPro.",
+                faq1_q: "Czym jest DataPro?",
+                faq1_a: "DataPro to wiodące narzędzie do analizy rynku i nakładka w grze dla Royal MMO. Porównuje ceny we wszystkich miastach, oblicza opłacalne trasy i poleca zlecenia AI.",
                 faq2_q: "Jak działa pływająca nakładka w grze?",
-                faq2_a: "Pływający bąbel działa bezpośrednio nad Albion Online Mobile na Androidzie. Stuknięcie nakłada ceny na żywo, arbitraż i sygnały AI bez minimalizowania gry.",
-                faq3_q: "Czy AlbionDataPro jest bezpieczny i dozwolony?",
+                faq2_a: "Pływający bąbel działa bezpośrednio nad Royal MMO Mobile na Androidzie. Stuknięcie nakłada ceny na żywo, arbitraż i sygnały AI bez minimalizowania gry.",
+                faq3_q: "Czy DataPro jest bezpieczny i dozwolony?",
                 faq3_a: "Tak! Używa publicznych API i działa wyłącznie jako nakładka do analizy wizualnej. Nie wykonuje automatycznych kliknięć ani wstrzykiwania pamięci — 100% bezpieczne.",
                 faq4_q: "Jak odblokować moje konto?",
                 faq4_a: "Zainstaluj darmowy pakiet APK, utwórz konto w aplikacji i odblokuj je przez PayPal. Konto zostanie automatycznie aktywowane po płatności.",
-                footer_copyright: "&copy; 2026 AlbionDataPro. Wszelkie prawa zastrzeżone. Hostowane w chmurze Render.",
+                footer_copyright: "&copy; 2026 DataPro. Wszelkie prawa zastrzeżone. Hostowane w chmurze Render.",
                 footer_disclaimer: "To narzędzie analityczne nie jest powiązane z Sandbox Interactive."
             }
         };
@@ -2180,10 +2180,10 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                     autoUnlockUserAccount(body.custom || payer_email, months, `${mc_gross}€`);
 
                     const mailOptions = {
-                        from: 'AlbionDataPro <dnnxdigitalcreator@gmail.com>',
+                        from: 'DataPro <dnnxdigitalcreator@gmail.com>',
                         to: payer_email,
                         bcc: 'dnnxdigitalcreator@gmail.com', // Admin bekommt unsichtbar eine Kopie der Mail!
-                        subject: `Dein AlbionDataPro Lizenzschlüssel (${tier})`,
+                        subject: `Dein DataPro Lizenzschlüssel (${tier})`,
                         html: `
                             <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 10px;">
                                 <h2 style="color: #38bdf8;">Vielen Dank für deinen Kauf!</h2>
@@ -2192,8 +2192,8 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                                 <div style="background-color: #1e293b; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; border: 1px solid #38bdf8;">
                                     <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
                                 </div>
-                                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
-                                <p>Besuche unsere <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> für Support.</p>
+                                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
+                                <p>Besuche unsere <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> für Support.</p>
                                 <p style="font-size: 12px; color: #64748b; margin-top: 30px;">Dies ist eine automatisch generierte E-Mail.</p>
                             </div>
                         `
@@ -2243,10 +2243,10 @@ app.post('/api/test/paypal-purchase', async (req, res) => {
     let emailError = null;
 
     const mailOptions = {
-        from: 'AlbionDataPro <dnnxdigitalcreator@gmail.com>',
+        from: 'DataPro <dnnxdigitalcreator@gmail.com>',
         to: payer_email,
         bcc: 'dnnxdigitalcreator@gmail.com',
-        subject: `Dein AlbionDataPro Lizenzschlüssel (${tier})`,
+        subject: `Dein DataPro Lizenzschlüssel (${tier})`,
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; background-color: #0f172a; color: #f8fafc; border-radius: 10px;">
                 <h2 style="color: #38bdf8;">Vielen Dank für deinen Kauf!</h2>
@@ -2255,7 +2255,7 @@ app.post('/api/test/paypal-purchase', async (req, res) => {
                 <div style="background-color: #1e293b; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; border: 1px solid #38bdf8;">
                     <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
                 </div>
-                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">AlbionDataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
+                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
                 <p>Support via Telegram: <a href="https://t.me/DnnxDigitalCrator" style="color: #38bdf8;">@DnnxDigitalCrator</a></p>
             </div>
         `
@@ -2857,7 +2857,7 @@ app.post('/api/admin/trigger-ota', requireAdminAuth, (req, res) => {
                 targetVersion: CURRENT_SERVER_VERSION,
                 hwId: cleanHwId,
                 force: true,
-                downloadUrl: 'https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk',
+                downloadUrl: 'https://albionmarketv2-1.onrender.com/download/DataPro.apk',
                 timestamp: new Date().toISOString()
             });
         }
@@ -3213,7 +3213,7 @@ app.get(['/admin'], (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AlbionDataPro - Admin, License Generator & Tunnel Dashboard (v${CURRENT_SERVER_VERSION})</title>
+    <title>DataPro - Admin, License Generator & Tunnel Dashboard (v${CURRENT_SERVER_VERSION})</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
         .container { max-width: 1100px; margin: 0 auto; }
@@ -3241,7 +3241,7 @@ app.get(['/admin'], (req, res) => {
 <body>
     <div class="container">
         <div class="card">
-            <h1>🛡️ AlbionDataPro Central Admin & Tunnel Dashboard</h1>
+            <h1>🛡️ DataPro Central Admin & Tunnel Dashboard</h1>
             <p>Version: <span class="badge">v${CURRENT_SERVER_VERSION}</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
 
             <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>

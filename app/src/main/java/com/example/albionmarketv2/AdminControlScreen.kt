@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "3.3.3"
+const val CURRENT_APP_VERSION = "3.4.0"
 
 data class AdminDevice(
     val hwId: String,
@@ -895,7 +895,7 @@ fun AdminControlDialog(
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = "AlbionDataPro Admin",
+                                text = "DataPro Admin",
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp,
                                 color = Color.White
