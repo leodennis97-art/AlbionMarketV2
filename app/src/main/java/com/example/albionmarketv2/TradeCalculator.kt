@@ -491,9 +491,8 @@ object TradeCalculator {
                 val buyDateMs = parseIsoToEpochMs(bestBuy.sellPriceMinDate)
                 val sellDateMs = parseIsoToEpochMs(bestSell.sellPriceMinDate)
 
-                // Strikter Filter: Sowohl Kaufpreis als auch Verkaufspreis MÜSSEN vorhanden
-                // UND jeweils weniger als 10 Minuten alt sein (600.000 ms = 10 Min.)
-                val maxAgeMs = 10 * 60 * 1000L
+                // Strikter Filter: Nur echte Marktchancen mit garantiert aktuellem Marktpreis (max. 15 Minuten alt)
+                val maxAgeMs = 15 * 60 * 1000L
                 if (buyDateMs <= 0 || sellDateMs <= 0) continue
 
                 val buyAgeMs = currentNowMs - buyDateMs
