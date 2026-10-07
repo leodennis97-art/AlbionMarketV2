@@ -5,46 +5,62 @@
     android:viewportWidth="128"
     android:viewportHeight="128">
 
-    <!-- Background Badge / Shield -->
+    <!-- Hexagonal Shield / Badge Base -->
     <path
-        android:pathData="M64,8 L112,28 L112,68 C112,96 64,120 64,120 C64,120 16,96 16,68 L16,28 Z"
-        android:fillColor="#1E293B"
-        android:strokeColor="#06B6D4"
+        android:pathData="M64,6 L112,28 L112,76 L64,122 L16,76 L16,28 Z"
+        android:fillColor="#0F172A"
+        android:strokeColor="#38BDF8"
         android:strokeWidth="4" />
 
-    <!-- Inner Glow Ring -->
+    <!-- Inner Metallic Accent Frame -->
     <path
-        android:pathData="M64,16 L104,33 L104,66 C104,89 64,110 64,110 C64,110 24,89 24,66 L24,33 Z"
-        android:fillColor="#0F172A"
+        android:pathData="M64,14 L104,32 L104,72 L64,110 L24,72 L24,32 Z"
+        android:fillColor="#1E293B"
         android:strokeColor="#F59E0B"
         android:strokeWidth="2" />
 
-    <!-- Stylized "A" -->
+    <!-- Stylized "D" (Data) - Cyan Loop -->
     <path
-        android:pathData="M38,78 L48,46 L58,78 M41,70 L55,70"
-        android:strokeColor="#06B6D4"
-        android:strokeWidth="5"
+        android:pathData="M36,42 L52,42 C64,42 70,48 70,58 C70,68 64,74 52,74 L36,74 Z"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- Stylized "D" -->
+    <!-- Stylized "P" (Pro) - Emerald Loop -->
     <path
-        android:pathData="M62,46 L72,46 C80,46 84,52 84,62 C84,72 80,78 72,78 L62,78 Z"
-        android:strokeColor="#F59E0B"
-        android:strokeWidth="5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round" />
-
-    <!-- Stylized "P" -->
-    <path
-        android:pathData="M88,78 L88,46 L98,46 C104,46 108,50 108,56 C108,62 104,66 98,66 L88,66"
+        android:pathData="M72,86 L72,42 L88,42 C96,42 100,46 100,52 C100,58 96,62 88,62 L72,62"
         android:strokeColor="#10B981"
-        android:strokeWidth="5"
+        android:strokeWidth="6"
         android:strokeLineCap="round"
         android:strokeLineJoin="round" />
 
-    <!-- Core Diamond Emblem -->
+    <!-- Ascending Market Line Graph (Companion Analytics Signal) -->
     <path
-        android:pathData="M64,28 L69,38 L64,48 L59,38 Z"
+        android:pathData="M32,82 L48,68 L64,78 L96,46"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Upward Trend Arrowhead -->
+    <path
+        android:pathData="M84,46 L96,46 L96,58"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Glowing Node Bullets -->
+    <path
+        android:pathData="M48,68 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#38BDF8" />
+
+    <path
+        android:pathData="M64,78 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
         android:fillColor="#F59E0B" />
+
+    <path
+        android:pathData="M96,46 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
+        android:fillColor="#10B981" />
 </vector>
