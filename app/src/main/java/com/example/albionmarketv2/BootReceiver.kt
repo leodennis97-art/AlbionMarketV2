@@ -13,7 +13,6 @@ class BootReceiver : BroadcastReceiver() {
         if ((action == Intent.ACTION_BOOT_COMPLETED) ||
             (action == Intent.ACTION_MY_PACKAGE_REPLACED) ||
             (action == "android.intent.action.QUICKBOOT_POWERON") ||
-            (action == "android.net.conn.CONNECTIVITY_CHANGE") ||
             (action == Intent.ACTION_POWER_CONNECTED) ||
             (action == "com.example.albionmarketv2.ACTION_RESTART_SYNC_SERVICE")
         ) {
