@@ -81,7 +81,7 @@ tasks.register("uploadApkToRender") {
             
             conn.outputStream.withCloseable { os ->
                 os.write(("--" + boundary + "\r\n").getBytes("UTF-8"))
-                os.write(("Content-Disposition: form-data; name=\"apkFile\"; filename=\"AlbionDataPro.apk\"\r\n").getBytes("UTF-8"))
+                os.write(("Content-Disposition: form-data; name=\"apkFile\"; filename=\"DataPro.apk\"\r\n").getBytes("UTF-8"))
                 os.write(("Content-Type: application/vnd.android.package-archive\r\n\r\n").getBytes("UTF-8"))
                 
                 os.write(apkFile.bytes)

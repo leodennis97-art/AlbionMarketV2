@@ -35,7 +35,7 @@ function findSyncAndUploadLatestApk() {
         }
 
         if (latestSource) {
-            const targetPath = path.join(downloadsDir, 'AlbionDataPro.apk');
+            const targetPath = path.join(downloadsDir, 'DataPro.apk');
 
             // Prüfen ob sich die APK geändert hat (mittels Mtime)
             const targetStat = fs.existsSync(targetPath) ? fs.statSync(targetPath) : null;

@@ -2772,7 +2772,7 @@ fun AdminRemoteConfigTab(
         ) {
             Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Kategorie: OTA Updates & Massen-Verwaltung", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF8B5CF6))
-                Text("Befiehlt allen verbundenen Geräten, AlbionDataPro.apk im Hintergrund herunterzuladen.", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                Text("Befiehlt allen verbundenen Geräten, DataPro.apk im Hintergrund herunterzuladen.", fontSize = 9.sp, color = Color(0xFF94A3B8))
 
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                     Button(

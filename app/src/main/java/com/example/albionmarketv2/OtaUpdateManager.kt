@@ -118,18 +118,18 @@ object OtaUpdateManager {
             val formattedInput = if (updateUrlInput.startsWith("/")) "$mainBaseUrl$updateUrlInput" else updateUrlInput
             listOf(
                 if (formattedInput.contains("?")) "$formattedInput&t=$timestamp" else "$formattedInput?t=$timestamp",
-                "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk?v=$timestamp",
-                "https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp"
+                "https://albionmarketv2-1.onrender.com/download/DataPro.apk?v=$timestamp",
+                "https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/DataPro.apk?t=$timestamp"
             )
         } else {
             val list = mutableListOf<String>()
             for (base in baseUrls) {
                 val cleanBase = base.trimEnd('/')
-                list.add("$cleanBase/download/AlbionDataPro.apk?v=$timestamp")
+                list.add("$cleanBase/download/DataPro.apk?v=$timestamp")
                 list.add("$cleanBase/dl?t=$timestamp")
                 list.add("$cleanBase/apk?t=$timestamp")
             }
-            list.add("https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/AlbionDataPro.apk?t=$timestamp")
+            list.add("https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/DataPro.apk?t=$timestamp")
             list
         }
 
@@ -208,7 +208,7 @@ object OtaUpdateManager {
                     // Direkt in den öffentlichen Android Download-Ordner herunterladen, um Paketfehler zu umgehen
                     val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
                     if (!downloadsDir.exists()) downloadsDir.mkdirs()
-                    val apkFile = File(downloadsDir, "AlbionDataPro.apk")
+                    val apkFile = File(downloadsDir, "DataPro.apk")
                     if (apkFile.exists()) apkFile.delete()
 
                     connection.inputStream.use { input ->
@@ -240,7 +240,7 @@ object OtaUpdateManager {
         try {
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "🌐 Starte direkten APK-Download von Render...", Toast.LENGTH_LONG).show()
-                val apkDirectUrl = "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk"
+                val apkDirectUrl = "https://albionmarketv2-1.onrender.com/download/DataPro.apk"
                 val intent = Intent(Intent.ACTION_VIEW, apkDirectUrl.toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
@@ -256,7 +256,7 @@ object OtaUpdateManager {
 
     fun installApk(context: Context, @Suppress("UNUSED_PARAMETER") apkFile: File) {
         try {
-            val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/AlbionDataPro.apk".toUri()).apply {
+            val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/DataPro.apk".toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(browserIntent)
