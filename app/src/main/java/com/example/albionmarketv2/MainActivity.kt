@@ -611,15 +611,15 @@ class MainActivity : ComponentActivity() {
                                             // REGISTRATION NOTICE CARD
                                             Surface(
                                                 shape = RoundedCornerShape(10.dp),
-                                                color = Color(0xFFF59E0B).copy(alpha = 0.1f),
-                                                border = BorderStroke(1.dp, Color(0xFFF59E0B).copy(alpha = 0.4f)),
+                                                color = Color(0xFF38BDF8).copy(alpha = 0.1f),
+                                                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.4f)),
                                                 modifier = Modifier.fillMaxWidth()
                                             ) {
                                                 Text(
-                                                    text = "💳 Nach der Registrierung wirst du zu PayPal weitergeleitet, um deinen Account freizuschalten.",
+                                                    text = "💡 Gib deinen Lizenzschlüssel ein oder erstelle ein neues Konto zur Freischaltung.",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Medium,
-                                                    color = Color(0xFFFBBF24),
+                                                    color = Color(0xFF38BDF8),
                                                     modifier = Modifier.padding(10.dp)
                                                 )
                                             }
@@ -675,13 +675,6 @@ class MainActivity : ComponentActivity() {
                                                     lifecycleScope.launch {
                                                         val (regSuccess, regMsg) = ServerSyncManager.registerUser(context, usernameInput, passwordInput, licenseKeyInput)
                                                         if (regSuccess) {
-                                                            try {
-                                                                val paypalIntent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/GB4DKRADU46SL".toUri())
-                                                                context.startActivity(paypalIntent)
-                                                            } catch (_: Exception) {
-                                                                Toast.makeText(context, "PayPal konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
-                                                            }
-
                                                             if (licenseKeyInput.isNotBlank()) {
                                                                 LicenseManager.activateLicense(context, licenseKeyInput)
                                                             }
@@ -708,7 +701,7 @@ class MainActivity : ComponentActivity() {
                                                                 isRegistrationMode = false
                                                                 Toast.makeText(
                                                                     context,
-                                                                    "🟢 Account registriert! Du wirst zu PayPal weitergeleitet. Bitte erwerbe eine Lizenz, um dich anzumelden.",
+                                                                    "🟢 Account erfolgreich registriert!",
                                                                     Toast.LENGTH_LONG
                                                                 ).show()
                                                             }
@@ -723,7 +716,7 @@ class MainActivity : ComponentActivity() {
                                                 shape = RoundedCornerShape(12.dp),
                                                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
                                             ) {
-                                                Text("🚀 Account Erstellen & Zu PayPal", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                                Text("🚀 Account Erstellen", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
                                             }
                                         } else {
                                             Button(
@@ -797,29 +790,6 @@ class MainActivity : ComponentActivity() {
                                         }
 
                                         Spacer(modifier = Modifier.height(4.dp))
-
-                                        // DIRECT PAYPAL PURCHASE BUTTON
-                                        Button(
-                                            onClick = {
-                                                try {
-                                                    val intent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/GB4DKRADU46SL".toUri())
-                                                    context.startActivity(intent)
-                                                } catch (_: Exception) {
-                                                    Toast.makeText(context, "PayPal konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E40AF)),
-                                            shape = RoundedCornerShape(10.dp),
-                                            modifier = Modifier.fillMaxWidth(),
-                                            contentPadding = PaddingValues(vertical = 10.dp)
-                                        ) {
-                                            Text(
-                                                text = "💳 Hier Lizenz erwerben (PayPal)",
-                                                fontSize = 12.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                color = Color.White
-                                            )
-                                        }
 
                                         Row(
                                             modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
