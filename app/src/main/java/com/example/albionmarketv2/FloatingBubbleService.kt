@@ -717,7 +717,7 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     ACTIVE_ORDER("Aufträge", "Orders", "📦"),
     COMPLETED_ORDERS("Historie", "History", "📜"),
     TOP_MARGIN("Handel & Marge", "Trade Margin", "🔥"),
-    SMUGGLER_RADAR("Schwarzmarkt-Radar", "Black Market Radar", "🏴‍☠️"),
+    SMUGGLER_GUIDE("Schmuggler-Guide", "Smuggler Guide", "🏴‍☠️"),
     CATALOG("Katalog", "Catalog", "📖"),
     CRAFTING("Handwerks-Guide", "Crafting Guide", "⚒️"),
     ISLAND("Insel-Guide", "Island Guide", "🏝️"),
@@ -912,7 +912,7 @@ fun BubbleOverlayContent(
                             val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket
                             BubbleTab.entries.filter { tab ->
                                 when (tab) {
-                                    BubbleTab.SMUGGLER_RADAR -> !hideBm
+                                    BubbleTab.SMUGGLER_GUIDE -> !hideBm
                                     else -> true
                                 }
                             }
@@ -1739,7 +1739,7 @@ fun BubbleOverlayContent(
                                                 currentBubbleHideBlackMarket = it
                                                 prefsForCity.bubbleHideBlackMarket = it
                                                 prefsForCity.hideBlackMarket = it
-                                                if (it && selectedTab == BubbleTab.SMUGGLER_RADAR) {
+                                                if (it && selectedTab == BubbleTab.SMUGGLER_GUIDE) {
                                                     selectedTab = BubbleTab.TOP_MARGIN
                                                 }
                                                 onRefresh()
@@ -2309,7 +2309,7 @@ fun BubbleOverlayContent(
                                 .padding(vertical = 4.dp)
                         ) {
                             when (selectedTab) {
-                                BubbleTab.SMUGGLER_RADAR -> BubbleSmugglerRadarTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.SMUGGLER_GUIDE -> BubbleSmugglerRadarTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.COMPLETED_ORDERS -> BubbleCompletedOrdersTab(context = context, onRefresh = onRefresh, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.CATALOG -> BubbleCatalogTab(
                                     uiState = uiState,
