@@ -453,7 +453,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val nowMs = System.currentTimeMillis()
         val maxSnapshotAgeMs = 30 * 60 * 1000L // Max 30 Minuten alt
         val localSnapshots = prefs.getPriceSnapshots(prefs.server).filter {
-            (nowMs - it.timestampMs) in 0L..maxSnapshotAgeMs
+            ((nowMs - it.timestampMs) in 0L..maxSnapshotAgeMs)
         }
         val localPrices = localSnapshots.map { s ->
             val isoDate = TradeCalculator.formatEpochToIso(s.timestampMs)
@@ -1102,7 +1102,7 @@ fun BubbleOverlayContent(
                                     }
                                 }
 
-                                    var isEditingActivePricesInBubble by remember(activeOrder.id) { mutableStateOf(false) }
+                                    var isEditingActivePricesInBubble by remember(activeOrder.id) { mutableStateOf(value = false) }
                                     var editActiveBuyStr by remember(activeOrder.id, activeOrder.buyPrice) { mutableStateOf(activeOrder.buyPrice.toString()) }
                                     var editActiveSellStr by remember(activeOrder.id, activeOrder.sellPrice) { mutableStateOf(activeOrder.sellPrice.toString()) }
 
@@ -2432,7 +2432,7 @@ fun BubbleSmugglerRadarTab(
 fun BubbleInventoryRouterTab(
     @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
     uiState: ResourceUiState,
-    maxHeight: Dp
+    maxHeight: Dp,
 ) {
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -2792,7 +2792,7 @@ fun BubbleCraftingTab(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
-        itemsIndexed(items = craftingOpps, key = { index, opp -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
+        itemsIndexed(items = craftingOpps, key = { index: Int, opp: CraftingOpportunityDetails -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
             val rankBadge = when (index) {
                 0 -> "🏆 #1 Beste Marge"
                 1 -> "🥈 #2 Top Marge"
