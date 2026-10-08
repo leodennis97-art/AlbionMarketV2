@@ -779,6 +779,7 @@ fun BubbleOverlayContent(
     var isExpanded by remember { mutableStateOf(value = false) }
     var isGhostMode by remember { mutableStateOf(value = false) }
     var isBookingMode by remember { mutableStateOf(value = false) }
+    var showCityRoutesPopup by remember { mutableStateOf(value = false) }
     var selectedTab by remember { mutableStateOf(if (activeOrder != null) BubbleTab.ACTIVE_ORDER else BubbleTab.TOP_MARGIN) }
 
     LaunchedEffect(activeOrder) {
