@@ -67,6 +67,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -735,6 +736,48 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     SETTINGS("Einstellungen", "Settings", "⚙️");
 
     fun getTitle(lang: String): String = if (lang == "DE") titleDe else titleEn
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF0E2532)
+@Composable
+fun PreviewBubbleOverlayContent() {
+    val mockContext = LocalContext.current
+    val mockOpportunities = listOf(
+        TradeOpportunity(
+            resource = AlbionResource(id = "T4_WOOD", nameDe = "Kiefernstämme", nameEn = "Pine Logs", tier = 4, category = ResourceCategory.RESOURCES),
+            buyCity = "Lymhurst",
+            buyPrice = 50,
+            sellCity = "Martlock",
+            sellPrice = 80,
+            unitNetProfit = 30,
+            unitWeightKg = 1.0,
+            maxUnitsBySilver = 100,
+            maxUnitsByWeight = 100,
+            tradeUnits = 100,
+            totalInvestment = 5000,
+            totalGrossRevenue = 8000,
+            totalNetRevenue = 7600,
+            totalNetProfit = 2600,
+            totalWeightKg = 100.0,
+            roiPercent = 52.0,
+            priorityScore = 90,
+            recommendedBuyOrderPrice = 45,
+            recommendedSellOrderPrice = 85
+        )
+    )
+    AlbionMarketV2Theme {
+        BubbleOverlayContent(
+            context = mockContext,
+            activeOrder = null,
+            topOpportunities = mockOpportunities,
+            isLoadingOpps = false,
+            onRefresh = {},
+            onAcceptOpportunity = {},
+            onDrag = { _, _ -> },
+            onFocusModeChanged = {},
+            onOrderBooked = {}
+        )
+    }
 }
 
 @Composable
