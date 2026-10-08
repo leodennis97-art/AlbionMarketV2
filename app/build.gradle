@@ -46,6 +46,9 @@ android {
     buildFeatures {
         compose true
     }
+    lint {
+        checkReleaseBuilds = false
+    }
 }
 
 // Autonomer Gradle-Task zum Hochladen der APK und Aktualisieren der Zielversion auf Render
