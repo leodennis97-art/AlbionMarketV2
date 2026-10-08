@@ -111,19 +111,6 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Request Ignore Battery Optimization
-        val powerManager = getSystemService(POWER_SERVICE) as? PowerManager
-        if ((powerManager != null) && (!powerManager.isIgnoringBatteryOptimizations(packageName))) {
-            try {
-                val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
-                    data = "package:$packageName".toUri()
-                }
-                startActivity(intent)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
         // Request Overlay / Floating Bubble Permission if missing
         if (!Settings.canDrawOverlays(this)) {
             try {
