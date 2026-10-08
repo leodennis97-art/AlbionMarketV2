@@ -988,35 +988,7 @@ fun BubbleOverlayContent(
                             }
                         }
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp)
-                        ) {
-                            Text("🚶‍♂️ Aktiver Standpunkt: ${prefs.bubbleStandpunktCity.ifBlank { "ALLE" }}", fontSize = 8.5.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
-                            Surface(
-                                shape = RoundedCornerShape(4.dp),
-                                color = if (showCityRoutesPopup) Color(0xFF10B981) else Color(0xFF1E3A4C),
-                                border = BorderStroke(1.dp, Color(0xFF10B981)),
-                                modifier = Modifier.clickable { showCityRoutesPopup = !showCityRoutesPopup }
-                            ) {
-                                Text("🗺️ Routen & Ziele", color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
-                            }
-                        }
 
-                        if (showCityRoutesPopup) {
-                            CityRoutesPopup(
-                                currentCity = prefs.bubbleStandpunktCity,
-                                onRouteSelected = { destCity ->
-                                    prefs.bubbleStandpunktCity = destCity
-                                    showCityRoutesPopup = false
-                                    Toast.makeText(context, "🗺️ Route nach $destCity gewählt! Standpunkt aktualisiert.", Toast.LENGTH_SHORT).show()
-                                    onRefresh()
-                                },
-                                onDismiss = { showCityRoutesPopup = false }
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                        }
 
                         val availableTabs = remember(prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
                             val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket
