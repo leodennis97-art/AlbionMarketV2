@@ -5,61 +5,123 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DataPro - Market Companion (Unofficial) v3.3.7 – APK Download & Live-Markt</title>
     <style>
+        :root {
+            --bg: #080d1a;
+            --card: rgba(18, 26, 43, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --primary: #38bdf8;
+            --accent: #a855f7;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --subtext: #94a3b8;
+        }
         body {
-            background-color: #0b1120;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.15), transparent 60%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 50%);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             text-align: center;
-            padding: 60px 20px;
+            padding: 40px 20px;
             margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .container {
-            max-width: 650px;
-            margin: 0 auto;
-            background: #1e293b;
-            padding: 40px;
-            border-radius: 20px;
-            border: 1px solid #334155;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 680px;
+            width: 100%;
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 48px 36px;
+            border-radius: 28px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #38bdf8, #a855f7, #10b981);
         }
         .logo-box {
-            width: 96px;
-            height: 96px;
-            margin: 0 auto 20px auto;
+            width: 108px;
+            height: 108px;
+            margin: 0 auto 24px auto;
+            filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.4));
         }
-        h1 { color: #38bdf8; margin-bottom: 8px; font-size: 32px; font-weight: 900; }
-        .subtitle { color: #f59e0b; font-size: 14px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; tracking: 1px; }
-        p { color: #94a3b8; margin-bottom: 30px; line-height: 1.6; font-size: 16px; }
+        h1 { color: #ffffff; margin-bottom: 6px; font-size: 36px; font-weight: 900; letter-spacing: -0.5px; }
+        .subtitle { color: var(--warning); font-size: 13px; font-weight: 800; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
+        p { color: var(--subtext); margin-bottom: 32px; line-height: 1.6; font-size: 16px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success);
+            color: #34d399; padding: 6px 16px; border-radius: 30px; font-size: 13px; font-weight: 700;
+            margin-bottom: 28px;
+        }
+        .pulse-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+
         .btn-download {
-            background: linear-gradient(135deg, #10b981, #059669);
+            background: linear-gradient(135deg, #059669, #10b981);
             color: white;
             text-decoration: none;
-            padding: 18px 36px;
+            padding: 20px 42px;
             font-size: 18px;
             font-weight: 800;
-            border-radius: 14px;
-            display: inline-block;
-            box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4);
-            transition: transform 0.2s, background 0.2s;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
         }
         .btn-download:hover {
             transform: translateY(-2px);
-            background: linear-gradient(135deg, #059669, #047857);
+            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.6);
         }
         .features {
             margin-top: 40px;
             text-align: left;
-            border-top: 1px solid #334155;
-            padding-top: 25px;
+            border-top: 1px solid var(--card-border);
+            padding-top: 28px;
         }
-        .features h3 { color: #f8fafc; font-size: 18px; margin-bottom: 15px; }
-        .features ul { color: #94a3b8; padding-left: 20px; margin: 0; }
-        .features li { margin-bottom: 10px; line-height: 1.5; }
-        .version-info {
-            margin-top: 30px;
+        .features h3 { color: #f8fafc; font-size: 18px; margin-bottom: 18px; font-weight: 800; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+        .feature-card {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px; border-radius: 14px; text-align: left;
+        }
+        .feature-card strong { color: var(--primary); display: block; font-size: 14px; margin-bottom: 4px; }
+        .feature-card span { color: var(--subtext); font-size: 13px; line-height: 1.4; display: block; }
+
+        .footer-info {
+            margin-top: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-size: 13px;
-            color: #64748b;
+            color: var(--subtext);
+            border-top: 1px solid var(--card-border);
+            padding-top: 20px;
         }
+        .admin-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+            padding: 6px 12px;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            transition: background 0.2s;
+        }
+        .admin-link:hover { background: rgba(56, 189, 248, 0.2); }
     </style>
 </head>
 <body>
@@ -81,25 +143,41 @@
 
         <h1>DataPro</h1>
         <div class="subtitle">Market Companion (Unofficial)</div>
+
+        <div class="status-badge"><div class="pulse-dot"></div> Live Server Sync Active (v3.3.7)</div>
+
         <p>Das ultimative Markt-Overlay, Arbitrage-Radar & Silber-Rechner für Mobile MMO Spieler.</p>
 
         <!-- Download Link zur APK -->
-        <a href="DataPro.apk" class="btn-download" download>
+        <a href="https://albionmarketv2-1.onrender.com/download/DataPro.apk" class="btn-download" download>
             📥 DataPro v3.3.7 APK Herunterladen
         </a>
 
         <div class="features">
-            <h3>Hauptfunktionen (v3.3.7 Release):</h3>
-            <ul>
-                <li><strong>Schwebendes In-Game Overlay:</strong> Live-Marktpreise, Arbitrage & KI-Signale direkt als schwebende Bubble.</li>
-                <li><strong>Genaue Marktpreise:</strong> Stets die günstigsten Verkaufsangebote aller Hauptstädte im Blick.</li>
-                <li><strong>Arbitrage & Trading Radar:</strong> Die profitabelsten Handelsrouten mit echten Nettogewinn-Berechnungen.</li>
-                <li><strong>Google Play Compliance:</strong> Sicheres, sauberes Android APK Package ohne eingeschränkte Rechte.</li>
-            </ul>
+            <h3>🚀 High-End Features (v3.3.7 Release):</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <strong>🔮 Schwebendes In-Game Overlay</strong>
+                    <span>Echtzeit-Marktpreise, Arbitrage & KI-Signale direkt als schwebendes Fenster.</span>
+                </div>
+                <div class="feature-card">
+                    <strong>📊 Präzise Marktpreise</strong>
+                    <span>Günstigste Angebote aller Hauptstädte mit Live-Auto-Refresh.</span>
+                </div>
+                <div class="feature-card">
+                    <strong>📈 Arbitrage & Profit Radar</strong>
+                    <span>Profitabelste Handelsrouten mit echten Nettogewinn-Berechnungen.</span>
+                </div>
+                <div class="feature-card">
+                    <strong>🛡️ Google Play Compliance</strong>
+                    <span>Sicheres, sauberes Android APK Package ohne eingeschränkte Rechte.</span>
+                </div>
+            </div>
         </div>
 
-        <div class="version-info">
-            Version 3.3.7 • Code 3590 • Stabil • Android 8.0+
+        <div class="footer-info">
+            <span>Version 3.3.7 • Build 3590 • Android 8.0+</span>
+            <a href="/admin" class="admin-link">🔒 Admin Portal</a>
         </div>
     </div>
 
