@@ -20,7 +20,6 @@ import java.text.NumberFormat
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.time.Duration.Companion.minutes
-import kotlin.time.Duration.Companion.hours
 
 /**
  * 24/7 Persistent Server Synchronization Service.
@@ -85,19 +84,31 @@ class PersistentServerSyncService : LifecycleService() {
     private fun start30MinGoldStatusLoop() {
         serviceScope.launch {
             while (isRunning) {
-                delay(60.minutes)
+                delay(30.minutes)
                 try {
                     val prefs = AppPreferences(this@PersistentServerSyncService)
-                    if (prefs.systemNotificationsEnabled) {
+                    if (prefs.systemNotificationsEnabled && prefs.goldNotificationsEnabled) {
                         val goldPrices = AlbionGoldApi.fetchGoldPrices(prefs.server, count = 1)
                         val currentGold = goldPrices.firstOrNull()?.price ?: 4250
-                        val ownedGold = prefs.goldAmount
-                        val profit = ownedGold * (currentGold - 4250)
+
+                        val purchases = prefs.getGoldPurchases()
+                        val sales = prefs.getGoldSales()
+
+                        val totalBought = purchases.sumOf { it.amountGold.toLong() }
+                        val totalSold = sales.sumOf { it.amountGold.toLong() }
+                        val ownedGold = (totalBought - totalSold).toInt().coerceAtLeast(0)
+
+                        val totalCost = purchases.sumOf { it.totalCostSilver }
+                        val totalEarned = sales.sumOf { it.totalEarnedSilver }
+                        val currentValue = ownedGold.toLong() * currentGold
+                        val netProfit = (currentValue + totalEarned) - totalCost
+                        val roi = if (totalCost > 0) (netProfit.toDouble() / totalCost) * 100.0 else 0.0
+
                         NotificationHelper.showGoldProfitNotification(
                             this@PersistentServerSyncService,
-                            goldAmount = ownedGold.toInt(),
-                            netProfitSilver = profit,
-                            roiPercent = (profit.toDouble() / (ownedGold * 4250).coerceAtLeast(1L)) * 100.0,
+                            goldAmount = ownedGold,
+                            netProfitSilver = netProfit,
+                            roiPercent = roi,
                             currentGoldPrice = currentGold
                         )
                     }

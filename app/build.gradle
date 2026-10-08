@@ -10,13 +10,13 @@ plugins {
 
 android {
     namespace 'com.example.albionmarketv2'
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId 'com.AlbionDataPro'
         minSdk 26
-        targetSdk 36
-        versionCode 3540
+        targetSdk 35
+        versionCode 3550
         versionName '3.3.5'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
@@ -155,8 +155,6 @@ dependencies {
     implementation libs.coil.compose
     implementation libs.firebase.ai
     implementation libs.play.billing.ktx
-    implementation libs.ngrok.java
-    runtimeOnly libs.ngrok.java.native
     testImplementation libs.junit
     androidTestImplementation platform(libs.androidx.compose.bom)
     androidTestImplementation libs.androidx.compose.ui.test.junit4

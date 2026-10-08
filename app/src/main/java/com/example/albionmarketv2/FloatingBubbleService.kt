@@ -35,6 +35,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -198,7 +203,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 try {
-                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
+                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
                 } catch (_: Exception) {
                     startForeground(NOTIFICATION_ID, notification)
                 }
@@ -449,7 +454,11 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             fetchedPrices = (livePrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }
         }
 
-        val localSnapshots = prefs.getPriceSnapshots(prefs.server)
+        val nowMs = System.currentTimeMillis()
+        val maxSnapshotAgeMs = 30 * 60 * 1000L // Max 30 Minuten alt
+        val localSnapshots = prefs.getPriceSnapshots(prefs.server).filter {
+            (nowMs - it.timestampMs) in 0L..maxSnapshotAgeMs
+        }
         val localPrices = localSnapshots.map { s ->
             val isoDate = TradeCalculator.formatEpochToIso(s.timestampMs)
             MarketPrice(
@@ -2467,18 +2476,22 @@ fun BubbleCatalogTab(
     onResourceClick: (AlbionResource) -> Unit,
 ) {
     val lang = LocalAppLanguage.current
+    val context = LocalContext.current
     var query by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf(ResourceCategory.ALL) }
     var selectedTier by remember { mutableIntStateOf(0) }
+    var showFavoritesOnly by remember { mutableStateOf(false) }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+    val favSet = uiState.favoriteItemIds
 
-    val filtered = remember(query, selectedCat, selectedTier, uiState.filteredResources) {
+    val filtered = remember(query, selectedCat, selectedTier, showFavoritesOnly, favSet, uiState.filteredResources) {
         uiState.filteredResources.asSequence().filter { res ->
             val matchesQuery = query.isBlank() || res.nameDe.contains(query, ignoreCase = true) || res.id.contains(query, ignoreCase = true)
             val matchesCat = if (selectedCat != ResourceCategory.ALL) res.category == selectedCat else true
             val matchesTier = if (selectedTier > 0) res.tier == selectedTier else true
-            matchesQuery && matchesCat && matchesTier
-        }.take(15).toList()
+            val matchesFav = if (showFavoritesOnly) favSet.contains(res.id) || favSet.contains(res.fullId) else true
+            matchesQuery && matchesCat && matchesTier && matchesFav
+        }.take(20).toList()
     }
 
     Column(
@@ -2503,14 +2516,32 @@ fun BubbleCatalogTab(
                 }
         )
 
-        // Category Filter Chips Row
+        // Category Filter Chips Row (mit ⭐ Favoriten Chip)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            item {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (showFavoritesOnly) Color(0xFFFFD700) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable { showFavoritesOnly = !showFavoritesOnly }
+                ) {
+                    Text(
+                        text = "⭐ Favoriten (${favSet.size})",
+                        color = if (showFavoritesOnly) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+            }
             items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
-                val isSelected = selectedCat == cat
+                val isSelected = !showFavoritesOnly && selectedCat == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
-                    modifier = Modifier.clickable { selectedCat = cat }
+                    modifier = Modifier.clickable {
+                        showFavoritesOnly = false
+                        selectedCat = cat
+                    }
                 ) {
                     Text(
                         text = cat.displayName,
@@ -2554,6 +2585,7 @@ fun BubbleCatalogTab(
                 key(res.id) {
                     var selectedEnc by remember(res.id) { mutableIntStateOf(res.enchantment) }
                     val effectiveResource = remember(res, selectedEnc) { res.copy(enchantment = selectedEnc) }
+                    val isFav = favSet.contains(effectiveResource.id) || favSet.contains(effectiveResource.fullId)
                     val rawPrices = priceMap[effectiveResource.fullId] ?: priceMap[effectiveResource.id] ?: emptyList()
                     val mult = when (effectiveResource.enchantment) {
                         1 -> 2.2
@@ -2588,7 +2620,7 @@ fun BubbleCatalogTab(
                         color = Color(0xFF1E3A4C),
                         modifier = Modifier.fillMaxWidth().clickable { onResourceClick(effectiveResource) }
                     ) {
-                        Column(modifier = Modifier.padding(4.dp)) {
+                        Column(modifier = Modifier.padding(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 AsyncImage(
                                     model = effectiveResource.imageUrl,
@@ -2597,28 +2629,49 @@ fun BubbleCatalogTab(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Surface(
-                                            shape = RoundedCornerShape(4.dp),
-                                            color = getTierColor(effectiveResource.tier)
-                                        ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = getTierColor(effectiveResource.tier)
+                                            ) {
+                                                Text(
+                                                    text = "${effectiveResource.tierText}${effectiveResource.enchantmentText}",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 9.sp,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(4.dp))
                                             Text(
-                                                text = "${effectiveResource.tierText}${effectiveResource.enchantmentText}",
+                                                text = effectiveResource.nameDe,
                                                 color = Color.White,
                                                 fontWeight = FontWeight.Bold,
-                                                fontSize = 9.sp,
+                                                fontSize = 10.sp,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                        // ⭐ Favorit-Button
+                                        Surface(
+                                            shape = CircleShape,
+                                            color = if (isFav) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                            modifier = Modifier.clickable {
+                                                val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
+                                                viewModel.onToggleFavorite(effectiveResource.id)
+                                            }
+                                        ) {
+                                            Text(
+                                                text = if (isFav) "⭐" else "☆",
+                                                fontSize = 12.sp,
                                                 modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
                                             )
                                         }
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = effectiveResource.nameDe,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 10.sp,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
                                     }
 
                                     // Enchantment selector chips (.0, .1, .2, .3, .4)
@@ -2678,8 +2731,9 @@ fun BubbleCraftingTab(
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val fmtDec = remember { DecimalFormat("0.0", DecimalFormatSymbols(Locale.GERMANY)) }
     var hideCaerleonInCrafting by remember { mutableStateOf(value = false) }
+    var useFocusInCrafting by remember { mutableStateOf(value = true) }
 
-    val craftingOpps = remember(priceMap, hideCaerleonInCrafting) {
+    val craftingOpps = remember(priceMap, hideCaerleonInCrafting, useFocusInCrafting) {
         CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true, hideCaerleon = hideCaerleonInCrafting).take(25)
     }
 
@@ -2695,13 +2749,13 @@ fun BubbleCraftingTab(
         ) {
             Text("⚒️ Handwerks-Guide", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🔴 Caerleon ausblenden", fontSize = 8.5.sp, color = Color.White, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(4.dp))
+                Text(if (useFocusInCrafting) "⚡ Fokus (43.5% RRR)" else "Standard", fontSize = 8.5.sp, color = if (useFocusInCrafting) Color(0xFFFACC15) else Color.White, fontWeight = FontWeight.Bold)
+                Spacer(modifier = Modifier.width(2.dp))
                 Switch(
-                    checked = hideCaerleonInCrafting,
-                    onCheckedChange = { hideCaerleonInCrafting = it },
-                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFEF4444)),
-                    modifier = Modifier.scale(0.7f)
+                    checked = useFocusInCrafting,
+                    onCheckedChange = { useFocusInCrafting = it },
+                    colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFACC15)),
+                    modifier = Modifier.scale(0.65f)
                 )
             }
         }

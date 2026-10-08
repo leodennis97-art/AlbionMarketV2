@@ -179,7 +179,7 @@ object NotificationHelper {
         netProfitSilver: Long,
         roiPercent: Double,
         currentGoldPrice: Int,
-        notificationId: Int = System.currentTimeMillis().toInt(),
+        notificationId: Int = 3004,
     ) {
         if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
@@ -187,8 +187,10 @@ object NotificationHelper {
         createNotificationChannel(context)
 
         val numberFormat = NumberFormat.getNumberInstance(Locale.GERMANY)
-        val title = "🪙 Goldmarkt Live-Einnahme: +${numberFormat.format(netProfitSilver)} Silber"
-        val message = "Dein Goldbestand ($goldAmount Gold) erzielte einen Reingewinn von +${numberFormat.format(netProfitSilver)} Silber (%.1f%% ROI) bei ${numberFormat.format(currentGoldPrice)} Silber/Gold!".format(roiPercent)
+        val signStr = if (netProfitSilver >= 0) "+" else ""
+        val roiSignStr = if (roiPercent >= 0) "+" else ""
+        val title = "🪙 Goldmarkt Live-Silbergewinn: $signStr${numberFormat.format(netProfitSilver)} Silber"
+        val message = "Dein Goldbestand ($goldAmount Gold) erzielt einen Reingewinn von $signStr${numberFormat.format(netProfitSilver)} Silber ($roiSignStr${String.format(Locale.GERMANY, "%.1f", roiPercent)}% ROI) beim aktuellen Kurs von ${numberFormat.format(currentGoldPrice)} Silber/Gold!"
 
         val mainIntent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

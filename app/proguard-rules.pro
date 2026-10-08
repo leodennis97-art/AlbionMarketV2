@@ -23,8 +23,5 @@
 # Keep Play Billing
 -keep class com.android.billingclient.** { *; }
 
-# Keep Ngrok
--keep class com.ngrok.** { *; }
-
 # Attributes required for reflection and serialization
 -keepattributes *Annotation*, Signature, InnerClasses, EnclosingMethod, SourceFile, LineNumberTable

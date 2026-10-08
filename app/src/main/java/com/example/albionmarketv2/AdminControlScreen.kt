@@ -2634,7 +2634,7 @@ fun AdminRemoteConfigTab(
                 OutlinedTextField(
                     value = serverUrlInput,
                     onValueChange = { serverUrlInput = it },
-                    label = { Text("Server-URL / Ngrok Bridge Endpoint", fontSize = 9.sp, color = Color(0xFF94A3B8)) },
+                    label = { Text("Server-URL / Remote Endpoint", fontSize = 9.sp, color = Color(0xFF94A3B8)) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,

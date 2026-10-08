@@ -849,7 +849,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val updatedList = _uiState.value.goldPurchases + newPurchase
         prefs.saveGoldPurchases(updatedList)
         _uiState.value = _uiState.value.copy(goldPurchases = updatedList)
-        sendLiveGoldNotification()
+        sendLiveGoldNotification(force = true)
     }
 
     fun deleteGoldPurchase(id: String) {
@@ -881,7 +881,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val updatedList = _uiState.value.goldSales + newSale
         prefs.saveGoldSales(updatedList)
         _uiState.value = _uiState.value.copy(goldSales = updatedList)
-        sendLiveGoldNotification()
+        sendLiveGoldNotification(force = true)
     }
 
     fun deleteGoldSale(id: String) {
@@ -1012,19 +1012,22 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 }.distinct()
 
                 val fetchedPrices = AlbionMarketApi.fetchPrices(_uiState.value.server, itemIds)
+                val nowMs = System.currentTimeMillis()
                 val cloudSnapshots = try { ServerSyncManager.fetchCloudPrices(getApplication()) } catch (_: Exception) { emptyList() }
-                val cloudPrices = cloudSnapshots.asSequence().filter { it.sellPriceMin > 0 }.map {
-                    val isoDate = TradeCalculator.formatEpochToIso(it.timestampMs)
-                    MarketPrice(
-                        itemId = it.itemId,
-                        city = it.city,
-                        quality = 1,
-                        sellPriceMin = it.sellPriceMin,
-                        sellPriceMinDate = isoDate,
-                        buyPriceMax = it.buyPriceMax,
-                        buyPriceMaxDate = isoDate
-                    )
-                }.toList()
+                val cloudPrices = cloudSnapshots.asSequence()
+                    .filter { it.sellPriceMin > 0 && (nowMs - it.timestampMs <= 30 * 60 * 1000L) }
+                    .map {
+                        val isoDate = TradeCalculator.formatEpochToIso(it.timestampMs)
+                        MarketPrice(
+                            itemId = it.itemId,
+                            city = it.city,
+                            quality = 1,
+                            sellPriceMin = it.sellPriceMin,
+                            sellPriceMinDate = isoDate,
+                            buyPriceMax = it.buyPriceMax,
+                            buyPriceMaxDate = isoDate
+                        )
+                    }.toList()
 
                 // Live API prices take top priority and overwrite older cloud or cached market data
                 // Deduplicate strictly by (itemId, city, quality) so there is NEVER more than one price entry per city
@@ -1035,6 +1038,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 } else {
                     _uiState.value.marketPrices.ifEmpty {
                         val cached = prefs.getPriceSnapshots(server = _uiState.value.server)
+                            .filter { (nowMs - it.timestampMs) <= 30 * 60 * 1000L }
                         cached.asSequence().map {
                             val isoDate = TradeCalculator.formatEpochToIso(it.timestampMs)
                             MarketPrice(
