@@ -2128,7 +2128,7 @@ fun TradeOpportunityCard(
                 Spacer(modifier = Modifier.width(10.dp))
 
                 Text(
-                    text = opportunity.resource.nameDe,
+                    text = opportunity.resource.cleanNameDe,
                     fontWeight = FontWeight.ExtraBold,
                     fontSize = 18.sp,
                     color = MaterialTheme.colorScheme.primary,
@@ -6019,7 +6019,7 @@ fun ResourceCard(
             Spacer(modifier = Modifier.height(6.dp))
 
             Text(
-                text = effectiveResource.nameDe,
+                text = effectiveResource.cleanNameDe,
                 fontWeight = FontWeight.Bold,
                 fontSize = 13.sp,
                 maxLines = 1,
@@ -6163,7 +6163,7 @@ fun ResourceDetailContent(
             Spacer(modifier = Modifier.width(8.dp))
 
             Text(
-                text = resource.nameDe,
+                text = resource.cleanNameDe,
                 fontWeight = FontWeight.Bold,
                 style = MaterialTheme.typography.titleLarge
             )

@@ -27,6 +27,12 @@ data class AlbionResource(
     val description: String = "",
     val quality: Int = 1,
 ) {
+    val cleanNameDe: String
+        get() = stripTierFromName(nameDe)
+
+    val cleanNameEn: String
+        get() = stripTierFromName(nameEn)
+
     val fullId: String
         get() = if (enchantment > 0) "$id@$enchantment" else id
 
@@ -39,32 +45,6 @@ data class AlbionResource(
     val enchantmentText: String
         get() = if (enchantment > 0) ".$enchantment" else ""
 
-    val cleanNameDe: String
-        get() {
-            var s = nameDe.trim()
-            val prefixes = listOf("T$tier.$enchantment", "T$tier.", "T$tier", "T$tier ")
-            for (p in prefixes) {
-                if (s.startsWith(p, ignoreCase = true)) {
-                    s = s.substring(p.length).trimStart()
-                    break
-                }
-            }
-            return if (s.isNotBlank()) s else nameDe
-        }
-
-    val cleanNameEn: String
-        get() {
-            var s = nameEn.trim()
-            val prefixes = listOf("T$tier.$enchantment", "T$tier.", "T$tier", "T$tier ")
-            for (p in prefixes) {
-                if (s.startsWith(p, ignoreCase = true)) {
-                    s = s.substring(p.length).trimStart()
-                    break
-                }
-            }
-            return if (s.isNotBlank()) s else nameEn
-        }
-
     val qualityText: String
         get() = when (quality) {
             2 -> "Gut"
@@ -73,4 +53,19 @@ data class AlbionResource(
             5 -> "Meisterhaft"
             else -> "Normal"
         }
+
+    companion object {
+        fun stripTierFromName(rawName: String): String {
+            if (rawName.isBlank()) return rawName
+            var s = rawName.trim()
+
+            // Remove Tier/Stufe prefixes like "T4.1 ", "T4. ", "T4 ", "T4_ ", "T4 - ", "Stufe 4 ", "Tier 4 "
+            s = s.replace(Regex("^(T[1-8](\\.[0-4])?|Stufe\\s*[1-8](\\.[0-4])?|Tier\\s*[1-8](\\.[0-4])?)[\\s._-]+", RegexOption.IGNORE_CASE), "")
+
+            // Remove trailing "(T4.1)", "(T4)" or "[T4.1]"
+            s = s.replace(Regex("\\s*[(\\[]T[1-8](\\.[0-4])?[)\\]]$", RegexOption.IGNORE_CASE), "")
+
+            return s.trim().ifEmpty { rawName }
+        }
+    }
 }
