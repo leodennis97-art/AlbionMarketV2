@@ -99,7 +99,7 @@ class AppPreferences(private val context: Context) {
         set(value) = prefs.edit().putInt("overlay_width_dp", value.coerceIn(260, 480)).apply()
 
     var systemNotificationsEnabled: Boolean
-        get() = prefs.getBoolean("system_notifications_enabled", true)
+        get() = prefs.getBoolean("system_notifications_enabled", false)
         set(value) = prefs.edit().putBoolean("system_notifications_enabled", value).apply()
 
     var goldNotificationsEnabled: Boolean

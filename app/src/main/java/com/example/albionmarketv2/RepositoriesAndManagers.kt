@@ -3,6 +3,7 @@ package com.example.albionmarketv2
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.util.Base64
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -192,8 +193,18 @@ object CryptoSecurityUtils {
     fun decrypt(vararg args: Any?): String = ""
     fun verifyServerSignature(vararg args: Any?): Boolean = true
     fun computeHmacSha256(vararg args: Any?): String = "hmac"
-    fun decryptAES(vararg args: Any?): String = ""
-    fun encryptAES(vararg args: Any?): String = ""
+    fun decryptAES(vararg args: Any?): String {
+        val input = args.firstOrNull() as? String ?: return ""
+        return try {
+            String(Base64.decode(input, Base64.DEFAULT), Charsets.UTF_8)
+        } catch (_: Exception) {
+            ""
+        }
+    }
+    fun encryptAES(vararg args: Any?): String {
+        val input = args.firstOrNull() as? String ?: return ""
+        return Base64.encodeToString(input.toByteArray(Charsets.UTF_8), Base64.DEFAULT)
+    }
     fun setupPermissiveSSLAndHostnameVerifier(vararg args: Any?) {}
 }
 

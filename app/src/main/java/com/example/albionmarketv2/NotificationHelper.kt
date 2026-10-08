@@ -49,6 +49,7 @@ object NotificationHelper {
     ) {
         if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
+        if (!AppPreferences(context).systemNotificationsEnabled) return
 
         createNotificationChannel(context)
 
@@ -96,9 +97,8 @@ object NotificationHelper {
         if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
 
-        createNotificationChannel(context)
-
         val prefs = AppPreferences(context)
+        if (!prefs.systemNotificationsEnabled) return
         val botName = prefs.aiBotName.ifBlank { "AlbionBot" }
         val numberFormat = NumberFormat.getNumberInstance(Locale.GERMANY)
 
@@ -199,7 +199,8 @@ object NotificationHelper {
         if (!isUserLoggedInAndLicensed(context)) return
         if (isDeviceOrAppLocked(context)) return
 
-        createNotificationChannel(context)
+        val prefs = AppPreferences(context)
+        if (!prefs.systemNotificationsEnabled || !prefs.goldNotificationsEnabled) return
 
         val numberFormat = NumberFormat.getNumberInstance(Locale.GERMANY)
         val signStr = if (netProfitSilver >= 0) "+" else ""
