@@ -1,6 +1,6 @@
-﻿• Version 3.4.0 (Build 3602) Release
+﻿• Version 3.5.0 (Build 3505) Release
 • Branding: DataPro - Market Companion (Unofficial)
-• Neues hochauflösendes Vektor-Logo & Icon
+• Neues Feature: Floating Button für Stadt-Routen & Zielnavigation (Laufwege in Echtzeit)
+• Verbesserte Kategorien-Funktionen & Feineinstellung der Preise (Premium Steuer-Modus, adaptive Spreads)
 • 24/7 Cloud-Marktsynchronisation & Performance-Optimierungen
-• Exakte Preise des jeweils günstigsten Auktionshaus-Angebots
 • Vollständige Einhaltung aller Google Play Richtlinien
