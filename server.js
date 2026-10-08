@@ -735,15 +735,9 @@ app.get(['/api/download/token', '/download/token'], (req, res) => {
     });
 });
 
-// High-End Protected Streaming APK Download with Rate-Limiting & Memory Overflow Protection
+// Direct High-Performance Streaming APK Download with Rate-Limiting & Memory Overflow Protection
 app.get(['/download', '/download/', '/download/DataPro.apk', '/download/app-update.apk', '/download/latest.apk', '/download/latest', '/download/app'], (req, res) => {
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
-    const token = req.query.token;
-    const adminKey = req.query.key || req.query.adminKey || req.headers['x-admin-key'];
-
-    // 1. Verification: Either valid cryptographic signature or Admin-Key bypass
-    const isValidToken = token && verifySignedDownloadToken(token);
-    const isAdmin = adminKey === ADMIN_API_KEY;
 
     // Check rate limit: max 1000 downloads per hour per IP
     if (isRateLimited(downloadRateLimiter, ip, 1000, 3600000)) {
@@ -751,20 +745,7 @@ app.get(['/download', '/download/', '/download/DataPro.apk', '/download/app-upda
         return res.status(429).send(`
             <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
                 <h2>⚠️ Download-Limit erreicht</h2>
-                <p>Aus Sicherheitsgründen sind nur maximal 6 Downloads pro Stunde erlaubt. Bitte warte einige Minuten.</p>
-            </html>
-        `);
-    }
-
-    // High-End Fallback: If no token was provided via direct link, generate one-time access if under limit
-    if (!isValidToken && !isAdmin && !token) {
-        // Direct web browser download allowed under strict rate limiter
-    } else if (!isValidToken && !isAdmin) {
-        return res.status(403).send(`
-            <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
-                <h2>⛔ Ungültiger oder abgelaufener Download-Link</h2>
-                <p>Der Download-Link ist abgelaufen (Gültigkeit: 15 Minuten) oder die Signatur ist ungültig.</p>
-                <a href="/" style="color:#38bdf8;">Zurück zur Startseite</a>
+                <p>Aus Sicherheitsgründen sind zu viele Anfragen von dieser IP-Adresse eingegangen. Bitte warte einige Minuten.</p>
             </html>
         `);
     }
@@ -3181,7 +3162,41 @@ app.post('/admin/login', express.urlencoded({ extended: true }), (req, res) => {
     return res.redirect('/admin?error=1');
 });
 
-// Admin Dashboard HTML Page with License Generator (15€ - 250€)
+// High-End API Endpoint to fetch full Dashboard state in JSON format for live AJAX background syncing
+app.get('/api/admin/dashboard-data', requireAdminAuth, (req, res) => {
+    const nowTime = Date.now();
+    const onlineDevicesCount = registeredDevices.filter(d => d.lastSeen && (nowTime - new Date(d.lastSeen).getTime() < 120000)).length;
+
+    // Revenue calculation
+    const revenueMap = { '1m': 15, '3m': 30, '6m': 50, '12m': 100, 'lifetime': 250 };
+    const totalEstRevenue = generatedLicenses.reduce((acc, l) => acc + (revenueMap[l.tier] || 0), 0);
+
+    res.json({
+        serverVersion: CURRENT_SERVER_VERSION,
+        tunnelUrl: getActiveTunnelUrl(),
+        onlineDevicesCount,
+        totalInformationCount,
+        registeredUsersCount: registeredUsers.length,
+        registeredDevicesCount: registeredDevices.length,
+        generatedLicensesCount: generatedLicenses.length,
+        totalEstRevenueEuro: totalEstRevenue,
+        serverUptimeSeconds: Math.floor(process.uptime()),
+        memoryUsageMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        hourlyData24h,
+        licenses: generatedLicenses,
+        users: registeredUsers.map(u => ({
+            username: u.username,
+            isAdmin: !!u.isAdmin,
+            licenseExpiresAt: u.licenseExpiresAt,
+            createdAt: u.createdAt
+        })),
+        devices: registeredDevices,
+        remoteConfig: globalRemoteConfig,
+        telemetryLogs: deviceTelemetryLogs.slice(-50)
+    });
+});
+
+// High-End Executive Admin & Control Center Portal
 app.get(['/admin'], (req, res) => {
     const cookieHeader = req.headers.cookie || '';
     const match = cookieHeader.match(/admin_auth=([^;]+)/);
@@ -3191,17 +3206,33 @@ app.get(['/admin'], (req, res) => {
     if (clientToken !== expectedToken) {
         return res.status(401).send(`
             <!DOCTYPE html>
-            <html lang="de" style="background:#0f172a;color:#f8fafc;font-family:sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;">
-            <head><title>Admin Authentifizierung erforderlich</title><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-            <body style="text-align:center;padding:20px;">
-                <div style="background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155;max-width:400px;margin:auto;box-shadow:0 10px 30px rgba(0,0,0,0.5);">
-                    <h2 style="color:#38bdf8;margin-top:0;">🔒 Admin Control Center</h2>
-                    <p style="color:#94a3b8;font-size:14px;">Zugriff nur für autorisierte Administratoren.</p>
-                    ${req.query.error ? '<p style="color:#ef4444;font-size:14px;font-weight:bold;">❌ Falsche Zugangsdaten!</p>' : ''}
-                    <form method="POST" action="/admin/login" style="margin-top:20px;">
-                        <input type="text" name="username" placeholder="Benutzername" style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#0f172a;border:1px solid #475569;color:white;margin-bottom:14px;" required autofocus>
-                        <input type="password" name="password" placeholder="Passwort" style="width:100%;box-sizing:border-box;padding:12px;border-radius:8px;background:#0f172a;border:1px solid #475569;color:white;margin-bottom:14px;" required>
-                        <button type="submit" style="width:100%;padding:12px;border-radius:8px;background:#3b82f6;color:white;border:none;font-weight:bold;cursor:pointer;">Einloggen</button>
+            <html lang="de" style="background:#080d1a;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;">
+            <head>
+                <title>DataPro — Executive Admin Portal Login</title>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { background: radial-gradient(circle at 50% 30%, #1e293b, #080d1a); font-family: 'Segoe UI', system-ui, sans-serif; }
+                    .login-card { background: rgba(30, 41, 59, 0.75); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 24px; width: 100%; max-width: 380px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); text-align: center; }
+                    .badge-icon { width: 64px; height: 64px; background: linear-gradient(135deg, #0284c7, #3b82f6); border-radius: 18px; display: inline-flex; align-items: center; justify-content: center; font-size: 32px; margin-bottom: 16px; box-shadow: 0 0 25px rgba(56, 189, 248, 0.4); }
+                    h2 { color: #38bdf8; margin: 0 0 8px 0; font-size: 24px; font-weight: 800; }
+                    p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+                    input { width: 100%; box-sizing: border-box; padding: 14px; border-radius: 12px; background: #0f172a; border: 1px solid #334155; color: white; margin-bottom: 14px; font-size: 14px; outline: none; transition: border-color 0.2s; }
+                    input:focus { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.3); }
+                    button { width: 100%; padding: 14px; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #2563eb); color: white; border: none; font-weight: bold; font-size: 15px; cursor: pointer; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); transition: transform 0.1s; }
+                    button:active { transform: scale(0.98); }
+                    .error-msg { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #fca5a5; padding: 10px; border-radius: 10px; font-size: 13px; margin-bottom: 16px; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="login-card">
+                    <div class="badge-icon">🛡️</div>
+                    <h2>DataPro Admin Portal</h2>
+                    <p>Militärisch gesicherte Kontrollzentrale</p>
+                    ${req.query.error ? '<div class="error-msg">❌ Zugriffsverweigerung: Ungültige Zugangsdaten</div>' : ''}
+                    <form method="POST" action="/admin/login">
+                        <input type="text" name="username" placeholder="Administrator Name" required autofocus autocomplete="off">
+                        <input type="password" name="password" placeholder="Passwort" required>
+                        <button type="submit">🔒 Authentifizieren & Anmelden</button>
                     </form>
                 </div>
             </body>
@@ -3214,180 +3245,459 @@ app.get(['/admin'], (req, res) => {
     const onlineDevicesCount = registeredDevices.filter(d => d.lastSeen && (nowTime - new Date(d.lastSeen).getTime() < 120000)).length;
     const maxItems = Math.max(...hourlyData24h.map(h => h.itemsCollected), 100);
 
+    // Initial Revenue Calculation
+    const revenueMap = { '1m': 15, '3m': 30, '6m': 50, '12m': 100, 'lifetime': 250 };
+    const initialEstRevenue = generatedLicenses.reduce((acc, l) => acc + (revenueMap[l.tier] || 0), 0);
+
     res.send(`<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataPro - Admin, License Generator & Tunnel Dashboard (v${CURRENT_SERVER_VERSION})</title>
+    <title>DataPro — High-End Executive Control Center (v${CURRENT_SERVER_VERSION})</title>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0f172a; color: #f8fafc; margin: 0; padding: 24px; }
-        .container { max-width: 1100px; margin: 0 auto; }
-        .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); border: 1px solid #334155; }
-        h1, h2, h3 { color: #38bdf8; margin-top: 0; }
-        .badge { background: #10b981; color: white; padding: 6px 12px; border-radius: 8px; font-weight: bold; display: inline-block; }
-        .url-box { background: #0f172a; padding: 12px 16px; border-radius: 8px; border: 1px solid #3b82f6; font-family: monospace; font-size: 16px; color: #38bdf8; word-break: break-all; margin: 12px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #334155; font-size: 14px; }
-        th { color: #94a3b8; }
-        .btn { background: #3b82f6; color: white; border: none; padding: 8px 14px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        .btn:hover { background: #2563eb; }
-        .btn-danger { background: #ef4444; }
-        .btn-danger:hover { background: #dc2626; }
-        .input, select { background: #0f172a; border: 1px solid #475569; color: white; padding: 8px 12px; border-radius: 6px; margin-right: 8px; }
-        .stat-box { display: flex; gap: 20px; margin-top: 16px; }
-        .stat-card { background: #0f172a; flex: 1; padding: 16px; border-radius: 12px; border: 1px solid #334155; text-align: center; }
-        .stat-number { font-size: 28px; font-weight: bold; color: #38bdf8; margin-top: 8px; }
-        .chart-container { display: flex; align-items: flex-end; height: 180px; gap: 6px; margin-top: 20px; padding-top: 20px; border-bottom: 2px solid #334155; }
+        :root {
+            --bg: #080d1a;
+            --card: rgba(18, 26, 43, 0.85);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #38bdf8;
+            --accent: #a855f7;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #f8fafc;
+            --subtext: #94a3b8;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.12), transparent 50%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.08), transparent 40%);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0;
+            padding: 24px;
+            min-height: 100vh;
+        }
+        .container { max-width: 1280px; margin: 0 auto; }
+
+        /* Top Navigation Header */
+        .top-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .title-group { display: flex; align-items: center; gap: 14px; }
+        .logo-glow {
+            width: 48px; height: 48px;
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+        }
+        h1 { margin: 0; font-size: 26px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; }
+        .server-status-pill {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success);
+            color: #34d399; padding: 6px 14px; border-radius: 30px; font-size: 13px; font-weight: 700;
+        }
+        .pulse-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+
+        /* Glass Cards */
+        .glass-card {
+            background: var(--card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Stats Grid */
+        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .stat-card {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--primary); }
+        .stat-card.success::before { background: var(--success); }
+        .stat-card.purple::before { background: var(--accent); }
+        .stat-card.warning::before { background: var(--warning); }
+
+        .stat-label { font-size: 12px; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-val { font-size: 32px; font-weight: 900; color: #ffffff; margin-top: 8px; }
+
+        /* Navigation Tabs Bar */
+        .nav-tabs {
+            display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 24px;
+            border-bottom: 1px solid var(--card-border);
+        }
+        .nav-tab {
+            background: rgba(30, 41, 59, 0.5); border: 1px solid var(--card-border);
+            color: var(--subtext); padding: 12px 20px; border-radius: 12px;
+            font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s; whitespace: nowrap;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .nav-tab:hover { background: rgba(56, 189, 248, 0.1); color: var(--text); }
+        .nav-tab.active { background: linear-gradient(135deg, #0284c7, #2563eb); color: #ffffff; border-color: transparent; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* Tables & Inputs */
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        th { text-align: left; padding: 12px 16px; font-size: 12px; text-transform: uppercase; color: var(--subtext); border-bottom: 1px solid var(--card-border); font-weight: 800; }
+        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); vertical-align: middle; }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+        .btn {
+            background: linear-gradient(135deg, #0284c7, #2563eb); color: white; border: none;
+            padding: 10px 18px; border-radius: 10px; font-size: 13px; font-weight: 700;
+            cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.5); }
+        .btn-danger { background: linear-gradient(135deg, #dc2626, #ef4444); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        .btn-success { background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-purple { background: linear-gradient(135deg, #7c3aed, #a855f7); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3); }
+        .btn-sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+
+        .input, select, textarea {
+            background: rgba(15, 23, 42, 0.8); border: 1px solid #334155; color: white;
+            padding: 10px 14px; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.2s;
+        }
+        .input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 10px rgba(56, 189, 248, 0.2); }
+
+        .url-box {
+            background: #0f172a; padding: 14px; border-radius: 12px; border: 1px solid rgba(56, 189, 248, 0.3);
+            font-family: monospace; font-size: 15px; color: var(--primary); word-break: break-all;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+        }
+
+        /* Toast Notifications */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast {
+            background: #1e293b; border: 1px solid var(--primary); color: white;
+            padding: 14px 20px; border-radius: 12px; font-size: 14px; font-weight: bold;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideIn 0.3s ease; display: flex; align-items: center; gap: 10px;
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Chart */
+        .chart-container { display: flex; align-items: flex-end; height: 160px; gap: 6px; margin-top: 20px; padding-top: 20px; border-bottom: 2px solid #334155; }
         .chart-bar-wrapper { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
-        .chart-bar { width: 100%; background: linear-gradient(to top, #3b82f6, #38bdf8); border-radius: 4px 4px 0 0; }
-        .chart-label { font-size: 10px; color: #94a3b8; margin-top: 6px; transform: rotate(-45deg); }
+        .chart-bar { width: 100%; background: linear-gradient(to top, #0284c7, #38bdf8); border-radius: 4px 4px 0 0; transition: height 0.5s; }
+        .chart-label { font-size: 10px; color: var(--subtext); margin-top: 6px; transform: rotate(-45deg); }
     </style>
 </head>
 <body>
+
+    <div id="toast-container"></div>
+
     <div class="container">
-        <div class="card">
-            <h1>🛡️ DataPro Central Admin & Tunnel Dashboard</h1>
-            <p>Version: <span class="badge">v${CURRENT_SERVER_VERSION}</span> | Status: <span class="badge" style="background:#10b981;">🟢 Live & Verbunden</span></p>
-
-            <h3>🌍 Aktive Tunnel-URL (Für alle APK-Geräte & Cloud-Backup):</h3>
-            <div class="url-box">${tunnelUrl}</div>
-
-            <div style="margin-top: 16px; padding: 16px; background: #0f172a; border-radius: 12px; border: 1px solid #334155; display: flex; align-items: center; justify-content: space-between;">
+        <!-- Top Executive Header -->
+        <div class="top-header">
+            <div class="title-group">
+                <div class="logo-glow">🛡️</div>
                 <div>
-                    <strong>📱 Neueste APK Version v${CURRENT_SERVER_VERSION} bereitgestellt</strong>
-                    <div style="font-size: 12px; color: #94a3b8; margin-top: 4px;">Direkt herunterladen und auf Android-Geräten installieren.</div>
+                    <h1>DataPro Executive Admin</h1>
+                    <div style="font-size: 13px; color: var(--subtext); margin-top: 2px;">DataPro Control & Tunnel Dashboard • military-grade</div>
                 </div>
-                <a href="/download" class="btn" style="background: #10b981; text-decoration: none; padding: 10px 20px; font-size: 14px;">📥 APK herunterladen (v${CURRENT_SERVER_VERSION})</a>
             </div>
-
-            <div class="stat-box">
-                <div class="stat-card">
-                    <div>🟢 Gerade online (App aktiv)</div>
-                    <div class="stat-number" style="color: #34d399;">${onlineDevicesCount}</div>
-                </div>
-                <div class="stat-card">
-                    <div>📊 Gesamte Informationen (API geholt)</div>
-                    <div class="stat-number">${totalInformationCount.toLocaleString('de-DE')}</div>
-                </div>
-                <div class="stat-card">
-                    <div>🔑 Generierte Lizenzen</div>
-                    <div class="stat-number">${generatedLicenses.length}</div>
-                </div>
-                <div class="stat-card">
-                    <div>📱 Registrierte Geräte</div>
-                    <div class="stat-number">${registeredDevices.length}</div>
-                </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="server-status-pill"><div class="pulse-dot"></div> 🟢 LIVE AUTO-SYNC (5s)</div>
+                <span style="background: rgba(255,255,255,0.06); padding: 8px 14px; border-radius: 12px; font-size: 13px; font-weight: bold;">v${CURRENT_SERVER_VERSION}</span>
             </div>
         </div>
 
-        <div class="card">
-            <h2>🔑 Lizenz-Generator (Preismodelle: 15€ - 250€)</h2>
-            <div style="margin-bottom: 16px; display: flex; gap: 10px; align-items: center;">
-                <select id="licenseTier" class="input">
-                    <option value="1m">1 Monat — 15 €</option>
-                    <option value="3m">3 Monate — 30 €</option>
-                    <option value="6m">6 Monate — 50 €</option>
-                    <option value="12m">12 Monate — 100 €</option>
-                    <option value="lifetime">👑 Lifetime — 250 €</option>
-                </select>
-                <input type="text" id="customerNote" class="input" placeholder="Kundennotiz / E-Mail">
-                <button class="btn" onclick="generateLicense()" style="background: #8b5cf6;">Lizenz generieren</button>
+        <!-- Top Stat Cards -->
+        <div class="stat-grid">
+            <div class="stat-card success">
+                <div class="stat-label">🟢 Online Active Handys</div>
+                <div class="stat-val" id="statOnlineCount" style="color: #34d399;">${onlineDevicesCount}</div>
             </div>
-            <table>
-                <thead>
-                    <tr><th>Lizenzschlüssel</th><th>Tarif</th><th>Preis</th><th>Notiz</th><th>Erstellt</th><th>Aktionen</th></tr>
-                </thead>
-                <tbody>
-                    ${generatedLicenses.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:#94a3b8;">Noch keine Lizenzen generiert.</td></tr>' :
-                    generatedLicenses.map(l => `<tr>
-                        <td><code>${l.key}</code></td>
-                        <td><span class="badge" style="background:#8b5cf6;">${l.tier.toUpperCase()}</span></td>
-                        <td style="color:#10b981; font-weight:bold;">${l.price}</td>
-                        <td>${l.customerNote}</td>
-                        <td>${new Date(l.createdAt).toLocaleDateString()}</td>
-                        <td>
-                            <button class="btn btn-danger" onclick="deleteLicense('${l.key}')">Löschen</button>
-                        </td>
-                    </tr>`).join('')}
-                </tbody>
-            </table>
+            <div class="stat-card">
+                <div class="stat-label">📊 API Market Queries</div>
+                <div class="stat-val" id="statApiCount">${totalInformationCount.toLocaleString('de-DE')}</div>
+            </div>
+            <div class="stat-card purple">
+                <div class="stat-label">🔑 Aktive Lizenzen</div>
+                <div class="stat-val" id="statLicenseCount" style="color: #c084fc;">${generatedLicenses.length}</div>
+            </div>
+            <div class="stat-card warning">
+                <div class="stat-label">📱 Registrierte HWIDs</div>
+                <div class="stat-val" id="statDeviceCount" style="color: #fbbf24;">${registeredDevices.length}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">💶 Geschätzter Lizenz-Umsatz</div>
+                <div class="stat-val" id="statRevenueEuro" style="color: #38bdf8;">${initialEstRevenue} €</div>
+            </div>
         </div>
 
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-                <h2 style="margin:0;">👤 Account- & Anmelde-Übersicht (${registeredUsers.length})</h2>
-                <div style="display:flex; gap:10px; align-items:center;">
-                    <input type="text" id="userSearch" class="input" onkeyup="filterUserTable()" placeholder="🔍 Benutzer suchen..." style="width: 240px;">
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="nav-tab active" onclick="switchTab('overview')">📊 Dashboard & Traffic</div>
+            <div class="nav-tab" onclick="switchTab('licenses')">🔑 Lizenz-Zentrale (${generatedLicenses.length})</div>
+            <div class="nav-tab" onclick="switchTab('users')">👤 Accounts (${registeredUsers.length})</div>
+            <div class="nav-tab" onclick="switchTab('devices')">📱 HWID Anti-Cheat (${registeredDevices.length})</div>
+            <div class="nav-tab" onclick="switchTab('broadcast')">📢 In-App Broadcast Alerts</div>
+            <div class="nav-tab" onclick="switchTab('remoteConfig')">🎛️ Remote-Config & System</div>
+        </div>
+
+        <!-- TAB 1: OVERVIEW & TRAFFIC -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="glass-card">
+                <h3 style="margin-top:0; color: var(--primary);">🌍 Active High-Performance Tunnel Connection</h3>
+                <div class="url-box">
+                    <span id="tunnelUrlText">${tunnelUrl}</span>
+                    <button class="btn btn-sm" onclick="copyText(document.getElementById('tunnelUrlText').innerText, 'Tunnel URL kopiert!')">📋 Kopieren</button>
+                </div>
+
+                <div style="margin-top: 16px; padding: 16px; background: rgba(15, 23, 42, 0.6); border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+                    <div>
+                        <strong>📱 Release APK v${CURRENT_SERVER_VERSION} Bereitgestellt</strong>
+                        <div style="font-size: 13px; color: var(--subtext); margin-top: 4px;">Direkter Download für Android-Clients über den Server.</div>
+                    </div>
+                    <a href="/download" class="btn btn-success" style="text-decoration:none;">📥 APK Downloaden (v${CURRENT_SERVER_VERSION})</a>
                 </div>
             </div>
-            <div style="margin-bottom: 16px; display:flex; gap:10px; flex-wrap:wrap;">
-                <input type="text" id="newUsername" class="input" placeholder="Neuer Benutzername">
-                <input type="password" id="newPassword" class="input" placeholder="Passwort">
-                <button class="btn" onclick="createUser()">Benutzer erstellen</button>
-            </div>
-            <table id="userTable">
-                <thead>
-                    <tr><th>Benutzername</th><th>Lizenzstatus</th><th>Verknüpfte Geräte (HWID)</th><th>Ablaufdatum</th><th>Aktionen</th></tr>
-                </thead>
-                <tbody>
-                    ${registeredUsers.map(u => {
-                        const userDevices = registeredDevices.filter(d => d.username && d.username.toLowerCase() === u.username.toLowerCase());
-                        const devicesStr = userDevices.length > 0 ? userDevices.map(d => `<code>${d.hwId.substring(0, 10)}...</code> (${d.deviceName})`).join(', ') : '<em style="color:#64748b;">Kein Gerät verbunden</em>';
-                        const isExpired = u.licenseExpiresAt && new Date(u.licenseExpiresAt) < new Date() && !u.isAdmin;
-                        const licBadge = u.isAdmin
-                            ? '<span class="badge" style="background:#8b5cf6;">👑 Admin</span>'
-                            : (isExpired ? '<span class="badge" style="background:#ef4444;">🔴 Abgelaufen</span>' : '<span class="badge" style="background:#10b981;">🟢 Aktiv</span>');
-                        return `<tr>
-                            <td><strong>${u.username}</strong></td>
-                            <td>${licBadge}</td>
-                            <td>${devicesStr}</td>
-                            <td>${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString()}</td>
-                            <td>
-                                ${!u.isAdmin ? `<button class="btn btn-danger" onclick="deleteUser('${u.username}')">Löschen</button>` : '<em>Geschützt</em>'}
-                            </td>
-                        </tr>`;
+
+            <div class="glass-card">
+                <h3 style="margin-top:0; color: var(--primary);">📈 24-Stunden Markt-Abfragen Diagramm</h3>
+                <div class="chart-container" id="hourlyChartContainer">
+                    ${hourlyData24h.map(h => {
+                        const hPercent = Math.min(100, Math.max(5, (h.itemsCollected / maxItems) * 100));
+                        return `<div class="chart-bar-wrapper" title="${h.hour}: ${h.itemsCollected} Abfragen">
+                            <div class="chart-bar" style="height: ${hPercent}%;"></div>
+                            <div class="chart-label">${h.hour}</div>
+                        </div>`;
                     }).join('')}
-                </tbody>
-            </table>
-        </div>
-
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-                <h2 style="margin:0;">📱 Full Device Management (${registeredDevices.length})</h2>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" onclick="triggerGlobalUpdate()" style="background:#8b5cf6; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;">🚀 Alle (${registeredDevices.length}) Geräte jetzt auf v1.3.15 aktualisieren</button>
-                    <button class="btn" onclick="unbanAllDevices()" style="background:#10b981; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;">🟢 Alle Entsperren</button>
                 </div>
             </div>
-            <table>
-                <thead>
-                    <tr><th>HWID</th><th>Gerätename</th><th>Version</th><th>Status</th><th>Aktionen</th></tr>
-                </thead>
-                <tbody>
-                    ${registeredDevices.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:#94a3b8;">Keine Geräte verbunden.</td></tr>' :
-                    registeredDevices.map(d => {
-                        const isBanned = d.bannedUntil && new Date(d.bannedUntil) > new Date() && !d.unbanned;
-                        const statusBadge = isBanned
-                            ? `<span class="badge" style="background:#ef4444;">🔴 Gesperrt (${d.banReason || 'Verstoß'})</span>`
-                            : (d.unbanned ? `<span class="badge" style="background:#10b981;">🟢 Aktiv (Entbannt)</span>` : `<span class="badge" style="background:#10b981;">🟢 Aktiv</span>`);
-                        return `<tr>
-                            <td><code>${d.hwId}</code></td>
-                            <td>${d.deviceName}</td>
-                            <td><span class="badge" style="background:${d.appVersion === CURRENT_SERVER_VERSION ? '#10b981' : '#f59e0b'};">${d.appVersion}</span></td>
-                            <td>${statusBadge}</td>
-                            <td>
-                                ${isBanned ? `<button class="btn" onclick="unbanDevice('${d.hwId}')">Entsperren</button>` : `<button class="btn btn-danger" onclick="banDevice('${d.hwId}')">Sperren</button>`}
-                                <button class="btn btn-danger" onclick="deleteDevice('${d.hwId}')" style="margin-left: 6px;">Löschen</button>
-                            </td>
-                        </tr>`;
-                    }).join('')}
-                </tbody>
-            </table>
+
+            <div class="glass-card">
+                <h3 style="margin-top:0; color: var(--primary);">⚡ Schnelle System-Befehle</h3>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    <button class="btn btn-purple" onclick="triggerGlobalUpdate()">🚀 Globales OTA Update an alle Handys senden</button>
+                    <button class="btn btn-success" onclick="unbanAllDevices()">🟢 Alle HWIDs entsperren</button>
+                </div>
+            </div>
         </div>
+
+        <!-- TAB 2: LICENSES MANAGEMENT -->
+        <div id="tab-licenses" class="tab-content">
+            <div class="glass-card">
+                <h2 style="margin-top:0; color: var(--primary);">🔑 Lizenz Generator (15€ - 250€)</h2>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 20px;">
+                    <select id="licenseTier" class="input">
+                        <option value="1m">1 Monat — 15 €</option>
+                        <option value="3m">3 Monate — 30 €</option>
+                        <option value="6m">6 Monate — 50 €</option>
+                        <option value="12m">12 Monate — 100 €</option>
+                        <option value="lifetime">👑 Lifetime — 250 €</option>
+                    </select>
+                    <input type="text" id="customerNote" class="input" placeholder="Kunden-Name / E-Mail" style="flex:1; min-width: 200px;">
+                    <button class="btn btn-purple" onclick="generateLicense()">✨ Lizenz Generieren</button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>Lizenzschlüssel</th><th>Tarif</th><th>Preis</th><th>Kundennotiz</th><th>Erstellt am</th><th>Aktionen</th></tr>
+                    </thead>
+                    <tbody id="licensesTableBody">
+                        ${generatedLicenses.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:var(--subtext);">Noch keine Lizenzen generiert.</td></tr>' :
+                        generatedLicenses.map(l => `<tr>
+                            <td><code style="color:var(--primary); font-size:15px; font-weight:bold;">${l.key}</code></td>
+                            <td><span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">${l.tier.toUpperCase()}</span></td>
+                            <td style="color:var(--success); font-weight:bold; font-size:15px;">${l.price}</td>
+                            <td>${l.customerNote || '<em style="color:#64748b;">Keine Notiz</em>'}</td>
+                            <td>${new Date(l.createdAt).toLocaleDateString('de-DE')}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="copyDeliveryMessage('${l.key}', '${l.tier}', '${l.customerNote}')">📋 Kunden-Text Kopieren</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteLicense('${l.key}')">🗑️ Löschen</button>
+                            </td>
+                        </tr>`).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 3: USER ACCOUNTS -->
+        <div id="tab-users" class="tab-content">
+            <div class="glass-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 20px;">
+                    <h2 style="margin:0; color: var(--primary);">👤 Account- & Lizenzverwaltung</h2>
+                    <input type="text" id="userSearch" class="input" onkeyup="filterUserTable()" placeholder="🔍 Benutzer suchen..." style="width: 260px;">
+                </div>
+
+                <div style="background: rgba(15, 23, 42, 0.6); padding: 16px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.06); margin-bottom: 20px; display:flex; gap:12px; flex-wrap:wrap;">
+                    <input type="text" id="newUsername" class="input" placeholder="Neuer Benutzername" style="flex:1;">
+                    <input type="password" id="newPassword" class="input" placeholder="Passwort" style="flex:1;">
+                    <button class="btn" onclick="createUser()">➕ Account Erstellen</button>
+                </div>
+
+                <table id="userTable">
+                    <thead>
+                        <tr><th>Benutzername</th><th>Lizenzstatus</th><th>Verknüpfte HWID Geräte</th><th>Ablaufdatum</th><th>Aktionen</th></tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        ${registeredUsers.map(u => {
+                            const userDevices = registeredDevices.filter(d => d.username && d.username.toLowerCase() === u.username.toLowerCase());
+                            const devicesStr = userDevices.length > 0
+                                ? userDevices.map(d => `<code style="color:var(--primary);">${d.hwId.substring(0, 8)}...</code> (${d.deviceName})`).join(', ')
+                                : '<em style="color:#64748b;">Kein Gerät verbunden</em>';
+                            const isExpired = u.licenseExpiresAt && new Date(u.licenseExpiresAt) < new Date() && !u.isAdmin;
+                            const licBadge = u.isAdmin
+                                ? '<span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">👑 Admin</span>'
+                                : (isExpired ? '<span style="background:rgba(239, 68, 68, 0.2); color:#fca5a5; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🔴 Abgelaufen</span>' : '<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Aktiv</span>');
+                            return `<tr>
+                                <td><strong>${u.username}</strong></td>
+                                <td>${licBadge}</td>
+                                <td>${devicesStr}</td>
+                                <td>${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString('de-DE')}</td>
+                                <td>
+                                    ${!u.isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.username}')">🗑️ Löschen</button>` : '<em style="color:#64748b;">Geschützt</em>'}
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 4: HWID Anti-Cheat & Device Management -->
+        <div id="tab-devices" class="tab-content">
+            <div class="glass-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom: 20px;">
+                    <h2 style="margin:0; color: var(--primary);">📱 HWID Anti-Cheat & Gerätesteuerung</h2>
+                    <div style="display:flex; gap:10px;">
+                        <button class="btn btn-purple" onclick="triggerGlobalUpdate()">🚀 Alle HWIDs Auf v${CURRENT_SERVER_VERSION} Updaten</button>
+                        <button class="btn btn-success" onclick="unbanAllDevices()">🟢 Alle Entsperren</button>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr><th>HWID Code</th><th>Gerätename</th><th>APK Version</th><th>Sicherheits-Status</th><th>Aktionen</th></tr>
+                    </thead>
+                    <tbody id="devicesTableBody">
+                        ${registeredDevices.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:var(--subtext);">Keine HWID-Geräte registriert.</td></tr>' :
+                        registeredDevices.map(d => {
+                            const isBanned = d.bannedUntil && new Date(d.bannedUntil) > new Date() && !d.unbanned;
+                            const statusBadge = isBanned
+                                ? `<span style="background:rgba(239, 68, 68, 0.2); color:#fca5a5; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🔴 Gesperrt (${d.banReason || 'Verstoß'})</span>`
+                                : (d.unbanned ? `<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Entsperrt</span>` : `<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Aktiv</span>`);
+                            return `<tr>
+                                <td><code style="color:var(--primary); font-size:13px;">${d.hwId}</code></td>
+                                <td><strong>${d.deviceName}</strong></td>
+                                <td><span style="background:rgba(56, 189, 248, 0.15); color:var(--primary); border:1px solid var(--primary); padding:2px 8px; border-radius:6px; font-weight:bold; font-size:12px;">${d.appVersion}</span></td>
+                                <td>${statusBadge}</td>
+                                <td>
+                                    ${isBanned
+                                        ? `<button class="btn btn-success btn-sm" onclick="unbanDevice('${d.hwId}')">🟢 Entsperren</button>`
+                                        : `<button class="btn btn-danger btn-sm" onclick="banDevice('${d.hwId}')">🛑 Sperren</button>`
+                                    }
+                                    <button class="btn btn-danger btn-sm" onclick="deleteDevice('${d.hwId}')" style="margin-left:6px;">🗑️ Löschen</button>
+                                </td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TAB 5: BROADCAST ALERTS -->
+        <div id="tab-broadcast" class="tab-content">
+            <div class="glass-card">
+                <h2 style="margin-top:0; color: var(--primary);">📢 In-App Direct Broadcast Alerts</h2>
+                <p style="color: var(--subtext); font-size:14px;">Sende Sofort-Nachrichten als Popup auf den Bildschirm aller aktiven Android-Geräte.</p>
+
+                <div style="display:flex; flex-direction:column; gap:14px; max-width:600px; margin-top:20px;">
+                    <div>
+                        <label style="font-size:13px; font-weight:bold; color:var(--subtext); display:block; margin-bottom:6px;">TITEL DER NACHRICHT</label>
+                        <input type="text" id="alertTitle" class="input" placeholder="z.B. 🔥 Server-Wartung & Neues Release" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:13px; font-weight:bold; color:var(--subtext); display:block; margin-bottom:6px;">NACHRICHTENTEXT</label>
+                        <textarea id="alertMessage" class="input" rows="4" placeholder="z.B. Es steht ein neues Markt-Update bereit. Bitte starte die App neu!" style="width:100%; font-family:inherit;"></textarea>
+                    </div>
+                    <button class="btn btn-purple" onclick="sendBroadcastAlert()" style="padding:14px; justify-content:center; font-size:15px;">📢 Broadcast An Alle Online Handys Senden</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 6: REMOTE CONFIG -->
+        <div id="tab-remoteConfig" class="tab-content">
+            <div class="glass-card">
+                <h2 style="margin-top:0; color: var(--primary);">🎛️ Dynamic Remote Config & Wartungsmodus</h2>
+                <div style="display:flex; flex-direction:column; gap:16px; max-width:600px; margin-top:20px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(15,23,42,0.6); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.06);">
+                        <div>
+                            <strong>🚧 Wartungsmodus (Maintenance Mode)</strong>
+                            <div style="font-size:12px; color:var(--subtext);">Sperrt vorübergehend die Nutzung der Android-App für Nutzer.</div>
+                        </div>
+                        <input type="checkbox" id="cfgMaintenance" ${globalRemoteConfig && globalRemoteConfig.maintenanceMode ? 'checked' : ''} style="width:22px; height:22px; cursor:pointer;">
+                    </div>
+                    <div>
+                        <label style="font-size:13px; font-weight:bold; color:var(--subtext); display:block; margin-bottom:6px;">MINDEST-APP-VERSION ERFORDERLICH</label>
+                        <input type="text" id="cfgMinVersion" class="input" value="${globalRemoteConfig ? globalRemoteConfig.minAppVersion || CURRENT_SERVER_VERSION : CURRENT_SERVER_VERSION}" style="width:100%;">
+                    </div>
+                    <div>
+                        <label style="font-size:13px; font-weight:bold; color:var(--subtext); display:block; margin-bottom:6px;">GLOBALER ANKÜNDIGUNGSTEXT IN DER APP</label>
+                        <input type="text" id="cfgAnnouncement" class="input" value="${globalRemoteConfig ? globalRemoteConfig.announcementMessage || '' : ''}" placeholder="Keine Ankündigung aktiv" style="width:100%;">
+                    </div>
+                    <button class="btn btn-success" onclick="saveRemoteConfig()" style="padding:14px; justify-content:center; font-size:15px;">💾 Remote-Einstellungen Speichern</button>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     <script>
+        // Tab Switcher
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // Toast Helper
+        function showToast(msg, type = 'primary') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.style.borderColor = type === 'success' ? '#10b981' : (type === 'danger' ? '#ef4444' : '#38bdf8');
+            toast.innerHTML = msg;
+            container.appendChild(toast);
+            setTimeout(() => { toast.remove(); }, 3500);
+        }
+
+        // Clipboard Copy Helper
+        function copyText(text, successMsg = 'In Zwischenablage kopiert!') {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('📋 ' + successMsg, 'success');
+            });
+        }
+
+        function copyDeliveryMessage(key, tier, note) {
+            const tierMap = { '1m': '1 Monat', '3m': '3 Monate', '6m': '6 Monate', '12m': '12 Monate', 'lifetime': '👑 Lifetime' };
+            const msg = '🛡️ DataPro Premium-Lizenzschlüssel:\\n\\n🔑 Key: ' + key + '\\n⏱️ Tarif: ' + (tierMap[tier] || tier) + '\\n👤 Notiz: ' + (note || 'Standard') + '\\n\\nViel Erfolg beim Tradem & Profitieren! ⚔️';
+            copyText(msg, 'Kunden-Nachricht kopiert!');
+        }
+
+        // License Management Actions
         async function generateLicense() {
             const tier = document.getElementById('licenseTier').value;
             const customerNote = document.getElementById('customerNote').value;
@@ -3396,79 +3706,111 @@ app.get(['/admin'], (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tier, customerNote })
             });
-            if (res.ok) location.reload();
-            else alert('Fehler beim Generieren der Lizenz.');
+            if (res.ok) {
+                showToast('✅ Lizenz erfolgreich generiert!', 'success');
+                refreshDashboardData();
+                document.getElementById('customerNote').value = '';
+            } else {
+                showToast('❌ Fehler beim Generieren der Lizenz.', 'danger');
+            }
         }
 
         async function deleteLicense(key) {
-            if (!confirm('Lizenz wirklich löschen?')) return;
-            await fetch('/api/admin/license/delete', {
+            if (!confirm('Lizenz ' + key + ' wirklich löschen?')) return;
+            const res = await fetch('/api/admin/license/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key })
             });
-            location.reload();
+            if (res.ok) {
+                showToast('🗑️ Lizenz gelöscht!', 'success');
+                refreshDashboardData();
+            }
         }
 
+        // User Accounts Actions
         async function createUser() {
             const u = document.getElementById('newUsername').value;
             const p = document.getElementById('newPassword').value;
-            if (!u || !p) return alert('Bitte Benutzername und Passwort eingeben.');
+            if (!u || !p) return showToast('Bitte Benutzername und Passwort eingeben.', 'danger');
             const res = await fetch('/api/admin/user/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: u, password: p })
             });
-            if (res.ok) location.reload();
-            else alert('Fehler beim Erstellen des Benutzers.');
+            if (res.ok) {
+                showToast('✅ Benutzer ' + u + ' erstellt!', 'success');
+                refreshDashboardData();
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+            } else {
+                showToast('❌ Fehler beim Erstellen des Benutzers.', 'danger');
+            }
+        }
+
+        async function deleteUser(username) {
+            if (!confirm('Benutzer ' + username + ' wirklich löschen?')) return;
+            const res = await fetch('/api/admin/user/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+            if (res.ok) {
+                showToast('🗑️ Benutzer gelöscht.', 'success');
+                refreshDashboardData();
+            }
         }
 
         function filterUserTable() {
             const input = document.getElementById('userSearch');
             const filter = input.value.toLowerCase();
-            const table = document.getElementById('userTable');
-            const tr = table.getElementsByTagName('tr');
-            for (let i = 1; i < tr.length; i++) {
-                const td = tr[i].getElementsByTagName('td')[0];
+            const tr = document.querySelectorAll('#usersTableBody tr');
+            tr.forEach(row => {
+                const td = row.getElementsByTagName('td')[0];
                 if (td) {
-                    const txtValue = td.textContent || td.innerText;
-                    if (txtValue.toLowerCase().indexOf(filter) > -1) {
-                        tr[i].style.display = "";
-                    } else {
-                        tr[i].style.display = "none";
-                    }
+                    row.style.display = (td.textContent || td.innerText).toLowerCase().includes(filter) ? '' : 'none';
                 }
-            }
-        }
-
-        async function deleteUser(username) {
-            if (!confirm('Benutzer wirklich löschen?')) return;
-            await fetch('/api/admin/user/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username })
             });
-            location.reload();
         }
 
+        // Anti-Cheat & Device Actions
         async function banDevice(hwId) {
-            const reason = prompt("Bitte Grund für den Bann eingeben:", "Verstoß gegen Nutzungsbedingungen / Manipulation (Cheat)");
+            const reason = prompt("Bitte Grund für den Bann eingeben:", "Verstoß gegen Nutzungsbedingungen / Cheating");
             if (reason === null) return;
-            await fetch('/api/admin/device/ban', {
+            const res = await fetch('/api/admin/device/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ hwId, banReason: reason })
             });
-            location.reload();
+            if (res.ok) {
+                showToast('🛑 Gerät ' + hwId.substring(0,8) + '... gesperrt!', 'danger');
+                refreshDashboardData();
+            }
         }
 
         async function unbanDevice(hwId) {
-            await fetch('/api/admin/device/unban', {
+            const res = await fetch('/api/admin/device/unban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ hwId })
             });
-            location.reload();
+            if (res.ok) {
+                showToast('🟢 Gerät entsperrt!', 'success');
+                refreshDashboardData();
+            }
+        }
+
+        async function deleteDevice(hwId) {
+            if (!confirm('Gerät ' + hwId + ' wirklich löschen?')) return;
+            const res = await fetch('/api/admin/device/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hwId })
+            });
+            if (res.ok) {
+                showToast('🗑️ Gerät gelöscht.', 'success');
+                refreshDashboardData();
+            }
         }
 
         async function triggerGlobalUpdate() {
@@ -3479,31 +3821,153 @@ app.get(['/admin'], (req, res) => {
                 body: JSON.stringify({ isGlobal: true })
             });
             if (res.ok) {
-                alert('🚀 Update-Impuls erfolgreich an ALLE registrierten Geräte gesendet!');
-                location.reload();
-            } else {
-                alert('Fehler beim Senden des Update-Befehls.');
+                showToast('🚀 OTA Update-Impuls an ALLE Geräte gesendet!', 'success');
+                refreshDashboardData();
             }
         }
 
         async function unbanAllDevices() {
-            if (!confirm('Wirklich ALLE Geräte entsperren/entbannen?')) return;
-            await fetch('/api/admin/device/unban-all', {
+            if (!confirm('Wirklich ALLE Geräte entsperren?')) return;
+            const res = await fetch('/api/admin/device/unban-all', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
-            location.reload();
+            if (res.ok) {
+                showToast('🟢 Alle Geräte entsperrt!', 'success');
+                refreshDashboardData();
+            }
         }
 
-        async function deleteDevice(hwId) {
-            if (!confirm('Gerät wirklich löschen?')) return;
-            await fetch('/api/admin/device/delete', {
+        // Broadcast Alerts
+        async function sendBroadcastAlert() {
+            const title = document.getElementById('alertTitle').value.trim();
+            const message = document.getElementById('alertMessage').value.trim();
+            if (!title || !message) return showToast('Bitte Titel und Nachricht ausfüllen.', 'danger');
+
+            const res = await fetch('/api/admin/send-alert', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ hwId })
+                body: JSON.stringify({ title, message })
             });
-            location.reload();
+            if (res.ok) {
+                showToast('📢 Broadcast erfolgreich an alle Handys gesendet!', 'success');
+                document.getElementById('alertTitle').value = '';
+                document.getElementById('alertMessage').value = '';
+            } else {
+                showToast('❌ Fehler beim Senden der Broadcast-Nachricht.', 'danger');
+            }
         }
+
+        // Remote Config
+        async function saveRemoteConfig() {
+            const maintenanceMode = document.getElementById('cfgMaintenance').checked;
+            const minAppVersion = document.getElementById('cfgMinVersion').value.trim();
+            const announcementMessage = document.getElementById('cfgAnnouncement').value.trim();
+
+            const res = await fetch('/api/admin/remote-config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maintenanceMode, minAppVersion, announcementMessage })
+            });
+            if (res.ok) {
+                showToast('💾 Remote-Konfiguration gespeichert!', 'success');
+            } else {
+                showToast('❌ Fehler beim Speichern der Remote-Konfiguration.', 'danger');
+            }
+        }
+
+        // Live Auto-Refresh (AJAX background syncing every 5 seconds without page reload)
+        async function refreshDashboardData() {
+            try {
+                const res = await fetch('/api/admin/dashboard-data');
+                if (!res.ok) return;
+                const data = await res.json();
+
+                // Update Stat counters
+                document.getElementById('statOnlineCount').innerText = data.onlineDevicesCount;
+                document.getElementById('statApiCount').innerText = data.totalInformationCount.toLocaleString('de-DE');
+                document.getElementById('statLicenseCount').innerText = data.generatedLicensesCount;
+                document.getElementById('statDeviceCount').innerText = data.registeredDevicesCount;
+                document.getElementById('statRevenueEuro').innerText = data.totalEstRevenueEuro + ' €';
+
+                // Update Licenses table
+                const licTbody = document.getElementById('licensesTableBody');
+                if (licTbody) {
+                    if (!data.licenses || data.licenses.length === 0) {
+                        licTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--subtext);">Noch keine Lizenzen generiert.</td></tr>';
+                    } else {
+                        licTbody.innerHTML = data.licenses.map(l => \`<tr>
+                            <td><code style="color:var(--primary); font-size:15px; font-weight:bold;">\${l.key}</code></td>
+                            <td><span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">\${l.tier.toUpperCase()}</span></td>
+                            <td style="color:var(--success); font-weight:bold; font-size:15px;">\${l.price}</td>
+                            <td>\${l.customerNote || '<em style="color:#64748b;">Keine Notiz</em>'}</td>
+                            <td>\${new Date(l.createdAt).toLocaleDateString('de-DE')}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="copyDeliveryMessage('\${l.key}', '\${l.tier}', '\${l.customerNote}')">📋 Kunden-Text Kopieren</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteLicense('\${l.key}')">🗑️ Löschen</button>
+                            </td>
+                        </tr>\`).join('');
+                    }
+                }
+
+                // Update Users table
+                const usrTbody = document.getElementById('usersTableBody');
+                if (usrTbody) {
+                    usrTbody.innerHTML = data.users.map(u => {
+                        const userDevices = data.devices.filter(d => d.username && d.username.toLowerCase() === u.username.toLowerCase());
+                        const devicesStr = userDevices.length > 0
+                            ? userDevices.map(d => \`<code style="color:var(--primary);">\${d.hwId.substring(0, 8)}...</code> (\${d.deviceName})\`).join(', ')
+                            : '<em style="color:#64748b;">Kein Gerät verbunden</em>';
+                        const isExpired = u.licenseExpiresAt && new Date(u.licenseExpiresAt) < new Date() && !u.isAdmin;
+                        const licBadge = u.isAdmin
+                            ? '<span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">👑 Admin</span>'
+                            : (isExpired ? '<span style="background:rgba(239, 68, 68, 0.2); color:#fca5a5; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🔴 Abgelaufen</span>' : '<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Aktiv</span>');
+                        return \`<tr>
+                            <td><strong>\${u.username}</strong></td>
+                            <td>\${licBadge}</td>
+                            <td>\${devicesStr}</td>
+                            <td>\${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString('de-DE')}</td>
+                            <td>
+                                \${!u.isAdmin ? \`<button class="btn btn-danger btn-sm" onclick="deleteUser('\${u.username}')">🗑️ Löschen</button>\` : '<em style="color:#64748b;">Geschützt</em>'}
+                            </td>
+                        </tr>\`;
+                    }).join('');
+                }
+
+                // Update Devices table
+                const devTbody = document.getElementById('devicesTableBody');
+                if (devTbody) {
+                    if (!data.devices || data.devices.length === 0) {
+                        devTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--subtext);">Keine HWID-Geräte registriert.</td></tr>';
+                    } else {
+                        devTbody.innerHTML = data.devices.map(d => {
+                            const isBanned = d.bannedUntil && new Date(d.bannedUntil) > new Date() && !d.unbanned;
+                            const statusBadge = isBanned
+                                ? \`<span style="background:rgba(239, 68, 68, 0.2); color:#fca5a5; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🔴 Gesperrt (\${d.banReason || 'Verstoß'})</span>\`
+                                : (d.unbanned ? \`<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Entsperrt</span>\` : \`<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Aktiv</span>\`);
+                            return \`<tr>
+                                <td><code style="color:var(--primary); font-size:13px;">\${d.hwId}</code></td>
+                                <td><strong>\${d.deviceName}</strong></td>
+                                <td><span style="background:rgba(56, 189, 248, 0.15); color:var(--primary); border:1px solid var(--primary); padding:2px 8px; border-radius:6px; font-weight:bold; font-size:12px;">\${d.appVersion}</span></td>
+                                <td>\${statusBadge}</td>
+                                <td>
+                                    \${isBanned
+                                        ? \`<button class="btn btn-success btn-sm" onclick="unbanDevice('\${d.hwId}')">🟢 Entsperren</button>\`
+                                        : \`<button class="btn btn-danger btn-sm" onclick="banDevice('\${d.hwId}')">🛑 Sperren</button>\`
+                                    }
+                                    <button class="btn btn-danger btn-sm" onclick="deleteDevice('\${d.hwId}')" style="margin-left:6px;">🗑️ Löschen</button>
+                                </td>
+                            </tr>\`;
+                        }).join('');
+                    }
+                }
+            } catch (e) {
+                console.error("Dashboard refresh error:", e);
+            }
+        }
+
+        // Start 5s live polling
+        setInterval(refreshDashboardData, 5000);
     </script>
 </body>
 </html>`);
