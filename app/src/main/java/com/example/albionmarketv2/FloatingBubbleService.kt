@@ -729,7 +729,9 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     EVENTS("Event & Boss Loot", "Event & Boss Loot", "⚔️"),
     GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
     BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
-    SETTINGS("Einstellungen", "Settings", "⚙️")
+    SETTINGS("Einstellungen", "Settings", "⚙️");
+
+    fun getTitle(lang: String): String = if (lang == "DE") titleDe else titleEn
 }
 
 @Composable
@@ -952,7 +954,7 @@ fun BubbleOverlayContent(
                             horizontalArrangement = Arrangement.spacedBy(if (isCompactMode) 3.dp else 6.dp),
                             modifier = Modifier.fillMaxWidth(),
                         ) {
-                            items(availableTabs) { tab: BubbleTab ->
+                            items(items = availableTabs) { tab: BubbleTab ->
                                 val isSelected = selectedTab == tab
                                 Surface(
                                     shape = RoundedCornerShape(6.dp),
@@ -960,7 +962,7 @@ fun BubbleOverlayContent(
                                     modifier = Modifier.clickable { selectedTab = tab },
                                 ) {
                                     Text(
-                                        text = "${tab.emoji} ${LanguageManager.translateUI(tab.titleDe, lang)}",
+                                        text = "${tab.emoji} ${LanguageManager.translateUI(tab.getTitle(lang), lang)}",
                                         color = if (isSelected) Color.White else Color.Gray,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = if (isCompactMode) 8.sp else 9.sp,
@@ -1478,7 +1480,7 @@ fun BubbleOverlayContent(
                             // 🔍 Real-Time Category & Item Search Input (Always visible)
                             OutlinedTextField(
                                 value = searchInputText,
-                                onValueChange = { str ->
+                                onValueChange = { str: String ->
                                     searchInputText = str
                                     prefsForCity.bubbleSearchQuery = str
                                     onRefresh()
@@ -1503,7 +1505,7 @@ fun BubbleOverlayContent(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)
                             ) {
-                                items(presets) { pair: Pair<String, String> ->
+                                items(items = presets) { pair: Pair<String, String> ->
                                     val (presetKey, presetLabel) = pair
                                     val isSelected = currentBubbleCategory == presetKey
                                     Surface(
@@ -1552,7 +1554,7 @@ fun BubbleOverlayContent(
                                                 var editSilverText by remember { mutableStateOf(uiState.silverBudget.toString()) }
                                                 OutlinedTextField(
                                                     value = editSilverText,
-                                                    onValueChange = { str ->
+                                                    onValueChange = { str: String ->
                                                         editSilverText = str
                                                         val valLong = str.filter { it.isDigit() }.toLongOrNull()
                                                         if (valLong != null) {
@@ -1570,7 +1572,7 @@ fun BubbleOverlayContent(
                                                 var editCapText by remember { mutableStateOf(uiState.carryCapacityKg.toLong().toString()) }
                                                 OutlinedTextField(
                                                     value = editCapText,
-                                                    onValueChange = { str ->
+                                                    onValueChange = { str: String ->
                                                         editCapText = str
                                                         val valDbl = str.filter { it.isDigit() }.toDoubleOrNull()
                                                         if (valDbl != null) {
@@ -1629,7 +1631,7 @@ fun BubbleOverlayContent(
                                     Text("🏙️ Standpunkt:", color = Color(0xFF81D4FA), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
-                                        items(bubbleCities) { c: String ->
+                                        items(items = bubbleCities) { c: String ->
                                             val isSelected = currentBubbleCity == c
                                             Surface(
                                                 shape = RoundedCornerShape(6.dp),
@@ -1648,7 +1650,7 @@ fun BubbleOverlayContent(
                                     Text("📦 Kategorie-Filter:", color = Color(0xFFFFB74D), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
+                                        items(items = ResourceCategory.entries.toList()) { cat: ResourceCategory ->
                                             val isSelected = currentBubbleCategory == cat.name
                                             val dealCount = topOpportunities.count { it.resource.category == cat }
                                             val countText = if (dealCount > 0) " ($dealCount)" else ""
@@ -1671,7 +1673,7 @@ fun BubbleOverlayContent(
                                     var currentBubbleTier by remember { mutableIntStateOf(prefsForCity.bubbleTier) }
                                     val bubbleTiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(bubbleTiers) { tier: Int ->
+                                        items(items = bubbleTiers) { tier: Int ->
                                             val isSelected = currentBubbleTier == tier
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
@@ -1692,7 +1694,7 @@ fun BubbleOverlayContent(
                                     var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
                                     val bubbleEnchantments = listOf(-1 to "ALLE", 0 to ".0", 1 to ".1", 2 to ".2", 3 to ".3", 4 to ".4")
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(bubbleEnchantments) { pair: Pair<Int, String> ->
+                                        items(items = bubbleEnchantments) { pair: Pair<Int, String> ->
                                             val (enc, label) = pair
                                             val isSelected = currentBubbleEnchantment == enc
                                             Surface(
@@ -1714,7 +1716,7 @@ fun BubbleOverlayContent(
                                     var currentBubbleMaxZones by remember { mutableIntStateOf(prefsForCity.bubbleMaxZones) }
                                     val zoneOptions = listOf(1, 2, 3, 5, 99)
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(zoneOptions) { z ->
+                                        items(items = zoneOptions) { z: Int ->
                                             val isSelected = currentBubbleMaxZones == z
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
@@ -2388,7 +2390,7 @@ fun BubbleSmugglerRadarTab(
             Text(LanguageManager.translateUI("Keine Schwarzmarkt-Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                itemsIndexed(smugglerOpps) { idx, opp ->
+                itemsIndexed(items = smugglerOpps) { idx: Int, opp: TradeOpportunity ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF1E293B),
@@ -2425,6 +2427,7 @@ fun BubbleSmugglerRadarTab(
     }
 }
 
+@Suppress("unused")
 @Composable
 fun BubbleInventoryRouterTab(
     @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
@@ -2459,7 +2462,7 @@ fun BubbleInventoryRouterTab(
             Text("Keine Routen gefunden. Prüfe Budget & Tragkraft.", color = Color.Gray, fontSize = 10.sp)
         } else {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                itemsIndexed(routes) { idx, route ->
+                itemsIndexed(items = routes) { idx: Int, route: InventoryRoute ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color(0xFF0F172A),
@@ -2557,7 +2560,7 @@ fun BubbleCatalogTab(
                     )
                 }
             }
-            items(ResourceCategory.entries.toList()) { cat: ResourceCategory ->
+            items(items = ResourceCategory.entries.toList()) { cat: ResourceCategory ->
                 val isSelected = !showFavoritesOnly && selectedCat == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2581,7 +2584,7 @@ fun BubbleCatalogTab(
         // Tier Filter Chips Row
         val tiersList = listOf(0, 2, 3, 4, 5, 6, 7, 8)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            items(tiersList) { tier: Int ->
+            items(items = tiersList) { tier: Int ->
                 val isSelected = selectedTier == tier
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -2631,10 +2634,11 @@ fun BubbleCatalogTab(
                     }
                     val bestBuy = validPrices.minByOrNull { it.sellPriceMin }
                     val bestSell = if (bestBuy != null) {
-                        validPrices
+                        validPrices.asSequence()
                             .filter { !TradeCalculator.citiesMatch(it.city, bestBuy.city) }
                             .groupBy { TradeCalculator.normalizeCityName(it.city) }
-                            .mapNotNull { (_, cityList) -> cityList.minByOrNull { it.sellPriceMin } }
+                            .values.asSequence()
+                            .mapNotNull { cityList -> cityList.minByOrNull { it.sellPriceMin } }
                             .filter { it.sellPriceMin > bestBuy.sellPriceMin && it.sellPriceMin <= bestBuy.sellPriceMin * 5.0 }
                             .maxByOrNull { it.sellPriceMin }
                     } else null
@@ -2788,7 +2792,7 @@ fun BubbleCraftingTab(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
-        itemsIndexed(craftingOpps, key = { index: Int, opp: CraftingOpportunityDetails -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
+        itemsIndexed(items = craftingOpps, key = { index, opp -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
             val rankBadge = when (index) {
                 0 -> "🏆 #1 Beste Marge"
                 1 -> "🥈 #2 Top Marge"
@@ -2950,7 +2954,7 @@ fun BubbleIslandTab(
     ) {
         // City Filter Chips
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(cities) { city: String ->
+            items(items = cities) { city: String ->
                 val isSelected = selectedCityFilter == city
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -3018,7 +3022,7 @@ fun BubbleIslandTab(
                 
                 // Schnellstart-Buttons für Ernte & Tiere in Bubble
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    items(IslandTimerManager.standardCropOptions) { option: Pair<String, Int> ->
+                    items(items = IslandTimerManager.standardCropOptions) { option: Pair<String, Int> ->
                         val (cropName, hours) = option
                         Button(
                             onClick = {
@@ -3036,7 +3040,7 @@ fun BubbleIslandTab(
                     }
                 }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    items(IslandTimerManager.standardAnimalOptions) { option: Pair<String, Int> ->
+                    items(items = IslandTimerManager.standardAnimalOptions) { option: Pair<String, Int> ->
                         val (animalName, hours) = option
                         Button(
                             onClick = {
@@ -3175,7 +3179,7 @@ fun BubbleEventsTab(
         // 2. Player Count Category Chips for Floating Bubble
         Text("👥 Spieler-Kategorie wählen:", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 8.sp)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(3.dp), modifier = Modifier.fillMaxWidth()) {
-            items(PlayerCategory.entries.toList()) { cat: PlayerCategory ->
+            items(items = PlayerCategory.entries.toList()) { cat: PlayerCategory ->
                 val isSelected = selectedPlayerCategory == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -3714,7 +3718,7 @@ fun BubbleBuildsTab(
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
     ) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            items(BuildCategory.entries.toList()) { cat: BuildCategory ->
+            items(items = BuildCategory.entries.toList()) { cat: BuildCategory ->
                 val isSelected = selectedCat == cat
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -3793,6 +3797,7 @@ fun BubbleBuildsTab(
     }
 }
 
+@Suppress("unused")
 @Composable
 fun BubbleMapTab(
     viewModel: AlbionResourceViewModel,
@@ -3852,7 +3857,7 @@ fun BubbleMapTab(
         modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight).verticalScroll(rememberScrollState())
     ) {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            items(regions) { reg: WorldMapRegion ->
+            items(items = regions) { reg: WorldMapRegion ->
                 val isSelected = selectedRegionName == reg.name
                 Surface(
                     shape = RoundedCornerShape(6.dp),
@@ -4249,6 +4254,7 @@ fun BubbleSettingsTab(
     }
 }
 
+@Suppress("unused")
 @Composable
 fun BubbleAdminTab(
     context: Context,

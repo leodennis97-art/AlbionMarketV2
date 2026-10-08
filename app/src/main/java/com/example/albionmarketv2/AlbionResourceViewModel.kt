@@ -219,20 +219,16 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     private fun performInitialFullDataSync() {
         viewModelScope.launch {
-            // Einmaliges vollständiges Laden aller Daten beim App-Start
+            // Einmaliges vorbereitendes Laden von Fallback-Daten und lokalen Daten beim App-Start
             _uiState.value = _uiState.value.copy(isLoadingPrices = true)
             val fallback = withContext(Dispatchers.IO) { AlbionMarketApi.getFallbackMarketPrices() }
-            _uiState.value = _uiState.value.copy(marketPrices = fallback)
-            fetchMarketPricesInternal()
-            fetchGoldPricesInternal()
-            val freshEvents = AlbionWorldData.generateLiveEvents()
             val initialOrders = prefs.getTradeOrders()
+            val freshEvents = AlbionWorldData.generateLiveEvents()
             _uiState.value = _uiState.value.copy(
+                marketPrices = fallback,
                 liveEventsList = freshEvents,
                 tradeOrders = initialOrders
             )
-            ServerSyncManager.pingServer(getApplication(), initialOrders.count { it.status == OrderStatus.ACTIVE })
-            _uiState.value = _uiState.value.copy(isLoadingPrices = false)
         }
     }
 
@@ -397,7 +393,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val current = _uiState.value
         val updated = current.copy(hideBrecilien = hide)
         updateState(updated)
-        recalculateOpportunities(updated)
     }
 
     fun onHideBlackMarketToggled(hide: Boolean) {
@@ -406,7 +401,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val current = _uiState.value
         val updated = current.copy(hideBlackMarket = hide)
         updateState(updated)
-        recalculateOpportunities(updated)
     }
 
     fun onToggleFavorite(itemId: String) {
@@ -427,7 +421,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val current = _uiState.value
         val updated = current.copy(hasPremium = hasPremium)
         updateState(updated)
-        recalculateOpportunities(updated)
     }
 
     fun onAvoidDangerousZonesToggled(avoid: Boolean) {
@@ -436,7 +429,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         val current = _uiState.value
         val updated = current.copy(avoidDangerousZones = avoid)
         updateState(updated)
-        recalculateOpportunities(updated)
     }
 
     fun onFilterHighPriorityToggled(enabled: Boolean) {
@@ -561,6 +553,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         plannedUnits: Int,
         targetProfit: Long
     ) {
+        reloadOrdersFromPrefs()
         val currentOrders = _uiState.value.tradeOrders
         val activeOrders = currentOrders.filter { it.status == OrderStatus.ACTIVE }
         if (activeOrders.size >= 10) {
@@ -761,6 +754,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun acceptIslandBuildingOrder(bldg: IslandBuilding) {
+        reloadOrdersFromPrefs()
         val currentOrders = _uiState.value.tradeOrders
         val active = currentOrders.filter { it.status == OrderStatus.ACTIVE }
         if (active.size >= 10) {
@@ -862,6 +856,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         }
         prefs.saveGoldPurchases(updatedList)
         _uiState.value = _uiState.value.copy(goldPurchases = updatedList)
+        sendLiveGoldNotification(force = true)
     }
 
     fun addGoldSale(amountGold: Int, sellPricePerGold: Int, saleDate: String) {
@@ -894,6 +889,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         }
         prefs.saveGoldSales(updatedList)
         _uiState.value = _uiState.value.copy(goldSales = updatedList)
+        sendLiveGoldNotification(force = true)
     }
 
     fun fetchGoldPrices() {
@@ -955,8 +951,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             try {
                 // Wipe cache and re-fetch from API
                 val langCode = _uiState.value.appLanguage
-            val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
-            val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds(langCode, cloudUrl) } catch (_: Exception) { emptyList() }
+                val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+                val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds(langCode, cloudUrl) } catch (_: Exception) { emptyList() }
                 if (dynamicItems.isNotEmpty()) {
                     AlbionResourceRepository.addDynamicResources(dynamicItems)
                 }
@@ -987,7 +983,9 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
         withContext(Dispatchers.IO) {
             try {
-                val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds() } catch (_: Exception) { emptyList() }
+                val langCode = _uiState.value.appLanguage
+                val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+                val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds(langCode, cloudUrl) } catch (_: Exception) { emptyList() }
                 if (dynamicItems.isNotEmpty()) {
                     AlbionResourceRepository.addDynamicResources(dynamicItems)
                 }
@@ -1173,7 +1171,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 OpportunitySort.HIGHEST_MARGIN -> newCalculated.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
             }.distinctBy { "${it.resource.fullId}_${it.buyCity}_${it.sellCity}" }.take(30)
 
-            _uiState.value = state.copy(
+            _uiState.value = _uiState.value.copy(
                 targetMarginPercent = effectiveMargin,
                 tradeOpportunities = newCalculated
             )
@@ -1230,6 +1228,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             resources
         }
         val stateWithFiltered = newState.copy(filteredResources = updatedList)
+        _uiState.value = stateWithFiltered
         recalculateOpportunities(stateWithFiltered)
     }
 
@@ -1250,10 +1249,11 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     }
                 }
                 if (currentSnapshots.isNotEmpty()) {
-                    val existing = prefs.getPriceSnapshots()
-                    prefs.savePriceSnapshots(server = _uiState.value.server, snapshots = existing + currentSnapshots)
+                    val activeServer = _uiState.value.server
+                    val existing = prefs.getPriceSnapshots(server = activeServer)
+                    prefs.savePriceSnapshots(server = activeServer, snapshots = existing + currentSnapshots)
                     _uiState.value = _uiState.value.copy(
-                        priceSnapshots = prefs.getPriceSnapshots(),
+                        priceSnapshots = prefs.getPriceSnapshots(server = activeServer),
                         totalScannedItemsCount = (existing + currentSnapshots).size.toLong()
                     )
                 }
