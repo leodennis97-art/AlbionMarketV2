@@ -1847,7 +1847,7 @@ fun BubbleOverlayContent(
                                     matchesCity && matchesCat && matchesTier && matchesEnc && matchesSearch && notBm && notBrec && notDanger
                                 }
 
-                                val favIds = prefsForCity.getFavoriteItemIds()
+                                val favIds = prefsForCity.favoriteItemIds
                                 val (freshBotOpps, olderOpps) = filtered.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
                                 val sortedBase = when (currentBubbleSort) {
                                     "NEWEST" -> freshBotOpps.sortedByDescending { it.updatedTimestamp } + olderOpps.sortedByDescending { it.updatedTimestamp }

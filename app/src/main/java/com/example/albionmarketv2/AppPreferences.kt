@@ -215,17 +215,21 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getString("bubble_search_query", "") ?: ""
         set(value) = prefs.edit().putString("bubble_search_query", value).apply()
 
-    fun getFavoriteItemIds(): Set<String> {
-        val str = prefs.getString("favorite_item_ids", "") ?: ""
-        return str.split(",").filter { it.isNotBlank() }.toSet()
-    }
+    var favoriteItemIds: Set<String>
+        get() {
+            val str = prefs.getString("favorite_item_ids", "") ?: ""
+            return str.split(",").filter { it.isNotBlank() }.toSet()
+        }
+        set(value) {
+            prefs.edit().putString("favorite_item_ids", value.joinToString(",")).apply()
+        }
 
     fun isFavorite(itemId: String): Boolean {
-        return getFavoriteItemIds().contains(itemId)
+        return favoriteItemIds.contains(itemId)
     }
 
     fun toggleFavorite(itemId: String): Boolean {
-        val current = getFavoriteItemIds().toMutableSet()
+        val current = favoriteItemIds.toMutableSet()
         val isNowFav = if (current.contains(itemId)) {
             current.remove(itemId)
             false
@@ -233,7 +237,7 @@ class AppPreferences(private val context: Context) {
             current.add(itemId)
             true
         }
-        prefs.edit().putString("favorite_item_ids", current.joinToString(",")).apply()
+        favoriteItemIds = current
         return isNowFav
     }
 
@@ -527,9 +531,6 @@ class AppPreferences(private val context: Context) {
         }
     }
 
-    var favoriteItemIds: Set<String>
-        get() = prefs.getStringSet("favorite_item_ids", emptySet()) ?: emptySet()
-        set(value) = prefs.edit().putStringSet("favorite_item_ids", value).apply()
 
     var soundAlertsEnabled: Boolean
         get() = prefs.getBoolean("sound_alerts_enabled", true)
