@@ -32,4 +32,9 @@ secrets.properties
 ngrok.yml
 .ngrok2/
 
+# Generated APK & AAB Binaries
+*.apk
+*.aab
+downloads/
+
 
