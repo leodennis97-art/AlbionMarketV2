@@ -1,0 +1,18 @@
+<lint-module
+    format="1"
+    dir="C:\Users\Dennis\OneDrive\AlbionDataPro_Release\app"
+    name=":app"
+    type="APP"
+    maven="AlbionMarketV2:app:unspecified"
+    agpVersion="8.7.3"
+    buildFolder="build"
+    bootClassPath="C:\Users\Dennis\AppData\Local\Android\Sdk\platforms\android-36\android.jar;C:\Users\Dennis\AppData\Local\Android\Sdk\build-tools\34.0.0\core-lambda-stubs.jar"
+    javaSourceLevel="17"
+    compileTarget="android-36">
+  <lintOptions
+      abortOnError="true"
+      absolutePaths="true"
+      checkReleaseBuilds="true"
+      explainIssues="true"/>
+  <variant name="release"/>
+</lint-module>

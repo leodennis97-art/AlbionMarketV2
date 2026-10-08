@@ -318,6 +318,10 @@ object TradeCalculator {
                c.contains("schwarzmarkt") || 
                c.contains("schmuggler") || 
                c.contains("schmuggellager") || 
+               c.contains("smuggler") || 
+               c.contains("smugglernetwork") || 
+               c.contains("gravemound") || 
+               c.contains("gnoll") || 
                c == "3003" || 
                c == "bm"
     }

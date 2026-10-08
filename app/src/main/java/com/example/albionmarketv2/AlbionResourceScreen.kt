@@ -1889,8 +1889,8 @@ fun TradeOpportunityCard(
     var showDirectBookDialog by remember { mutableStateOf(false) }
 
     var isCustomizingPrices by remember { mutableStateOf(false) }
-    var customBuyStr by remember(opportunity.buyPrice) { mutableStateOf(opportunity.buyPrice.toString()) }
-    var customSellStr by remember(opportunity.sellPrice) { mutableStateOf(opportunity.sellPrice.toString()) }
+    var customBuyStr by remember(opportunity.resource.fullId, opportunity.buyCity, opportunity.sellCity) { mutableStateOf(opportunity.buyPrice.toString()) }
+    var customSellStr by remember(opportunity.resource.fullId, opportunity.buyCity, opportunity.sellCity) { mutableStateOf(opportunity.sellPrice.toString()) }
 
     val cBuy = customBuyStr.toIntOrNull() ?: opportunity.buyPrice
     val cSell = customSellStr.toIntOrNull() ?: opportunity.sellPrice

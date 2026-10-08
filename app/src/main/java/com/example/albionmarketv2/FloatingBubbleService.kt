@@ -446,7 +446,11 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 )
             }.toList()
 
-            fetchedPrices = (livePrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }
+            fetchedPrices = (livePrices + cloudPrices)
+                .groupBy { "${it.itemId}_${it.city}_${it.quality}" }
+                .values.asSequence()
+                .mapNotNull { list -> list.minByOrNull { it.sellPriceMin } }
+                .toList()
         }
 
         val nowMs = System.currentTimeMillis()
@@ -468,10 +472,15 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             )
         }
 
-        // Live prices take priority over local snapshots; deduplicate strictly by (itemId, city, quality)
-        val rawCombined = (fetchedPrices + localPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }.ifEmpty {
-            AlbionMarketApi.getFallbackMarketPrices().values.flatten()
-        }
+        // Immer den niedrigsten Preis für (itemId, city, quality) im Handelsposten wählen
+        val rawCombined = (fetchedPrices + localPrices)
+            .groupBy { "${it.itemId}_${it.city}_${it.quality}" }
+            .values.asSequence()
+            .mapNotNull { list -> list.minByOrNull { it.sellPriceMin } }
+            .toList()
+            .ifEmpty {
+                AlbionMarketApi.getFallbackMarketPrices().values.flatten()
+            }
 
         // 🤖 KI-Preisschutz & Anomalie-Filterung (Echtzeit-Validierung)
         val aiVerifiedPrices = rawCombined.filter { p ->
@@ -970,6 +979,34 @@ fun BubbleOverlayContent(
                                             horizontal = if (isCompactMode) 3.dp else 4.dp
                                         ),
                                     )
+                                }
+                            }
+                            item {
+                                val isAdminUser = prefs.isAdmin || prefs.savedUsername.equals("dnnx", ignoreCase = true)
+                                if (isAdminUser) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFD97706),
+                                        modifier = Modifier.clickable {
+                                            try {
+                                                val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/admin".toUri()).apply {
+                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                                }
+                                                context.startActivity(intent)
+                                            } catch (_: Exception) {}
+                                        },
+                                    ) {
+                                        Text(
+                                            text = "👑 Admin Web",
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = if (isCompactMode) 8.sp else 9.sp,
+                                            modifier = Modifier.padding(
+                                                vertical = if (isCompactMode) 2.dp else 4.dp,
+                                                horizontal = if (isCompactMode) 3.dp else 4.dp
+                                            ),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1905,8 +1942,8 @@ fun BubbleOverlayContent(
                                 displayedOpps.forEachIndexed { index, opp ->
                                     key("${opp.resource.fullId}_${opp.buyCity}_${opp.sellCity}") {
                                         var isCustomizingInBubble by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(false) }
-                                        var customBuyStr by remember(opp.buyPrice) { mutableStateOf(opp.buyPrice.toString()) }
-                                        var customSellStr by remember(opp.sellPrice) { mutableStateOf(opp.sellPrice.toString()) }
+                                        var customBuyStr by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(opp.buyPrice.toString()) }
+                                        var customSellStr by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(opp.sellPrice.toString()) }
 
                                         val cBuy = customBuyStr.toIntOrNull() ?: opp.buyPrice
                                         val cSell = customSellStr.toIntOrNull() ?: opp.sellPrice

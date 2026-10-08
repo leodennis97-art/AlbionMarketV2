@@ -1530,6 +1530,18 @@ object LanguageManager {
     }
 
     fun getCityTranslation(city: String, langCode: String): String {
+        if (langCode == "DE") {
+            val lower = city.lowercase(Locale.ROOT)
+            if (lower.contains("smuggler") || lower.contains("schmuggler")) {
+                if (lower.contains("gravemound") && lower.contains("gnoll")) {
+                    return "Gravemound-Gnoll-Schmugglernetzwerk"
+                }
+                if (lower.contains("black market") || lower.contains("blackmarket") || lower.contains("schwarzmarkt")) {
+                    return "Schwarzmarkt"
+                }
+                return "Schmugglernetzwerk"
+            }
+        }
         val key = "city_${city.lowercase().replace(" ", "_").replace("'", "")}"
         val trans = getString(key, langCode)
         return if (trans == key) city else trans

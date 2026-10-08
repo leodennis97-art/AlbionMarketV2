@@ -6,5 +6,5 @@ plugins {
 }
 
 allprojects {
-    layout.buildDirectory.set(file("C:/AndroidBuilds/AlbionDataPro/${project.name}/build"))
+    layout.buildDirectory.set(file("${rootDir}/build/${project.name}"))
 }

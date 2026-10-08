@@ -1,0 +1,24 @@
+﻿==================================================
+DATA PRO - MARKET COMPANION (UNOFFICIAL)
+GOOGLE PLAY STORE LISTING TEXTS
+==================================================
+
+1. APP TITLE (Max 30 characters):
+DataPro - Market Companion
+
+2. SHORT DESCRIPTION (Max 80 characters):
+Das ultimative Markt-Overlay, Arbitrage-Radar & Silber-Rechner für Mobile MMOs.
+
+3. FULL DESCRIPTION:
+DataPro - Market Companion (Unofficial) ist der unverzichtbare In-Game Begleiter für alle Spieler von Mobile MMOs!
+
+Hauptfunktionen:
+• Schwebendes In-Game Overlay (Floating Bubble): Erhalte Live-Marktpreise, Arbitrage-Signale und Berechnungen direkt im Spiel.
+• Arbitrage & Handelsrouten-Optimizer: Finde sofort die profitabelsten Handelswege mit echten Nettogewinn-Berechnungen.
+• Schwarzmarkt-Rechner: Berechne in Echtzeit die lukrativsten Verkäufe an den Schwarzmarkt.
+• Crafting- & Veredelungs-Rechner: Exakte Kalkulation von Herstellungskosten unter Berücksichtigung von Rückgaberaten.
+• KI-Marktanalyse & Signale: Verfolge Preisschwankungen und erhalte künstliche Signale für optimale Kauf- und Verkaufszeitpunkte.
+• 24/7 Cloud-Synchronisation: Immer aktuelle Marktdaten dank kontinuierlicher Server-Anbindung.
+
+Disclaimer:
+Diese Anwendung ist eine inoffizielle Begleit-App und steht in keiner offiziellen Verbindung zu den Spieleentwicklern.

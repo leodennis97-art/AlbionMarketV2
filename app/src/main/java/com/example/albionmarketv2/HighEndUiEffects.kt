@@ -260,7 +260,7 @@ object ZoneThemeColors {
 
     fun isBlackMarket(city: String): Boolean {
         val c = city.lowercase(Locale.ROOT)
-        return c.contains("schmuggellager") || c.contains("schwarzmarkt") || c.contains("black market") || c.contains("blackmarket")
+        return c.contains("schmuggellager") || c.contains("schwarzmarkt") || c.contains("black market") || c.contains("blackmarket") || c.contains("smuggler") || c.contains("gravemound") || c.contains("gnoll")
     }
 
     fun isBrecilien(city: String): Boolean {

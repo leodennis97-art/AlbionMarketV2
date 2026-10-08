@@ -99,6 +99,19 @@ fun LicenseActivationScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .background(Color(0xFF0284C7).copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = "🚀 DataPro v3.3.9 • Cloud Key System Aktiv",
+                        color = Color(0xFF38BDF8),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
                 // Top Header Row with Language Button on Login Screen
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp),

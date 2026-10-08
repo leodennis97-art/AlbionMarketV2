@@ -1026,8 +1026,13 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     }.toList()
 
                 // Live API prices take top priority and overwrite older cloud or cached market data
-                // Deduplicate strictly by (itemId, city, quality) so there is NEVER more than one price entry per city
-                val combinedPrices = (fetchedPrices + cloudPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }
+                // Immer den absolut niedrigsten Preis pro (itemId, city, quality) im Handelsposten wählen
+                val combinedPrices = (fetchedPrices + cloudPrices)
+                    .groupBy { "${it.itemId}_${it.city}_${it.quality}" }
+                    .map { entry: Map.Entry<String, List<MarketPrice>> ->
+                        entry.value.minByOrNull { it.sellPriceMin }
+                    }
+                    .filterNotNull()
 
                 val priceMap = if (combinedPrices.isNotEmpty()) {
                     combinedPrices.groupBy { it.itemId }
