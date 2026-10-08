@@ -244,11 +244,14 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             while (true) {
                 val nowStr = sdf.format(Date())
 
-                // 1. Marktdaten & Server-Sync Zyklus (alle 2 Minuten bei 30s Haupttakt)
-                if ((cycleTick % 4L) == 0L) {
-                    _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
-                    fetchMarketPricesInternal()
-                    reloadOrdersFromPrefs()
+                // 1. Echtzeit Live-Auto-Aktualisierung: Markt- & Goldpreise kontinuierlich abfragen
+                _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
+                fetchMarketPricesInternal()
+                fetchGoldPricesInternal()
+                reloadOrdersFromPrefs()
+
+                // 2. Server-Sync & Ping (alle 30s)
+                if ((cycleTick % 2L) == 0L) {
                     val serverStats = ServerSyncManager.pingServer(getApplication(), _uiState.value.activeOrders.size)
                     serverStats?.let { stats ->
                         _uiState.value = _uiState.value.copy(
@@ -258,19 +261,14 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     }
                 }
 
-                // 2. Goldmarkt-Kurs Zyklus (alle 5 Minuten)
-                if ((cycleTick % 10L) == 0L && cycleTick > 0L) {
-                    fetchGoldPricesInternal()
-                }
-
-                // 3. Live Events Zyklus (alle 15 Minuten)
-                if ((cycleTick % 30L) == 0L && cycleTick > 0L) {
+                // 3. Live Events Zyklus (alle 10 Minuten)
+                if ((cycleTick % 40L) == 0L && cycleTick > 0L) {
                     val freshEvents = AlbionWorldData.generateLiveEvents()
                     _uiState.value = _uiState.value.copy(liveEventsList = freshEvents)
                 }
 
                 cycleTick++
-                delay(30.seconds) // Optimierter 30-Sekunden-Haupttakt zur Reduzierung von CPU-Auslastung und Überhitzung
+                delay(15.seconds) // Continuous 15-second Live Auto-Refresh
             }
         }
     }

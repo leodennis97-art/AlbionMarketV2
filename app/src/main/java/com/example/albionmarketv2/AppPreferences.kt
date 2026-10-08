@@ -215,6 +215,36 @@ class AppPreferences(private val context: Context) {
         get() = prefs.getString("bubble_search_query", "") ?: ""
         set(value) = prefs.edit().putString("bubble_search_query", value).apply()
 
+    fun getFavoriteItemIds(): Set<String> {
+        val str = prefs.getString("favorite_item_ids", "") ?: ""
+        return str.split(",").filter { it.isNotBlank() }.toSet()
+    }
+
+    fun isFavorite(itemId: String): Boolean {
+        return getFavoriteItemIds().contains(itemId)
+    }
+
+    fun toggleFavorite(itemId: String): Boolean {
+        val current = getFavoriteItemIds().toMutableSet()
+        val isNowFav = if (current.contains(itemId)) {
+            current.remove(itemId)
+            false
+        } else {
+            current.add(itemId)
+            true
+        }
+        prefs.edit().putString("favorite_item_ids", current.joinToString(",")).apply()
+        return isNowFav
+    }
+
+    var bubbleSoundAlertsEnabled: Boolean
+        get() = prefs.getBoolean("bubble_sound_alerts_enabled", true)
+        set(value) = prefs.edit().putBoolean("bubble_sound_alerts_enabled", value).apply()
+
+    var bubbleAutoCollapseInactivity: Boolean
+        get() = prefs.getBoolean("bubble_auto_collapse_inactivity", false)
+        set(value) = prefs.edit().putBoolean("bubble_auto_collapse_inactivity", value).apply()
+
     // Draft Order Input Persistence for Bubble Overlay
     data class DraftOrderInput(
         val units: String,
@@ -500,6 +530,10 @@ class AppPreferences(private val context: Context) {
     var favoriteItemIds: Set<String>
         get() = prefs.getStringSet("favorite_item_ids", emptySet()) ?: emptySet()
         set(value) = prefs.edit().putStringSet("favorite_item_ids", value).apply()
+
+    var soundAlertsEnabled: Boolean
+        get() = prefs.getBoolean("sound_alerts_enabled", true)
+        set(value) = prefs.edit().putBoolean("sound_alerts_enabled", value).apply()
 
     var bubbleOpacity: Float
         get() = prefs.getFloat("bubble_opacity", 0.95f)

@@ -3,6 +3,12 @@ package com.example.albionmarketv2
 import java.text.NumberFormat
 import java.util.Locale
 
+data class PriceTrendPrediction(
+    val badgeText: String,
+    val isBottom: Boolean,
+    val isPeak: Boolean,
+)
+
 data class AiItemPriceComparison(
     val resourceId: String,
     val resourceNameDe: String,
@@ -67,6 +73,18 @@ data class AiAnalysisResult(
 )
 
 object AiMarketAnalyzer {
+
+    fun predictPriceTrend(currentPrice: Int, cityPrices: List<Int>): PriceTrendPrediction {
+        if (cityPrices.isEmpty() || currentPrice <= 0) {
+            return PriceTrendPrediction("🟡 Normalpreis", isBottom = false, isPeak = false)
+        }
+        val avg = cityPrices.average()
+        return when {
+            currentPrice <= (avg * 0.88) -> PriceTrendPrediction("🟢 Tiefstpreis (Kaufen!)", isBottom = true, isPeak = false)
+            currentPrice >= (avg * 1.15) -> PriceTrendPrediction("🔴 Höchstpreis (Warten)", isBottom = false, isPeak = true)
+            else -> PriceTrendPrediction("🟡 Normalpreis", isBottom = false, isPeak = false)
+        }
+    }
 
     /**
      * KI-Bot Suchregeln für präzise Marktlücken:

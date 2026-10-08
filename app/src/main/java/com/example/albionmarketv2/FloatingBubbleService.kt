@@ -356,14 +356,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                     break
                 }
                 loadActiveOrder()
-                val intervalMins = prefs.bubbleIntervalMinutes.coerceAtLeast(1)
-                val ticksNeeded = (intervalMins * 60) / 30 // loop runs every 30 seconds (battery optimized)
-                if ((loopCount % ticksNeeded) == 0) {
-                    // Use existing cache / old information instead of permanently re-loading all network data
-                    loadTopOpportunities(forceRefresh = false)
-                }
+                // Automatische Live-Aktualisierung im 15-Sekunden Takt für schwebendes In-Game Overlay
+                loadTopOpportunities(forceRefresh = true)
                 loopCount++
-                delay(30.seconds)
+                delay(15.seconds)
             }
         }
     }
@@ -916,7 +912,33 @@ fun BubbleOverlayContent(
 
                     Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
 
+                    // 🎛️ Floating Mini-Controller (Quick Silver Budget Bar)
                     if (!isBookingMode) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 1.dp)
+                        ) {
+                            Text("💰 Quick-Budget:", fontSize = 8.5.sp, color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold)
+                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                                val budgetOptions = listOf(1_000_000L to "1M", 5_000_000L to "5M", 10_000_000L to "10M", 50_000_000L to "50M")
+                                budgetOptions.forEach { (bVal, bLabel) ->
+                                    val isSel = prefs.silverBudget == bVal
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (isSel) Color(0xFF10B981) else Color(0xFF0F172A),
+                                        border = BorderStroke(1.dp, if (isSel) Color(0xFF10B981) else Color(0xFF334155)),
+                                        modifier = Modifier.clickable {
+                                            prefs.silverBudget = bVal
+                                            onRefresh()
+                                        }
+                                    ) {
+                                        Text(bLabel, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                    }
+                                }
+                            }
+                        }
+
                         val availableTabs = remember(prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
                             val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket
                             BubbleTab.entries.filter { tab ->
@@ -1825,12 +1847,14 @@ fun BubbleOverlayContent(
                                     matchesCity && matchesCat && matchesTier && matchesEnc && matchesSearch && notBm && notBrec && notDanger
                                 }
 
+                                val favIds = prefsForCity.getFavoriteItemIds()
                                 val (freshBotOpps, olderOpps) = filtered.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
-                                when (currentBubbleSort) {
+                                val sortedBase = when (currentBubbleSort) {
                                     "NEWEST" -> freshBotOpps.sortedByDescending { it.updatedTimestamp } + olderOpps.sortedByDescending { it.updatedTimestamp }
                                     "FEWEST_STOCK" -> freshBotOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent }) + olderOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
                                     else -> freshBotOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit }) + olderOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
                                 }
+                                sortedBase.sortedByDescending { opp -> favIds.contains(opp.resource.fullId) || favIds.contains(opp.resource.id) }
                             }
 
                             val displayedOpps = remember(filteredBubbleOpportunities) { filteredBubbleOpportunities.take(50) }
@@ -3541,6 +3565,8 @@ fun BubbleCompletedOrdersTab(
     var completedOrders by remember { mutableStateOf(prefs.getTradeOrders().filter { it.status == OrderStatus.COMPLETED }) }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val totalProfit = completedOrders.sumOf { it.realizedNetProfit }
+    val weeklyProfit = remember { ProfitHistoryManager.getWeeklyProfitSilver(context) }
+    val topItem = remember { ProfitHistoryManager.getTopProfitableItems(context).firstOrNull()?.first ?: "Keines" }
     val lang = prefs.appLanguage
 
     Column(
@@ -3551,25 +3577,52 @@ fun BubbleCompletedOrdersTab(
             .padding(4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Analytics Summary Header Card
         Surface(
             shape = RoundedCornerShape(8.dp),
             color = Color(0xFF10B981).copy(alpha = 0.2f),
             border = BorderStroke(1.dp, Color(0xFF10B981)),
             modifier = Modifier.fillMaxWidth()
         ) {
-            Column(modifier = Modifier.padding(4.dp)) {
-                Text(
-                    text = if (lang == "DE") "📜 Auftrags-Historie (${completedOrders.size})" else "📜 Order History (${completedOrders.size})",
-                    color = Color(0xFF10B981),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp
-                )
-                Text(
-                    text = (if (lang == "DE") "Netto-Profit: " else "Net Profit: ") + "${fmt.format(totalProfit)} Silber",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp
-                )
+            Column(modifier = Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = if (lang == "DE") "📊 Profit-Analytics (${completedOrders.size} Trades)" else "📊 Profit Analytics (${completedOrders.size} Trades)",
+                        color = Color(0xFF10B981),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 10.sp
+                    )
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color(0xFF3B82F6),
+                        modifier = Modifier.clickable {
+                            val csvFile = ProfitHistoryManager.exportHistoryToCsv(context)
+                            if (csvFile != null) {
+                                Toast.makeText(context, "📥 Exportiert: Downloads/${csvFile.name}", Toast.LENGTH_LONG).show()
+                            } else {
+                                Toast.makeText(context, "⚠️ Keine Historie zum Exportieren vorhanden", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    ) {
+                        Text("📥 CSV Export", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 8.5.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("💰 Gesamter Profit:", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                    Text("${fmt.format(totalProfit)} Silber", fontSize = 9.5.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                }
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("📅 7-Tage Gewinn:", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                    Text("${fmt.format(weeklyProfit)} Silber", fontSize = 9.5.sp, color = Color(0xFF81C784), fontWeight = FontWeight.Bold)
+                }
+                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                    Text("🏆 Top Gewinnbringer:", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                    Text(topItem, fontSize = 9.sp, color = Color(0xFFFFD700), fontWeight = FontWeight.Bold)
+                }
             }
         }
 

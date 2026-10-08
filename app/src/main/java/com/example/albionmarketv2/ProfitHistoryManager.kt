@@ -1,8 +1,10 @@
 package com.example.albionmarketv2
 
 import android.content.Context
+import android.os.Environment
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.File
 
 data class ProfitEntry(
     val id: String,
@@ -75,5 +77,44 @@ object ProfitHistoryManager {
         val history = getHistory(context)
         if (history.isEmpty()) return 0L
         return history.sumOf { it.netProfitSilver } / history.size
+    }
+
+    fun getWeeklyProfitSilver(context: Context): Long {
+        val oneWeekAgoMs = System.currentTimeMillis() - (7L * 24 * 60 * 60 * 1000)
+        return getHistory(context).filter { it.timestampMs >= oneWeekAgoMs }.sumOf { it.netProfitSilver }
+    }
+
+    fun getMonthlyProfitSilver(context: Context): Long {
+        val thirtyDaysAgoMs = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000)
+        return getHistory(context).filter { it.timestampMs >= thirtyDaysAgoMs }.sumOf { it.netProfitSilver }
+    }
+
+    fun getTopProfitableItems(context: Context): List<Pair<String, Long>> {
+        val history = getHistory(context)
+        return history.groupBy { it.title }
+            .mapValues { (_, entries) -> entries.sumOf { it.netProfitSilver } }
+            .toList()
+            .sortedByDescending { it.second }
+            .take(5)
+    }
+
+    fun exportHistoryToCsv(context: Context): File? {
+        val history = getHistory(context)
+        if (history.isEmpty()) return null
+        return try {
+            val downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+            if (!downloadsDir.exists()) downloadsDir.mkdirs()
+            val csvFile = File(downloadsDir, "DataPro_Trade_History.csv")
+            csvFile.bufferedWriter().use { out ->
+                out.write("ID,Datum,Item,Reingewinn_Silber,Zeitstempel_Ms\n")
+                for (entry in history) {
+                    out.write("\"${entry.id}\",\"${entry.dateStr}\",\"${entry.title}\",${entry.netProfitSilver},${entry.timestampMs}\n")
+                }
+            }
+            csvFile
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 }

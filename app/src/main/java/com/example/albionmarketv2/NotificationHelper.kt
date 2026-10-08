@@ -6,6 +6,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.media.AudioManager
+import android.media.ToneGenerator
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import java.text.NumberFormat
@@ -166,9 +168,22 @@ object NotificationHelper {
         try {
             val notificationManager = NotificationManagerCompat.from(context)
             if (notificationManager.areNotificationsEnabled()) {
+                if (opp.totalNetProfit >= 100_000 || opp.roiPercent >= 25.0) {
+                    playMegaDealSound(context)
+                }
                 notificationManager.notify(notificationId, builder.build())
             }
         } catch (e: SecurityException) {
+            e.printStackTrace()
+        }
+    }
+
+    fun playMegaDealSound(context: Context) {
+        if (!AppPreferences(context).soundAlertsEnabled) return
+        try {
+            val toneG = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+            toneG.startTone(ToneGenerator.TONE_PROP_BEEP, 300)
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }

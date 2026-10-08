@@ -18,6 +18,13 @@ data class OptimizedTradingLoop(
     val estimatedMinutes: Int
 )
 
+data class RouteRiskDetails(
+    val riskBadge: String,
+    val riskColorHex: Long,
+    val zoneDescription: String,
+    val peakTimeWarning: String
+)
+
 object TradeRouteOptimizer {
 
     fun calculateOptimalLoop(
@@ -75,5 +82,30 @@ object TradeRouteOptimizer {
         }
 
         return loops.sortedByDescending { it.totalEstimatedNetProfit }.take(5)
+    }
+
+    fun assessRouteRisk(fromCity: String, toCity: String): RouteRiskDetails {
+        val f = fromCity.lowercase()
+        val t = toCity.lowercase()
+        return when {
+            f.contains("caerleon") || t.contains("caerleon") -> RouteRiskDetails(
+                riskBadge = "💀 HOHE GEFAHR (Rot-Zone)",
+                riskColorHex = 0xFFEF4444,
+                zoneDescription = "Rot-Zonen Engpass. Full-Loot PvP Gefahr durch Ganker-Gruppen.",
+                peakTimeWarning = "⚠️ Peak-Time Warnung: Höchste Aktivität zwischen 18:00 - 23:00 Uhr UTC."
+            )
+            f.contains("brecilien") || t.contains("brecilien") -> RouteRiskDetails(
+                riskBadge = "🌀 NEBEL / AVALON (Mists)",
+                riskColorHex = 0xFFA855F7,
+                zoneDescription = "Transport über Pfade von Avalon oder Nebel-Portale.",
+                peakTimeWarning = "💡 Tipp: Grüne/Blaue Avalon-Portale bieten temporären Schutz."
+            )
+            else -> RouteRiskDetails(
+                riskBadge = "🟢 SICHER (Gelb/Blau-Zone)",
+                riskColorHex = 0xFF10B981,
+                zoneDescription = "Sicherer Transport auf dem Royal-Kontinent ohne Item-Verlust.",
+                peakTimeWarning = "✅ Jederzeit sicher befahrbar."
+            )
+        }
     }
 }
