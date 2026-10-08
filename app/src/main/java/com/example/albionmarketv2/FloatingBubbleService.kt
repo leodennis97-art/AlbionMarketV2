@@ -35,10 +35,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
+
+
+
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -202,7 +201,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 try {
-                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+                    startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
                 } catch (_: Exception) {
                     startForeground(NOTIFICATION_ID, notification)
                 }
@@ -456,7 +455,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val nowMs = System.currentTimeMillis()
         val maxSnapshotAgeMs = 30 * 60 * 1000L // Max 30 Minuten alt
         val localSnapshots = prefs.getPriceSnapshots(prefs.server).filter {
-            ((nowMs - it.timestampMs) in 0L..maxSnapshotAgeMs)
+            (nowMs - it.timestampMs) in 0L..maxSnapshotAgeMs
         }
         val localPrices = localSnapshots.map { s ->
             val isoDate = TradeCalculator.formatEpochToIso(s.timestampMs)
@@ -561,12 +560,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val hideBm = prefs.bubbleHideBlackMarket || prefs.hideBlackMarket
         val maxZones = prefs.bubbleMaxZones
 
-        val viewModel = try {
-            SharedViewModelProvider.get(context.applicationContext as Application)
-        } catch (_: Exception) { null }
-
-        val silverBudget = viewModel?.uiState?.value?.silverBudget ?: prefs.silverBudget
-        val carryCapacity = viewModel?.uiState?.value?.carryCapacityKg ?: prefs.carryCapacityKg
+        val silverBudget = prefs.silverBudget
+        val carryCapacity = prefs.carryCapacityKg
 
         var rawOpportunities = TradeCalculator.calculateOpportunities(
             resources = filteredResources,
@@ -898,7 +893,7 @@ fun BubbleOverlayContent(
                                     AiTranslationEngine.setLanguage(newLang)
                                     onRefresh()
                                 },
-                                modifier = Modifier.padding(end = 4.dp)
+                                modifier = Modifier.padding(end = 4.dp),
                             )
 
                             // Minimieren zu Bubble Button
@@ -1972,7 +1967,7 @@ fun BubbleOverlayContent(
                             } else {
                                 displayedOpps.forEachIndexed { index, opp ->
                                     key("${opp.resource.fullId}_${opp.buyCity}_${opp.sellCity}") {
-                                        var isCustomizingInBubble by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(false) }
+                                        var isCustomizingInBubble by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(value = false) }
                                         var customBuyStr by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(opp.buyPrice.toString()) }
                                         var customSellStr by remember(opp.resource.fullId, opp.buyCity, opp.sellCity) { mutableStateOf(opp.sellPrice.toString()) }
 
@@ -2401,7 +2396,7 @@ fun BubbleOverlayContent(
                             }
                         }
                     } else {
-                        val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
+                        val viewModel = SharedViewModelProvider.getSharedViewModel()
                         val uiState by viewModel.uiState.collectAsState()
 
                         Box(
@@ -2571,6 +2566,7 @@ fun BubbleCatalogTab(
 ) {
     val lang = LocalAppLanguage.current
     val context = LocalContext.current
+    val viewModel = remember { AlbionResourceViewModel(context.applicationContext as Application) }
     var query by remember { mutableStateOf("") }
     var selectedCat by remember { mutableStateOf(ResourceCategory.ALL) }
     var selectedTier by remember { mutableIntStateOf(0) }
@@ -2757,7 +2753,6 @@ fun BubbleCatalogTab(
                                             shape = CircleShape,
                                             color = if (isFav) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                             modifier = Modifier.clickable {
-                                                val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
                                                 viewModel.onToggleFavorite(effectiveResource.id)
                                             }
                                         ) {
@@ -2829,7 +2824,11 @@ fun BubbleCraftingTab(
     var useFocusInCrafting by remember { mutableStateOf(value = true) }
 
     val craftingOpps = remember(priceMap, hideCaerleonInCrafting, useFocusInCrafting) {
-        CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true, hideCaerleon = hideCaerleonInCrafting).take(25)
+        CraftingRepository.calculateCraftingOpportunities(priceMap, true, hideCaerleonInCrafting)
+            .asSequence()
+            .map { it as CraftingOpportunityDetails }
+            .take(25)
+            .toList()
     }
 
     Column(
@@ -2859,7 +2858,7 @@ fun BubbleCraftingTab(
             verticalArrangement = Arrangement.spacedBy(6.dp),
             modifier = Modifier.fillMaxWidth().weight(1f)
         ) {
-        itemsIndexed(items = craftingOpps, key = { index: Int, opp: CraftingOpportunityDetails -> "${opp.resource.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
+        itemsIndexed(items = craftingOpps, key = { index: Int, opp: CraftingOpportunityDetails -> "${opp.resource?.fullId}_$index" }) { index: Int, opp: CraftingOpportunityDetails ->
             val rankBadge = when (index) {
                 0 -> "🏆 #1 Beste Marge"
                 1 -> "🥈 #2 Top Marge"
@@ -2888,7 +2887,7 @@ fun BubbleCraftingTab(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                             AsyncImage(
-                                model = opp.resource.imageUrl,
+                                model = opp.resource?.imageUrl ?: "",
                                 contentDescription = null,
                                 modifier = Modifier.size(22.dp)
                             )
@@ -2898,7 +2897,7 @@ fun BubbleCraftingTab(
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "${opp.resource.nameDe} (T${opp.resource.tier})",
+                                text = "${opp.resource?.nameDe ?: ""} (T${opp.resource?.tier ?: 1})",
                                 color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,
@@ -2917,28 +2916,28 @@ fun BubbleCraftingTab(
                             onClick = {
                                 viewModel.acceptTradeOpportunity(
                                     TradeOpportunity(
-                                        resource = opp.resource,
+                                        resource = opp.resource ?: AlbionResource(id = "", nameDe = "", nameEn = "", tier = 1, category = ResourceCategory.RESOURCES),
                                         buyCity = opp.cheapestBuyCity,
                                         buyPrice = opp.totalIngredientCost.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
                                         sellCity = opp.highestSellCity,
-                                        sellPrice = opp.finishedItemSellPrice,
+                                        sellPrice = opp.finishedItemSellPrice.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
                                         unitNetProfit = opp.netProfit.toInt(),
                                         unitWeightKg = 1.0,
                                         maxUnitsBySilver = 10,
                                         maxUnitsByWeight = 10,
                                         tradeUnits = 1,
                                         totalInvestment = opp.totalIngredientCost,
-                                        totalGrossRevenue = opp.finishedItemSellPrice.toLong(),
-                                        totalNetRevenue = opp.finishedItemSellPrice.toLong(),
+                                        totalGrossRevenue = opp.finishedItemSellPrice,
+                                        totalNetRevenue = opp.finishedItemSellPrice,
                                         totalNetProfit = opp.netProfit,
                                         totalWeightKg = 1.0,
                                         roiPercent = opp.roiPercent,
                                         priorityScore = 100,
                                         recommendedBuyOrderPrice = opp.recBuyOrderCost.coerceAtMost(Int.MAX_VALUE.toLong()).toInt(),
-                                        recommendedSellOrderPrice = opp.recSellOrderPrice
+                                        recommendedSellOrderPrice = opp.recSellOrderPrice.coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
                                     )
                                 )
-                                Toast.makeText(viewModel.getApplication(), "✅ Handwerks-Auftrag ${opp.resource.nameDe} angenommen!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(viewModel.getApplication(), "✅ Handwerks-Auftrag ${opp.resource?.nameDe ?: ""} angenommen!", Toast.LENGTH_SHORT).show()
                             },
                             modifier = Modifier.size(24.dp)
                         ) {
@@ -3166,7 +3165,7 @@ fun BubbleIslandTab(
                             val fmtSilver = NumberFormat.getNumberInstance(Locale.GERMANY).format(step.silverCost)
                             Column(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
                                 Text("• ${step.tierName}: $fmtSilver S.", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                if (step.woodReq.isNotBlank()) {
+                                if (step.woodReq > 0) {
                                     Text("   Holz/Planken: ${step.woodReq} | Stein/Blöcke: ${step.stoneReq}", color = Color(0xFF94A3B8), fontSize = 8.sp)
                                 }
                             }
@@ -3748,7 +3747,7 @@ fun BubbleCompletedOrdersTab(
                             }
                         }
                         Text(
-                            text = "Route: ${order.buyCity} ➔ ${order.sellCity} | ${order.completedDate ?: ""}",
+                            text = "Route: ${order.buyCity} ➔ ${order.sellCity} | ${order.completedDate}",
                             color = Color.Gray,
                             fontSize = 9.sp
                         )
@@ -3962,6 +3961,7 @@ fun BubbleMapTab(
                             ZoneSafety.SAFE_YELLOW -> Color(0xFFFDD835)
                             ZoneSafety.DANGEROUS_RED -> Color(0xFFE53935)
                             ZoneSafety.DANGEROUS_BLACK -> Color(0xFF424242)
+                            else -> Color(0xFF1E88E5)
                         }
                     ) {
                         Text(activeRegion.safety.displayName, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
@@ -4187,7 +4187,7 @@ fun BubbleSettingsTab(
             Text("App bei Bubble-Aktivierung verbergen", fontSize = 10.sp, color = Color.White)
         }
 
-        val viewModel = remember { SharedViewModelProvider.get(context.applicationContext as Application) }
+        val viewModel = remember { AlbionResourceViewModel(context.applicationContext as Application) }
         val uiState by viewModel.uiState.collectAsState()
 
         // 🔄 RESSOURCEN & MARKTDATEN ECHTZEIT-DOWNLOAD

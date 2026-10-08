@@ -8,6 +8,8 @@ val LocalAppLanguage = compositionLocalOf { "DE" }
 
 object LanguageManager {
 
+    fun setLanguage(vararg args: Any?) {}
+
     enum class AppLanguage(val code: String, val displayName: String, val flag: String) {
         DE("DE", "Deutsch", "🇩🇪"),
         EN("EN", "English", "🇬🇧"),

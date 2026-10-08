@@ -56,7 +56,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
@@ -3060,10 +3059,13 @@ fun EventsAndMonstersTabContent(
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = when (monster.zoneSafety) {
-                                ZoneSafety.SAFE_BLUE -> Color(0xFF1E88E5)
-                                ZoneSafety.SAFE_YELLOW -> Color(0xFFFDD835)
-                                ZoneSafety.DANGEROUS_RED -> Color(0xFFE53935)
-                                ZoneSafety.DANGEROUS_BLACK -> Color(0xFF424242)
+                                ZoneSafety.BLUE, ZoneSafety.SAFE_BLUE -> Color(0xFF1E88E5)
+                                ZoneSafety.YELLOW, ZoneSafety.SAFE_YELLOW -> Color(0xFFFDD835)
+                                ZoneSafety.RED, ZoneSafety.DANGEROUS_RED -> Color(0xFFE53935)
+                                ZoneSafety.BLACK, ZoneSafety.DANGEROUS_BLACK -> Color(0xFF424242)
+                                ZoneSafety.ROADS -> Color(0xFF8B5CF6)
+                                ZoneSafety.MISTS -> Color(0xFF06B6D4)
+                                else -> Color.Gray
                             }
                         ) {
                             Text(
@@ -4649,7 +4651,7 @@ fun CraftingTabContent(
             matchesQuery && matchesStation
         }
     }
-    val priceMap = uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() }
+    val priceMap = uiState.marketPrices.ifEmpty { AlbionResourceRepository.getFallbackMarketPrices().groupBy { it.itemId } }
 
     fun getBonusCityFor(res: AlbionResource): String {
         return when {
@@ -4820,7 +4822,7 @@ fun CraftingTabContent(
         val royalCities = listOf("Bridgewatch", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Caerleon", "Brecilien")
 
         items(filteredItems.asSequence().distinctBy { it.fullId }.take(25).toList(), key = { "${it.fullId}_${it.tier}_${it.category.name}" }) { res ->
-            val recipe = try { CraftingRepository.getRecipeFor(res) } catch (_: Exception) { CraftingRecipe(res.fullId, res.nameDe, res.nameEn, res.tier, res.category, emptyList()) }
+            val recipe = try { CraftingRepository.getRecipeFor(res) } catch (_: Exception) { CraftingRecipe(id = res.fullId, nameDe = res.nameDe, nameEn = res.nameEn, tier = res.tier, category = res.category, ingredients = emptyList()) }
             val itemSellPrice = try { CraftingRepository.getPriceInCity(res.fullId, selectedCity, priceMap) } catch (_: Exception) { 1500 }
             val totalCraftingCost = recipe.ingredients.sumOf { ing ->
                 try {
@@ -5520,6 +5522,7 @@ fun WorldMapTabContent(
                                 ZoneSafety.SAFE_YELLOW -> Color(0xFFFDD835)
                                 ZoneSafety.DANGEROUS_RED -> Color(0xFFE53935)
                                 ZoneSafety.DANGEROUS_BLACK -> Color(0xFF424242)
+                                else -> Color.Gray
                             }
                         ) {
                             Text(
@@ -6244,7 +6247,7 @@ fun ResourceDetailContent(
 
         // Crafting Recipe & Ingredients with lowest costs
         val recipe = remember(resource) { CraftingRepository.getRecipeFor(resource) }
-        val priceMap = remember { AlbionMarketApi.getFallbackMarketPrices() }
+        val priceMap = remember { AlbionResourceRepository.getFallbackMarketPrices().groupBy { it.itemId } }
 
         Text(
             text = "🛠️ Benötigte Herstellungsmaterialien & geringste Kosten:",

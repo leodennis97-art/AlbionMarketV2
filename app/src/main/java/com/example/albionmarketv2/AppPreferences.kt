@@ -1,7 +1,12 @@
+@file:Suppress("unused", "UseSharedPreferencesEdit", "FoldableIfThen", "SimplifyCallChain", "TrailingComma", "ApplySharedPref", "SharedPreferencesEditor", "CommitPrefEdits")
+@file:SuppressLint("UseSharedPreferencesEdit")
+
 package com.example.albionmarketv2
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,13 +22,13 @@ class AppPreferences(private val context: Context) {
     var server: AlbionServer
         get() {
             val name = prefs.getString("server_name", AlbionServer.EUROPE.name) ?: AlbionServer.EUROPE.name
-            return try { AlbionServer.valueOf(name) } catch (e: Exception) { AlbionServer.EUROPE }
+            return try { AlbionServer.valueOf(name) } catch (_: Exception) { AlbionServer.EUROPE }
         }
-        set(value) = prefs.edit().putString("server_name", value.name).apply()
+        set(value) = prefs.edit { putString("server_name", value.name) }
 
     var silverBudget: Long
         get() = prefs.getLong("silver_budget", 1_000_000L)
-        set(value) = prefs.edit().putLong("silver_budget", value).apply()
+        set(value) = prefs.edit { putLong("silver_budget", value) }
 
     var carryCapacityKg: Double
         get() = prefs.getFloat("carry_capacity_kg", 2000.0f).toDouble()
@@ -103,10 +108,8 @@ class AppPreferences(private val context: Context) {
 
     var appLanguage: String
         get() {
-            val saved = prefs.getString("app_language", null)
-            if (saved != null) return saved
-            val sysLang = Locale.getDefault().language.uppercase()
-            return when (sysLang) {
+            prefs.getString("app_language", null)?.let { return it }
+            return when (Locale.getDefault().language.uppercase()) {
                 "DE" -> "DE"
                 "ES" -> "ES"
                 "FR" -> "FR"
@@ -218,7 +221,7 @@ class AppPreferences(private val context: Context) {
     var favoriteItemIds: Set<String>
         get() {
             val str = prefs.getString("favorite_item_ids", "") ?: ""
-            return str.split(",").filter { it.isNotBlank() }.toSet()
+            return str.split(",").asSequence().filter { it.isNotBlank() }.toSet()
         }
         set(value) {
             prefs.edit().putString("favorite_item_ids", value.joinToString(",")).apply()
@@ -253,7 +256,7 @@ class AppPreferences(private val context: Context) {
     data class DraftOrderInput(
         val units: String,
         val buyPrice: String,
-        val sellPrice: String
+        val sellPrice: String,
     )
 
     fun getDraftOrderInput(orderId: String): DraftOrderInput? {
@@ -297,7 +300,7 @@ class AppPreferences(private val context: Context) {
                         sellPriceMin = obj.optInt("sellPriceMin", 0),
                         buyPriceMax = obj.optInt("buyPriceMax", 0),
                         timestampMs = obj.optLong("timestampMs", System.currentTimeMillis()),
-                        sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0)
+                        sellPriceMinAmount = obj.optInt("sellPriceMinAmount", 0),
                     )
                 )
             }
@@ -392,12 +395,12 @@ class AppPreferences(private val context: Context) {
                         targetInvestment = obj.optLong("targetInvestment", 0L),
                         acceptedDate = obj.optString("acceptedDate", ""),
                         status = statusEnum,
-                        actualSilverSpent = if (obj.has("actualSilverSpent")) obj.optLong("actualSilverSpent") else null,
-                        actualSilverEarned = if (obj.has("actualSilverEarned")) obj.optLong("actualSilverEarned") else null,
-                        actualBuyPrice = if (obj.has("actualBuyPrice")) obj.optInt("actualBuyPrice") else null,
-                        actualSellPrice = if (obj.has("actualSellPrice")) obj.optInt("actualSellPrice") else null,
-                        actualUnits = if (obj.has("actualUnits")) obj.optInt("actualUnits") else null,
-                        completedDate = if (obj.has("completedDate")) obj.optString("completedDate") else null
+                        actualSilverSpent = if (obj.has("actualSilverSpent")) obj.optLong("actualSilverSpent") else 0L,
+                        actualSilverEarned = if (obj.has("actualSilverEarned")) obj.optLong("actualSilverEarned") else 0L,
+                        actualBuyPrice = if (obj.has("actualBuyPrice")) obj.optInt("actualBuyPrice") else 0,
+                        actualSellPrice = if (obj.has("actualSellPrice")) obj.optInt("actualSellPrice") else 0,
+                        actualUnits = if (obj.has("actualUnits")) obj.optInt("actualUnits") else 1,
+                        completedDate = obj.optString("completedDate", "")
                     )
                 )
             }
@@ -428,12 +431,14 @@ class AppPreferences(private val context: Context) {
                 obj.put("targetInvestment", o.targetInvestment)
                 obj.put("acceptedDate", o.acceptedDate)
                 obj.put("status", o.status.name)
-                o.actualSilverSpent?.let { obj.put("actualSilverSpent", it) }
-                o.actualSilverEarned?.let { obj.put("actualSilverEarned", it) }
-                o.actualBuyPrice?.let { obj.put("actualBuyPrice", it) }
-                o.actualSellPrice?.let { obj.put("actualSellPrice", it) }
-                o.actualUnits?.let { obj.put("actualUnits", it) }
-                o.completedDate?.let { obj.put("completedDate", it) }
+                obj.put("actualSilverSpent", o.actualSilverSpent)
+                obj.put("actualSilverEarned", o.actualSilverEarned)
+                obj.put("actualBuyPrice", o.actualBuyPrice)
+                obj.put("actualSellPrice", o.actualSellPrice)
+                obj.put("actualUnits", o.actualUnits)
+                if (o.completedDate.isNotBlank()) {
+                    obj.put("completedDate", o.completedDate)
+                }
                 arr.put(obj)
             }
             val jsonStr = arr.toString()
@@ -561,7 +566,7 @@ class AppPreferences(private val context: Context) {
         set(value) = prefs.edit().putBoolean("is_user_logged_in", value).apply()
 
     var isAdmin: Boolean
-        get() = prefs.getBoolean("is_admin_user", false) && savedUsername.lowercase() == "dnnx"
+        get() = prefs.getBoolean("is_admin_user", false) && (savedUsername.lowercase() == "dnnx")
         set(value) = prefs.edit().putBoolean("is_admin_user", value).apply()
 
     var savedUsername: String
