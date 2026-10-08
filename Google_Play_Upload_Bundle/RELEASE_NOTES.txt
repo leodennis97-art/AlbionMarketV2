@@ -1,4 +1,4 @@
-﻿• Version 3.3.8 (Build 3600) Release
+﻿• Version 3.4.0 (Build 3602) Release
 • Branding: DataPro - Market Companion (Unofficial)
 • Neues hochauflösendes Vektor-Logo & Icon
 • 24/7 Cloud-Marktsynchronisation & Performance-Optimierungen
