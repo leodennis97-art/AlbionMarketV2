@@ -923,7 +923,7 @@ fun BubbleOverlayContent(
 
                     Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
 
-                    // 🎛️ Floating Mini-Controller (Quick Silver Budget Bar)
+                    // 🎛️ Floating Mini-Controller (Quick Silver Budget Bar & City Routes Button)
                     if (!isBookingMode) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -948,6 +948,36 @@ fun BubbleOverlayContent(
                                     }
                                 }
                             }
+                        }
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 2.dp)
+                        ) {
+                            Text("🚶‍♂️ Aktiver Standpunkt: ${prefs.bubbleStandpunktCity.ifBlank { "ALLE" }}", fontSize = 8.5.sp, color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold)
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (showCityRoutesPopup) Color(0xFF10B981) else Color(0xFF1E3A4C),
+                                border = BorderStroke(1.dp, Color(0xFF10B981)),
+                                modifier = Modifier.clickable { showCityRoutesPopup = !showCityRoutesPopup }
+                            ) {
+                                Text("🗺️ Routen & Ziele", color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                            }
+                        }
+
+                        if (showCityRoutesPopup) {
+                            CityRoutesPopup(
+                                currentCity = prefs.bubbleStandpunktCity,
+                                onRouteSelected = { destCity ->
+                                    prefs.bubbleStandpunktCity = destCity
+                                    showCityRoutesPopup = false
+                                    Toast.makeText(context, "🗺️ Route nach $destCity gewählt! Standpunkt aktualisiert.", Toast.LENGTH_SHORT).show()
+                                    onRefresh()
+                                },
+                                onDismiss = { showCityRoutesPopup = false }
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
                         }
 
                         val availableTabs = remember(prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
@@ -4353,5 +4383,64 @@ fun BubbleAdminTab(
             showMergeBot = false,
             onFocusModeChanged = onFocusModeChanged,
         ) { loadAdminData() }
+    }
+}
+
+@Composable
+fun CityRoutesPopup(
+    currentCity: String,
+    onRouteSelected: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val cities = listOf("Martlock", "Lymhurst", "Bridgewatch", "Fort Sterling", "Thetford", "Caerleon", "Brecilien")
+
+    Surface(
+        shape = RoundedCornerShape(12.dp),
+        color = Color(0xFF0A1922),
+        border = BorderStroke(1.dp, Color(0xFF10B981)),
+        modifier = Modifier.fillMaxWidth().padding(4.dp)
+    ) {
+        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                Text("🗺️ Stadt-Routen & Zielnavigation", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                IconButton(onClick = onDismiss, modifier = Modifier.size(20.dp)) {
+                    Icon(Icons.Default.Close, contentDescription = "Schließen", tint = Color.Gray, modifier = Modifier.size(14.dp))
+                }
+            }
+            Text("Wähle ein Ziel, um Handels- und Laufwege zu optimieren:", fontSize = 9.sp, color = Color.LightGray)
+
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                cities.forEach { destCity ->
+                    if (!destCity.equals(currentCity, ignoreCase = true)) {
+                        val risk = TradeRouteOptimizer.assessRouteRisk(currentCity.ifBlank { "Martlock" }, destCity)
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF1E3A4C),
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                onRouteSelected(destCity)
+                            }
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.padding(6.dp)
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("➔ Ziel: $destCity", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    Text(risk.riskBadge, fontSize = 8.sp, color = Color(risk.riskColorHex))
+                                }
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = Color(0xFF10B981),
+                                    modifier = Modifier.padding(start = 4.dp)
+                                ) {
+                                    Text("Laufen", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
