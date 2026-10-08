@@ -161,8 +161,9 @@ const DOWNLOADS_DIR = path.join(__dirname, 'downloads');
 if (!fs.existsSync(BACKUPS_DIR)) fs.mkdirSync(BACKUPS_DIR, { recursive: true });
 if (!fs.existsSync(DOWNLOADS_DIR)) fs.mkdirSync(DOWNLOADS_DIR, { recursive: true });
 
-app.use('/download', express.static(DOWNLOADS_DIR));
-app.use('/downloads', express.static(DOWNLOADS_DIR));
+// Prevent static middleware from intercepting the main APK downloads
+app.use('/download/version.txt', express.static(path.join(DOWNLOADS_DIR, 'version.txt')));
+// Do not use a generic express.static('/download') here because it ruins Cache-Control for the APK!
 
 function getAppVersionFromGradle() {
     try {
