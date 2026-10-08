@@ -39,6 +39,32 @@ data class AlbionResource(
     val enchantmentText: String
         get() = if (enchantment > 0) ".$enchantment" else ""
 
+    val cleanNameDe: String
+        get() {
+            var s = nameDe.trim()
+            val prefixes = listOf("T$tier.$enchantment", "T$tier.", "T$tier", "T$tier ")
+            for (p in prefixes) {
+                if (s.startsWith(p, ignoreCase = true)) {
+                    s = s.substring(p.length).trimStart()
+                    break
+                }
+            }
+            return if (s.isNotBlank()) s else nameDe
+        }
+
+    val cleanNameEn: String
+        get() {
+            var s = nameEn.trim()
+            val prefixes = listOf("T$tier.$enchantment", "T$tier.", "T$tier", "T$tier ")
+            for (p in prefixes) {
+                if (s.startsWith(p, ignoreCase = true)) {
+                    s = s.substring(p.length).trimStart()
+                    break
+                }
+            }
+            return if (s.isNotBlank()) s else nameEn
+        }
+
     val qualityText: String
         get() = when (quality) {
             2 -> "Gut"

@@ -1950,11 +1950,11 @@ fun BubbleOverlayContent(
                                                             )
                                                             Spacer(modifier = Modifier.width(3.dp))
                                                             Surface(shape = RoundedCornerShape(3.dp), color = getTierColor(activeOpp.resource.tier)) {
-                                                                Text("${activeOpp.resource.tierText}${activeOpp.resource.enchantmentText}", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 2.dp))
+                                                                Text(activeOpp.resource.tierText, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 2.dp))
                                                             }
                                                             Spacer(modifier = Modifier.width(3.dp))
                                                             Text(
-                                                                text = "Nr. ${index + 1} • ${activeOpp.resource.nameDe}",
+                                                                text = "Nr. ${index + 1} • ${activeOpp.resource.cleanNameDe}",
                                                                 color = Color.White,
                                                                 fontSize = 9.sp,
                                                                 fontWeight = FontWeight.Bold,
@@ -2019,7 +2019,7 @@ fun BubbleOverlayContent(
                                                                 color = getTierColor(activeOpp.resource.tier)
                                                             ) {
                                                                 Text(
-                                                                    text = "${activeOpp.resource.tierText}${activeOpp.resource.enchantmentText}",
+                                                                    text = activeOpp.resource.tierText,
                                                                     color = Color.White,
                                                                     fontWeight = FontWeight.Bold,
                                                                     fontSize = 9.sp,
@@ -2640,7 +2640,7 @@ fun BubbleCatalogTab(
                                                 color = getTierColor(effectiveResource.tier)
                                             ) {
                                                 Text(
-                                                    text = "${effectiveResource.tierText}${effectiveResource.enchantmentText}",
+                                                    text = effectiveResource.tierText,
                                                     color = Color.White,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 9.sp,

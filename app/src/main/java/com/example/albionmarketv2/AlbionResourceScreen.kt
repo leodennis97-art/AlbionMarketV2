@@ -2085,7 +2085,7 @@ fun TradeOpportunityCard(
                     color = getTierColor(opportunity.resource.tier)
                 ) {
                     Text(
-                        text = "${opportunity.resource.tierText}${opportunity.resource.enchantmentText}",
+                        text = opportunity.resource.tierText,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
@@ -5981,7 +5981,7 @@ fun ResourceCard(
                     modifier = Modifier.padding(2.dp)
                 ) {
                     Text(
-                        text = "${effectiveResource.tierText}${effectiveResource.enchantmentText}",
+                        text = effectiveResource.tierText,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
