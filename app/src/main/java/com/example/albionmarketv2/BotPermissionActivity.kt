@@ -34,6 +34,7 @@ class BotPermissionActivity : ComponentActivity() {
             screenCaptureLauncher.launch(mpm.createScreenCaptureIntent())
         } catch (e: Exception) {
             e.printStackTrace()
+            Toast.makeText(this, "Fehler beim Starten der Bildschirmaufnahme", Toast.LENGTH_SHORT).show()
             finish()
         }
     }

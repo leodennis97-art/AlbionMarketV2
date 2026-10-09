@@ -122,17 +122,30 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
         private var autoWalkJob: Job? = null
 
-        fun startAutoWalk() {
+        fun startAutoWalk(context: Context) {
+            val clicker = AutoClickerService.instance
+            if (clicker == null) {
+                try {
+                    Toast.makeText(context, "❌ Barrierefreiheitsdienst nicht aktiv! Bitte aktivieren.", Toast.LENGTH_LONG).show()
+                    val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                } catch (_: Exception) {}
+                return
+            }
+
+            Toast.makeText(context, "🚶 Auto-Walk gestartet!", Toast.LENGTH_SHORT).show()
             autoWalkJob?.cancel()
             autoWalkJob = CoroutineScope(Dispatchers.Default).launch {
                 while (isActive) {
                     try {
-                        val clicker = AutoClickerService.instance
-                        if (clicker != null) {
-                            clicker.clickAt(540f, 1300f)
-                        }
+                        val metrics = context.resources.displayMetrics
+                        val x = metrics.widthPixels / 2f
+                        val y = metrics.heightPixels * 0.75f
+                        clicker.clickAt(x, y)
                     } catch (_: Exception) {}
-                    delay(2500L)
+                    delay(2000L)
                 }
             }
         }

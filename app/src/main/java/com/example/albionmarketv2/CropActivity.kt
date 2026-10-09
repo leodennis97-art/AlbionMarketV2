@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -20,10 +21,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import java.io.File
-import java.io.FileOutputStream
 import kotlin.math.max
 import kotlin.math.min
 
@@ -44,20 +44,21 @@ class CropActivity : ComponentActivity() {
         setContent {
             var startOffset by remember { mutableStateOf<Offset?>(null) }
             var endOffset by remember { mutableStateOf<Offset?>(null) }
+            var canvasSize by remember { mutableStateOf(Size.Zero) }
 
             var showSaveDialog by remember { mutableStateOf(false) }
-            var templateName by remember { mutableStateOf("") }
-            var templateCategory by remember { mutableStateOf("") }
+            var templateName by remember { mutableStateOf("Mein Ziel") }
+            var templateCategory by remember { mutableStateOf("Allgemein") }
             var finalStartOffset by remember { mutableStateOf<Offset?>(null) }
             var finalEndOffset by remember { mutableStateOf<Offset?>(null) }
 
             if (showSaveDialog) {
                 AlertDialog(
                     onDismissRequest = { showSaveDialog = false },
-                    title = { Text("Bild speichern") },
+                    title = { Text("Ziel speichern") },
                     text = {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Bitte gib dem erkannten Ziel einen Namen und weise es einer Kategorie zu (z. B. 'Gathering' oder 'Crafting').")
+                            Text("Gib diesem ausgeschnittenen Ziel einen Namen:")
                             OutlinedTextField(
                                 value = templateName,
                                 onValueChange = { templateName = it },
@@ -76,7 +77,7 @@ class CropActivity : ComponentActivity() {
                         Button(
                             onClick = {
                                 if (templateName.isNotBlank() && finalStartOffset != null && finalEndOffset != null) {
-                                    saveCroppedImage(bitmap, finalStartOffset!!, finalEndOffset!!, templateName, templateCategory)
+                                    saveCroppedImage(bitmap, finalStartOffset!!, finalEndOffset!!, canvasSize, templateName, templateCategory)
                                 } else {
                                     Toast.makeText(this@CropActivity, "Name darf nicht leer sein!", Toast.LENGTH_SHORT).show()
                                 }
@@ -94,21 +95,32 @@ class CropActivity : ComponentActivity() {
             }
 
             Box(modifier = Modifier.fillMaxSize()) {
+                // Background Screenshot Image
+                Image(
+                    bitmap = bitmap.asImageBitmap(),
+                    contentDescription = "Screenshot",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+
+                // Drawing & Touch Canvas on top
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
                         .pointerInput(Unit) {
                             detectDragGestures(
-                                onDragStart = { startOffset = it; endOffset = it },
-                                onDrag = { change, _ -> endOffset = change.position },
-                                onDragEnd = { }
+                                onDragStart = { offset ->
+                                    startOffset = offset
+                                    endOffset = offset
+                                },
+                                onDrag = { change, _ ->
+                                    endOffset = change.position
+                                },
+                                onDragEnd = {}
                             )
                         }
                 ) {
-                    drawImage(
-                        image = bitmap.asImageBitmap(),
-                        dstSize = IntSize(size.width.toInt(), size.height.toInt())
-                    )
+                    canvasSize = size
 
                     if (startOffset != null && endOffset != null) {
                         val rect = Rect(startOffset!!, endOffset!!)
@@ -116,9 +128,9 @@ class CropActivity : ComponentActivity() {
                             color = Color.Red,
                             topLeft = rect.topLeft,
                             size = rect.size,
-                            style = Stroke(width = 5f)
+                            style = Stroke(width = 6f)
                         )
-                        // Abdunkeln des unwichtigen Bereichs
+                        // Abdunkeln der Außenbereiche
                         drawRect(color = Color.Black.copy(alpha = 0.5f), topLeft = Offset.Zero, size = Size(size.width, rect.top))
                         drawRect(color = Color.Black.copy(alpha = 0.5f), topLeft = Offset(0f, rect.bottom), size = Size(size.width, size.height - rect.bottom))
                         drawRect(color = Color.Black.copy(alpha = 0.5f), topLeft = Offset(0f, rect.top), size = Size(rect.left, rect.height))
@@ -150,7 +162,7 @@ class CropActivity : ComponentActivity() {
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981))
                         ) {
-                            Text("Speichern")
+                            Text("Ausschnitt speichern")
                         }
                     }
                 }
@@ -158,10 +170,11 @@ class CropActivity : ComponentActivity() {
         }
     }
 
-    private fun saveCroppedImage(bitmap: Bitmap, start: Offset, end: Offset, name: String, category: String) {
-        val metrics = resources.displayMetrics
-        val scaleX = bitmap.width.toFloat() / metrics.widthPixels
-        val scaleY = bitmap.height.toFloat() / metrics.heightPixels
+    private fun saveCroppedImage(bitmap: Bitmap, start: Offset, end: Offset, canvasSize: Size, name: String, category: String) {
+        if (canvasSize.width <= 0f || canvasSize.height <= 0f) return
+
+        val scaleX = bitmap.width.toFloat() / canvasSize.width
+        val scaleY = bitmap.height.toFloat() / canvasSize.height
 
         val left = min(start.x, end.x) * scaleX
         val top = min(start.y, end.y) * scaleY
@@ -171,7 +184,10 @@ class CropActivity : ComponentActivity() {
         val width = right - left
         val height = bottom - top
 
-        if (width <= 0 || height <= 0) return
+        if (width <= 10f || height <= 10f) {
+            Toast.makeText(this, "Markierter Bereich ist zu klein!", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         try {
             val croppedBitmap = Bitmap.createBitmap(
@@ -183,11 +199,11 @@ class CropActivity : ComponentActivity() {
             )
 
             TemplateManager.saveNewTemplate(this, croppedBitmap, name, category)
-            Toast.makeText(this, "Ziel '$name' gespeichert!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "✅ Ziel '$name' erfolgreich gespeichert!", Toast.LENGTH_LONG).show()
             finish()
         } catch (e: Exception) {
             e.printStackTrace()
-            Toast.makeText(this, "Fehler beim Zuschneiden.", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Fehler beim Zuschneiden: ${e.message}", Toast.LENGTH_SHORT).show()
         }
     }
 }
