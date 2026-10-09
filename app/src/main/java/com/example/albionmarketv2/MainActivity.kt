@@ -403,6 +403,31 @@ class MainActivity : ComponentActivity() {
                                         textAlign = TextAlign.Center
                                     )
 
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    // NEUE FEATURES HIGHLIGHTS CARD (v3.5.2)
+                                    Surface(
+                                        shape = RoundedCornerShape(10.dp),
+                                        color = Color(0xFF0F172A),
+                                        border = BorderStroke(1.dp, Color(0xFF8B5CF6).copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column(
+                                            modifier = Modifier.padding(10.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                text = "✨ Was ist neu in v$CURRENT_APP_VERSION:",
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFC084FC)
+                                            )
+                                            Text("• 🤖 OpenCV Auto-Bot & Makro-Abläufe direkt ingame", fontSize = 10.sp, color = Color.White)
+                                            Text("• 📸 Ziel-Bilder per Screenshot-Crop Tool ausschneiden", fontSize = 10.sp, color = Color.White)
+                                            Text("• 🎛️ Vollständige Bot-Steuerung in der Floating Bubble", fontSize = 10.sp, color = Color.White)
+                                        }
+                                    }
+
                                     Spacer(modifier = Modifier.height(2.dp))
 
                                     var currentAppLang by remember { mutableStateOf(prefs.appLanguage) }
