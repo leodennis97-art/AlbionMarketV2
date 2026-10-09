@@ -1,7 +1,9 @@
 package com.example.albionmarketv2
 
+import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -61,30 +63,33 @@ fun AiImageBotSection(
         )
     }
 
-    val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        uri?.let {
-            try {
-                val inputStream: InputStream? = context.contentResolver.openInputStream(it)
-                val bitmap = BitmapFactory.decodeStream(inputStream)
-                inputStream?.close()
+    val registryOwner = LocalActivityResultRegistryOwner.current
+    val imagePickerLauncher = if (registryOwner != null) {
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.GetContent()
+        ) { uri: Uri? ->
+            uri?.let {
+                try {
+                    val inputStream: InputStream? = context.contentResolver.openInputStream(it)
+                    val bitmap = BitmapFactory.decodeStream(inputStream)
+                    inputStream?.close()
 
-                if (bitmap != null) {
-                    val target = BotTarget(
-                        name = "Ziel #${targets.size + 1}",
-                        templateBitmap = bitmap,
-                        threshold = threshold.toDouble(),
-                        enabled = true
-                    )
-                    botManager?.addTarget(target)
-                    targets = botManager?.getTargets() ?: emptyList()
+                    if (bitmap != null) {
+                        val target = BotTarget(
+                            name = "Ziel #${targets.size + 1}",
+                            templateBitmap = bitmap,
+                            threshold = threshold.toDouble(),
+                            enabled = true
+                        )
+                        botManager?.addTarget(target)
+                        targets = botManager?.getTargets() ?: emptyList()
+                    }
+                } catch (e: Exception) {
+                    logs = (listOf("❌ Fehler beim Laden des Bildes: ${e.message}") + logs).take(50)
                 }
-            } catch (e: Exception) {
-                logs = (listOf("❌ Fehler beim Laden des Bildes: ${e.message}") + logs).take(50)
             }
         }
-    }
+    } else null
 
     Card(
         modifier = modifier.fillMaxWidth(),
@@ -167,7 +172,16 @@ fun AiImageBotSection(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = { imagePickerLauncher.launch("image/*") },
+                    onClick = {
+                        if (imagePickerLauncher != null) {
+                            imagePickerLauncher.launch("image/*")
+                        } else {
+                            val intent = Intent(context, BotSetupActivity::class.java).apply {
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            context.startActivity(intent)
+                        }
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
