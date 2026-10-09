@@ -29,6 +29,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.io.InputStream
+import kotlinx.coroutines.launch
 
 @Composable
 fun AiImageBotSection(
@@ -46,9 +47,16 @@ fun AiImageBotSection(
             onLog = { msg -> logs = (listOf(msg) + logs).take(50) },
             onTapAction = { x, y ->
                 try {
-                    val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "input tap $x $y"))
-                    process.waitFor()
-                } catch (_: Exception) {}
+                    val clicker = AutoClickerService.instance
+                    if (clicker != null) {
+                        clicker.clickAt(x.toFloat(), y.toFloat())
+                    } else {
+                        val process = Runtime.getRuntime().exec(arrayOf("input", "tap", x.toString(), y.toString()))
+                        process.waitFor()
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
             }
         )
     }
@@ -116,6 +124,43 @@ fun AiImageBotSection(
                 fontSize = 12.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            var userPrompt by remember { mutableStateOf("") }
+            var isThinking by remember { mutableStateOf(false) }
+            val coroutineScope = rememberCoroutineScope()
+
+            OutlinedTextField(
+                value = userPrompt,
+                onValueChange = { userPrompt = it },
+                label = { Text("Anforderung an KI (z.B. 'Klicke auf Holz')") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            Button(
+                onClick = {
+                    if (userPrompt.isNotBlank()) {
+                        isThinking = true
+                        coroutineScope.launch {
+                            logs = (listOf("🧠 KI analysiert Anforderung: '$userPrompt'...") + logs)
+                            val interpretation = AiBotAgent.interpretPrompt(userPrompt)
+                            logs = (listOf("💡 KI-Selbstprogrammierung: $interpretation") + logs)
+                            isThinking = false
+                        }
+                    }
+                },
+                enabled = !isThinking,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (isThinking) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("KI programmiert Bot...")
+                } else {
+                    Text("🧠 KI-Anforderung anwenden & programmieren")
+                }
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
