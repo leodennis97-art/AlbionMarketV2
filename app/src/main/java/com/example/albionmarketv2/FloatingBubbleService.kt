@@ -119,6 +119,28 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         }
 
         fun isServiceRunning(): Boolean = isRunning
+
+        private var autoWalkJob: Job? = null
+
+        fun startAutoWalk() {
+            autoWalkJob?.cancel()
+            autoWalkJob = CoroutineScope(Dispatchers.Default).launch {
+                while (isActive) {
+                    try {
+                        val clicker = AutoClickerService.instance
+                        if (clicker != null) {
+                            clicker.clickAt(540f, 1300f)
+                        }
+                    } catch (_: Exception) {}
+                    delay(2500L)
+                }
+            }
+        }
+
+        fun stopAutoWalk() {
+            autoWalkJob?.cancel()
+            autoWalkJob = null
+        }
     }
 
     private lateinit var windowManager: WindowManager

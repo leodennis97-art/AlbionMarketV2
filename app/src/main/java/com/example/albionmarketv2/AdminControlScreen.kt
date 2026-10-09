@@ -20,6 +20,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -792,6 +794,69 @@ fun AdminSimpleView(
 }
 
 @Composable
+fun SafeAlertDialog(
+    onDismissRequest: () -> Unit,
+    title: @Composable (() -> Unit)? = null,
+    text: @Composable (() -> Unit)? = null,
+    confirmButton: @Composable (() -> Unit)? = null,
+    dismissButton: @Composable (() -> Unit)? = null,
+    containerColor: Color = Color(0xFF1E293B)
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.82f))
+            .pointerInput(Unit) {
+                detectTapGestures {
+                    onDismissRequest()
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = containerColor),
+            border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+            modifier = Modifier
+                .fillMaxWidth(0.95f)
+                .padding(12.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures { }
+                }
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (title != null) {
+                    title()
+                }
+                if (text != null) {
+                    text()
+                }
+                if (confirmButton != null || dismissButton != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp)
+                    ) {
+                        if (dismissButton != null) {
+                            dismissButton()
+                            Spacer(modifier = Modifier.width(8.dp))
+                        }
+                        if (confirmButton != null) {
+                            confirmButton()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
 fun AdminControlDialog(
     viewModel: AlbionResourceViewModel,
     onDismiss: () -> Unit
@@ -869,7 +934,7 @@ fun AdminControlDialog(
     val totalBannedDevices = remember(devices) { devices.count { it.isBanned } }
     val totalOutdatedDevices = remember(devices) { devices.count { OtaUpdateManager.compareVersionStrings(it.appVersion ?: CURRENT_APP_VERSION, CURRENT_APP_VERSION) < 0 } }
 
-    AlertDialog(
+    SafeAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(
@@ -1201,7 +1266,7 @@ fun ConfirmDeleteDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
-    AlertDialog(
+    SafeAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -2042,7 +2107,7 @@ fun SendAlertDialog(
         "🌐 Besuche unsere Webseite: https://albionmarketv2-1.onrender.com"
     )
 
-    AlertDialog(
+    SafeAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
@@ -2145,7 +2210,7 @@ fun BanDeviceDialog(
         "Inaktives / Nicht autorisiertes Gerät"
     )
 
-    AlertDialog(
+    SafeAlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Text("🔴 Gerät bannen & kicken", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color(0xFFEF4444))
