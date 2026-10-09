@@ -16,9 +16,21 @@ data class BotTemplate(
     var isActive: Boolean
 )
 
+data class BotStep(
+    val templateId: String,
+    val delayAfterMs: Long = 2000L
+)
+
+data class BotWorkflow(
+    val id: String,
+    val name: String,
+    val steps: List<BotStep>
+)
+
 object TemplateManager {
     private const val PREFS_NAME = "bot_templates_prefs"
     private const val KEY_TEMPLATES = "templates_json"
+    private const val KEY_WORKFLOWS = "workflows_json"
 
     fun getTemplates(context: Context): List<BotTemplate> {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -87,5 +99,50 @@ object TemplateManager {
         if (file.exists()) file.delete()
         val list = getTemplates(context).filter { it.id != id }
         saveTemplates(context, list)
+    }
+
+    // Workflows
+    fun getWorkflows(context: Context): List<BotWorkflow> {
+        val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val jsonString = prefs.getString(KEY_WORKFLOWS, "[]") ?: "[]"
+        val list = mutableListOf<BotWorkflow>()
+        try {
+            val array = JSONArray(jsonString)
+            for (i in 0 until array.length()) {
+                val obj = array.getJSONObject(i)
+                val stepsArray = obj.getJSONArray("steps")
+                val steps = mutableListOf<BotStep>()
+                for (j in 0 until stepsArray.length()) {
+                    val stepObj = stepsArray.getJSONObject(j)
+                    steps.add(BotStep(stepObj.getString("templateId"), stepObj.getLong("delayAfterMs")))
+                }
+                list.add(BotWorkflow(obj.getString("id"), obj.getString("name"), steps))
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return list
+    }
+
+    fun saveWorkflows(context: Context, workflows: List<BotWorkflow>) {
+        val array = JSONArray()
+        workflows.forEach { wf ->
+            val obj = JSONObject()
+            obj.put("id", wf.id)
+            obj.put("name", wf.name)
+            val stepsArray = JSONArray()
+            wf.steps.forEach { step ->
+                val stepObj = JSONObject()
+                stepObj.put("templateId", step.templateId)
+                stepObj.put("delayAfterMs", step.delayAfterMs)
+                stepsArray.put(stepObj)
+            }
+            obj.put("steps", stepsArray)
+            array.put(obj)
+        }
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putString(KEY_WORKFLOWS, array.toString())
+            .apply()
     }
 }

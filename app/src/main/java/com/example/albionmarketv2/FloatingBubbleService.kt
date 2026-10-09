@@ -65,6 +65,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -820,6 +821,10 @@ fun BubbleOverlayContent(
     var showCityRoutesPopup by remember { mutableStateOf(value = false) }
     var selectedTab by remember { mutableStateOf(if (activeOrder != null) BubbleTab.ACTIVE_ORDER else BubbleTab.TOP_MARGIN) }
 
+    var showAdminPasswordDialog by remember { mutableStateOf(false) }
+    var showNativeAdminPanel by remember { mutableStateOf(false) }
+    val viewModel = remember { AlbionResourceViewModel(context.applicationContext as Application) }
+
     LaunchedEffect(activeOrder) {
         if ((activeOrder != null) && !isBookingMode) {
             selectedTab = BubbleTab.ACTIVE_ORDER
@@ -1029,16 +1034,11 @@ fun BubbleOverlayContent(
                                         shape = RoundedCornerShape(6.dp),
                                         color = Color(0xFFD97706),
                                         modifier = Modifier.clickable {
-                                            try {
-                                                val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/admin".toUri()).apply {
-                                                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                                                }
-                                                context.startActivity(intent)
-                                            } catch (_: Exception) {}
+                                            showAdminPasswordDialog = true
                                         },
                                     ) {
                                         Text(
-                                            text = "👑 Admin Web",
+                                            text = "👑 Admin",
                                             color = Color.White,
                                             fontWeight = FontWeight.Bold,
                                             fontSize = if (isCompactMode) 8.sp else 9.sp,
@@ -2441,6 +2441,52 @@ fun BubbleOverlayContent(
                         }
                     }
                 }
+            }
+
+            if (showAdminPasswordDialog) {
+                var pwd by remember { mutableStateOf("") }
+                AlertDialog(
+                    onDismissRequest = { showAdminPasswordDialog = false },
+                    title = { Text("Admin-Bereich gesperrt", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+                    text = {
+                        OutlinedTextField(
+                            value = pwd,
+                            onValueChange = { pwd = it },
+                            label = { Text("Passwort eingeben", fontSize = 12.sp) },
+                            visualTransformation = PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                            modifier = Modifier.fillMaxWidth().onFocusChanged { focusState ->
+                                if (focusState.isFocused) {
+                                    onFocusModeChanged(true)
+                                }
+                            }
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            if (pwd == "230419") {
+                                showAdminPasswordDialog = false
+                                showNativeAdminPanel = true
+                            } else {
+                                Toast.makeText(context, "Falsches Passwort", Toast.LENGTH_SHORT).show()
+                            }
+                        }) {
+                            Text("Entsperren")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showAdminPasswordDialog = false }) {
+                            Text("Abbrechen")
+                        }
+                    }
+                )
+            }
+
+            if (showNativeAdminPanel) {
+                AdminControlDialog(
+                    viewModel = viewModel,
+                    onDismiss = { showNativeAdminPanel = false }
+                )
             }
         }
     }

@@ -130,6 +130,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -5674,6 +5675,7 @@ fun AppSettingsDialog(
     val prefs = remember { AppPreferences(context) }
     var botNameInput by remember { mutableStateOf(prefs.aiBotName) }
     var showAdminControlDialog by remember { mutableStateOf(false) }
+    var showAdminPasswordDialog by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -5714,7 +5716,7 @@ fun AppSettingsDialog(
                 // DataProAdmin Button (Only visible for admin accounts)
                 if (prefs.isAdmin) {
                     Button(
-                        onClick = { showAdminControlDialog = true },
+                        onClick = { showAdminPasswordDialog = true },
                         shape = RoundedCornerShape(10.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
                         modifier = Modifier.fillMaxWidth()
@@ -5726,6 +5728,41 @@ fun AppSettingsDialog(
                             fontSize = 12.sp
                         )
                     }
+                }
+
+                if (showAdminPasswordDialog) {
+                    var pwd by remember { mutableStateOf("") }
+                    AlertDialog(
+                        onDismissRequest = { showAdminPasswordDialog = false },
+                        title = { Text("Admin-Bereich gesperrt", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+                        text = {
+                            OutlinedTextField(
+                                value = pwd,
+                                onValueChange = { pwd = it },
+                                label = { Text("Passwort eingeben", fontSize = 12.sp) },
+                                visualTransformation = PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        },
+                        confirmButton = {
+                            TextButton(onClick = {
+                                if (pwd == "230419") {
+                                    showAdminPasswordDialog = false
+                                    showAdminControlDialog = true
+                                } else {
+                                    Toast.makeText(context, "Falsches Passwort", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Text("Entsperren")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showAdminPasswordDialog = false }) {
+                                Text("Abbrechen")
+                            }
+                        }
+                    )
                 }
 
                 if (showAdminControlDialog) {
