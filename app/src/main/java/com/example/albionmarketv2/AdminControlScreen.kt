@@ -132,7 +132,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "3.5.5"
+const val CURRENT_APP_VERSION = "3.5.6"
 
 data class AdminDevice(
     val hwId: String,
@@ -703,6 +703,7 @@ fun AdminSimpleView(
         if (showMergeBot) {
             list.add("🤖 Merge-Bot" to Color(0xFFEC4899))
         }
+        list.add("🎨 KI-Bild-Bot" to Color(0xFF8B5CF6))
         list
     }
 
@@ -783,6 +784,17 @@ fun AdminSimpleView(
                             Text("Kategorie: Merge-Bot & KI Arbitrage", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFFEC4899))
                             Text("Subkategorie: 100% Statistische Verzauberung & Top Trade Order Vorhersagen", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
                             AdminMergeBotTab(viewModel = viewModel, onFocusModeChanged = onFocusModeChanged)
+                        } else {
+                            Text("Kategorie: Programmierbarer KI-Bild-Bot", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
+                            Text("Subkategorie: Template Matching, Screen Bot & OCR/Agent Prompting", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                            AiImageBotSection(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                    6 -> {
+                        if (showMergeBot) {
+                            Text("Kategorie: Programmierbarer KI-Bild-Bot", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF8B5CF6))
+                            Text("Subkategorie: Template Matching, Screen Bot & OCR/Agent Prompting", fontWeight = FontWeight.SemiBold, fontSize = 10.sp, color = Color(0xFF94A3B8))
+                            AiImageBotSection(modifier = Modifier.fillMaxWidth())
                         }
                     }
                 }
