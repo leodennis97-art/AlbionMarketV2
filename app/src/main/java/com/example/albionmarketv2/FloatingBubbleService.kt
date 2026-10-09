@@ -4636,59 +4636,6 @@ fun BubbleBotTab(
             }
         }
 
-        // KI Anforderung (Self-Programming Prompt) MIT KEYBOARD FOCUS FIX!
-        OutlinedTextField(
-            value = userPrompt,
-            onValueChange = { userPrompt = it },
-            label = { Text("🧠 KI Anforderung (z.B. 'Klicke Holz')", fontSize = 9.sp, color = Color.Gray) },
-            singleLine = true,
-            shape = RoundedCornerShape(8.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color(0xFF8B5CF6),
-                unfocusedBorderColor = Color(0xFF334155),
-                focusedTextColor = Color.White,
-                unfocusedTextColor = Color.White,
-                focusedContainerColor = Color(0xFF0F172A),
-                unfocusedContainerColor = Color(0xFF0F172A)
-            ),
-            modifier = Modifier
-                .fillMaxWidth()
-                .onFocusChanged { focusState ->
-                    if (focusState.isFocused) {
-                        onFocusModeChanged(true)
-                    }
-                }
-        )
-
-        Button(
-            onClick = {
-                onFocusModeChanged(false)
-                if (userPrompt.isNotBlank()) {
-                    isThinking = true
-                    scope.launch {
-                        botLogText = "🧠 KI analysiert: '$userPrompt'..."
-                        val interpretation = AiBotAgent.interpretPrompt(userPrompt)
-                        botLogText = "💡 KI-Programmierung: $interpretation"
-                        isThinking = false
-                    }
-                }
-            },
-            enabled = !isThinking,
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().height(32.dp)
-        ) {
-            if (isThinking) {
-                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(12.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text("KI programmiert...", fontSize = 9.sp, fontWeight = FontWeight.Bold)
-            } else {
-                Text("🧠 KI Anforderung anwenden", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
-            }
-        }
-
-        HorizontalDivider(color = Color(0xFF334155))
-
         // Direct In-Bubble Crop Tool Button
         Button(
             onClick = {
