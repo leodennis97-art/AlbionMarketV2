@@ -2717,6 +2717,12 @@ fun BubbleCatalogTab(
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val favSet = uiState.favoriteItemIds
 
+    LaunchedEffect(Unit) {
+        if (uiState.marketPrices.isEmpty()) {
+            viewModel.forceRefreshMarketData()
+        }
+    }
+
     val filtered = remember(query, selectedCat, selectedTier, showFavoritesOnly, favSet, uiState.filteredResources) {
         uiState.filteredResources.asSequence().filter { res ->
             val matchesQuery = query.isBlank() || res.nameDe.contains(query, ignoreCase = true) || res.id.contains(query, ignoreCase = true)
