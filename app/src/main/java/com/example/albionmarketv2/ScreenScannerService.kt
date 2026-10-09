@@ -55,7 +55,12 @@ class ScreenScannerService : Service() {
         }
 
         val resultCode = intent?.getIntExtra("RESULT_CODE", 0) ?: 0
-        val data = intent?.getParcelableExtra<Intent>("DATA")
+        val data = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra("DATA", Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra<Intent>("DATA")
+        }
 
         if (resultCode != 0 && data != null) {
             startForegroundService()
@@ -122,57 +127,76 @@ class ScreenScannerService : Service() {
         handler.post(object : Runnable {
             override fun run() {
                 if (!isRunning) return
-                if (currentWorkflow == null || currentWorkflow!!.steps.isEmpty()) return
 
                 try {
                     val image = imageReader?.acquireLatestImage()
                     if (image != null) {
                         val bitmap = imageToBitmap(image)
                         image.close()
-                        
-                        val step = currentWorkflow!!.steps[currentStepIndex]
-                        val template = TemplateManager.loadTemplateBitmap(this@ScreenScannerService, step.templateId)
 
-                        if (template != null) {
-                            val pt = ImageMatcher.findTemplate(bitmap, template, 0.85)
-                            if (pt != null) {
-                                Log.d("BotScanner", "Ziel gefunden bei X:${pt.x}, Y:${pt.y}. Klicke...")
-                                AutoClickerService.instance?.clickAt(pt.x.toFloat(), pt.y.toFloat())
-                                
-                                // Gehe zum nächsten Schritt
-                                currentStepIndex++
+                        if (bitmap != null) {
+                            if (currentWorkflow != null && currentWorkflow!!.steps.isNotEmpty()) {
                                 if (currentStepIndex >= currentWorkflow!!.steps.size) {
-                                    currentStepIndex = 0 // Ablauf wiederholen
+                                    currentStepIndex = 0
                                 }
-                                
-                                // Pause bis zum nächsten Schritt
-                                handler.postDelayed(this, step.delayAfterMs)
-                                return
+                                val step = currentWorkflow!!.steps[currentStepIndex]
+                                val template = TemplateManager.loadTemplateBitmap(this@ScreenScannerService, step.templateId)
+
+                                if (template != null) {
+                                    val pt = ImageMatcher.findTemplate(bitmap, template, 0.85)
+                                    if (pt != null) {
+                                        Log.d("BotScanner", "Ablauf-Ziel '${step.templateId}' gefunden bei X:${pt.x}, Y:${pt.y}. Klicke...")
+                                        AutoClickerService.instance?.clickAt(pt.x.toFloat(), pt.y.toFloat())
+                                        
+                                        currentStepIndex = (currentStepIndex + 1) % currentWorkflow!!.steps.size
+                                        handler.postDelayed(this, step.delayAfterMs)
+                                        return
+                                    }
+                                }
+                            } else {
+                                // Einzel/Multi-Template Modus
+                                val activeTemplates = TemplateManager.getTemplates(this@ScreenScannerService).filter { it.isActive }
+                                for (model in activeTemplates) {
+                                    val template = TemplateManager.loadTemplateBitmap(this@ScreenScannerService, model.id)
+                                    if (template != null) {
+                                        val pt = ImageMatcher.findTemplate(bitmap, template, 0.85)
+                                        if (pt != null) {
+                                            Log.d("BotScanner", "Ziel '${model.name}' gefunden bei X:${pt.x}, Y:${pt.y}. Klicke...")
+                                            AutoClickerService.instance?.clickAt(pt.x.toFloat(), pt.y.toFloat())
+                                            handler.postDelayed(this, 2000L)
+                                            return
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 } catch (e: Exception) {
                     Log.e("BotScanner", "Fehler im Scan-Loop", e)
                 }
-                
-                // Falls Bild nicht gefunden wurde: bald nochmal scannen
+
+                // Nächster Scan in 500ms
                 handler.postDelayed(this, 500)
             }
         })
     }
 
-    private fun imageToBitmap(image: Image): Bitmap {
-        val planes = image.planes
-        val buffer: ByteBuffer = planes[0].buffer
-        val pixelStride = planes[0].pixelStride
-        val rowStride = planes[0].rowStride
-        val rowPadding = rowStride - pixelStride * image.width
-        
-        val bitmap = Bitmap.createBitmap(image.width + rowPadding / pixelStride, image.height, Bitmap.Config.ARGB_8888)
-        bitmap.copyPixelsFromBuffer(buffer)
-        
-        // Return a clean copy without padding
-        return Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
+    private fun imageToBitmap(image: Image): Bitmap? {
+        return try {
+            val planes = image.planes
+            val buffer: ByteBuffer = planes[0].buffer
+            val pixelStride = planes[0].pixelStride
+            val rowStride = planes[0].rowStride
+            val rowPadding = rowStride - pixelStride * image.width
+
+            val bitmap = Bitmap.createBitmap(image.width + rowPadding / pixelStride, image.height, Bitmap.Config.ARGB_8888)
+            bitmap.copyPixelsFromBuffer(buffer)
+
+            Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
+        } catch (e: Exception) {
+            Log.e("BotScanner", "Fehler bei imageToBitmap", e)
+            null
+        }
     }
 
     private fun stopScanning() {

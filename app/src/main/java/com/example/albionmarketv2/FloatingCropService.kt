@@ -49,7 +49,12 @@ class FloatingCropService : Service() {
         }
         
         resultCode = intent?.getIntExtra("RESULT_CODE", 0) ?: 0
-        resultData = intent?.getParcelableExtra("DATA")
+        resultData = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent?.getParcelableExtra("DATA", Intent::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent?.getParcelableExtra("DATA")
+        }
 
         if (resultCode != 0 && resultData != null) {
             startForegroundService()
@@ -168,7 +173,12 @@ class FloatingCropService : Service() {
         }
     }
 
-    private fun saveAndLaunchCrop(bitmap: Bitmap) {
+    private fun saveAndLaunchCrop(bitmap: Bitmap?) {
+        if (bitmap == null) {
+            Toast.makeText(this, "Fehler beim Erfassen des Bildes.", Toast.LENGTH_SHORT).show()
+            stopSelf()
+            return
+        }
         try {
             val file = File(cacheDir, "full_screenshot.png")
             FileOutputStream(file).use { out ->
@@ -187,17 +197,22 @@ class FloatingCropService : Service() {
         stopSelf()
     }
 
-    private fun imageToBitmap(image: Image): Bitmap {
-        val planes = image.planes
-        val buffer: ByteBuffer = planes[0].buffer
-        val pixelStride = planes[0].pixelStride
-        val rowStride = planes[0].rowStride
-        val rowPadding = rowStride - pixelStride * image.width
-        
-        val bitmap = Bitmap.createBitmap(image.width + rowPadding / pixelStride, image.height, Bitmap.Config.ARGB_8888)
-        bitmap.copyPixelsFromBuffer(buffer)
-        
-        return Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
+    private fun imageToBitmap(image: Image): Bitmap? {
+        return try {
+            val planes = image.planes
+            val buffer: ByteBuffer = planes[0].buffer
+            val pixelStride = planes[0].pixelStride
+            val rowStride = planes[0].rowStride
+            val rowPadding = rowStride - pixelStride * image.width
+
+            val bitmap = Bitmap.createBitmap(image.width + rowPadding / pixelStride, image.height, Bitmap.Config.ARGB_8888)
+            bitmap.copyPixelsFromBuffer(buffer)
+
+            Bitmap.createBitmap(bitmap, 0, 0, image.width, image.height)
+        } catch (e: Exception) {
+            Log.e("FloatingCropService", "Fehler bei imageToBitmap", e)
+            null
+        }
     }
 
     override fun onDestroy() {
