@@ -10,8 +10,19 @@ import org.opencv.imgproc.Imgproc
 import android.util.Log
 
 object ImageMatcher {
+    private fun ensureSoftwareBitmap(bitmap: Bitmap): Bitmap {
+        return if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+        } else {
+            bitmap
+        }
+    }
+
     fun findTemplate(screenshot: Bitmap, template: Bitmap, threshold: Double = 0.8): Point? {
-        if (screenshot.width < template.width || screenshot.height < template.height) {
+        val src = ensureSoftwareBitmap(screenshot)
+        val tpl = ensureSoftwareBitmap(template)
+
+        if (src.width < tpl.width || src.height < tpl.height) {
             Log.e("ImageMatcher", "Template is larger than the screenshot!")
             return null
         }
@@ -20,8 +31,8 @@ object ImageMatcher {
         val tplMat = Mat()
         
         try {
-            Utils.bitmapToMat(screenshot, imgMat)
-            Utils.bitmapToMat(template, tplMat)
+            Utils.bitmapToMat(src, imgMat)
+            Utils.bitmapToMat(tpl, tplMat)
 
             // Konvertiere in Graustufen für stabileres und schnelleres Matching
             val imgGray = Mat()
@@ -47,14 +58,14 @@ object ImageMatcher {
 
             return if (maxVal >= threshold) {
                 // Gibt den Mittelpunkt des gefundenen Templates zurück
-                Point(maxLoc.x + template.width / 2.0, maxLoc.y + template.height / 2.0)
+                Point(maxLoc.x + tpl.width / 2.0, maxLoc.y + tpl.height / 2.0)
             } else {
                 null
             }
         } catch (e: Exception) {
             Log.e("ImageMatcher", "Fehler beim Template Matching", e)
-            imgMat.release()
-            tplMat.release()
+            try { imgMat.release() } catch (_: Exception) {}
+            try { tplMat.release() } catch (_: Exception) {}
             return null
         }
     }

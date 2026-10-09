@@ -16,40 +16,56 @@ data class BotTarget(
 )
 
 object TemplateMatcher {
+    private fun ensureSoftwareBitmap(bitmap: Bitmap): Bitmap {
+        return if (bitmap.config == Bitmap.Config.HARDWARE) {
+            bitmap.copy(Bitmap.Config.ARGB_8888, false) ?: bitmap
+        } else {
+            bitmap
+        }
+    }
+
     /**
      * Searches for templateBitmap inside sourceBitmap using normalized color distance / similarity.
      * Returns the Point (x, y) of the center of the best match, or null if below threshold.
      */
     fun findTemplate(source: Bitmap, template: Bitmap, threshold: Double = 0.85): Point? {
-        val srcWidth = source.width
-        val srcHeight = source.height
-        val tplWidth = template.width
-        val tplHeight = template.height
+        try {
+            val src = ensureSoftwareBitmap(source)
+            val tpl = ensureSoftwareBitmap(template)
 
-        if (tplWidth > srcWidth || tplHeight > srcHeight) return null
+            val srcWidth = src.width
+            val srcHeight = src.height
+            val tplWidth = tpl.width
+            val tplHeight = tpl.height
 
-        var bestScore = -1.0
-        var bestX = -1
-        var bestY = -1
+            if (tplWidth > srcWidth || tplHeight > srcHeight) return null
 
-        val stepX = 4 // Step by 4 for fast scanning performance
-        val stepY = 4
+            var bestScore = -1.0
+            var bestX = -1
+            var bestY = -1
 
-        for (y in 0..srcHeight - tplHeight step stepY) {
-            for (x in 0..srcWidth - tplWidth step stepX) {
-                val score = calculateSimilarity(source, template, x, y, tplWidth, tplHeight)
-                if (score > bestScore) {
-                    bestScore = score
-                    bestX = x
-                    bestY = y
+            val stepX = 4 // Step by 4 for fast scanning performance
+            val stepY = 4
+
+            for (y in 0..srcHeight - tplHeight step stepY) {
+                for (x in 0..srcWidth - tplWidth step stepX) {
+                    val score = calculateSimilarity(src, tpl, x, y, tplWidth, tplHeight)
+                    if (score > bestScore) {
+                        bestScore = score
+                        bestX = x
+                        bestY = y
+                    }
                 }
             }
-        }
 
-        return if (bestScore >= threshold) {
-            Point(bestX + tplWidth / 2, bestY + tplHeight / 2)
-        } else {
-            null
+            return if (bestScore >= threshold) {
+                Point(bestX + tplWidth / 2, bestY + tplHeight / 2)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return null
         }
     }
 

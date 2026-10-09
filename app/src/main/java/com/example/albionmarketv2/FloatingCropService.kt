@@ -118,31 +118,54 @@ class FloatingCropService : Service() {
     }
 
     private fun executeScreenshot() {
-        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjection = mpm.getMediaProjection(resultCode, resultData!!)
-        
-        val metrics = resources.displayMetrics
-        val width = metrics.widthPixels
-        val height = metrics.heightPixels
-        val density = metrics.densityDpi
-
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
-        virtualDisplay = mediaProjection?.createVirtualDisplay(
-            "ScreenshotScanner", width, height, density,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader?.surface, null, null
-        )
-
-        imageReader?.setOnImageAvailableListener({ reader ->
-            val image = reader.acquireLatestImage()
-            if (image != null) {
-                val bitmap = imageToBitmap(image)
-                image.close()
-                
-                reader.setOnImageAvailableListener(null, null)
-                saveAndLaunchCrop(bitmap)
+        try {
+            if (resultData == null) {
+                stopSelf()
+                return
             }
-        }, Handler(Looper.getMainLooper()))
+            val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjection = mpm.getMediaProjection(resultCode, resultData!!)
+            if (mediaProjection == null) {
+                stopSelf()
+                return
+            }
+            
+            val metrics = resources.displayMetrics
+            val width = metrics.widthPixels
+            val height = metrics.heightPixels
+            val density = metrics.densityDpi
+
+            imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                "ScreenshotScanner", width, height, density,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader?.surface, null, null
+            )
+
+            imageReader?.setOnImageAvailableListener({ reader ->
+                try {
+                    val image = reader.acquireLatestImage()
+                    if (image != null) {
+                        val bitmap = imageToBitmap(image)
+                        image.close()
+                        
+                        reader.setOnImageAvailableListener(null, null)
+                        saveAndLaunchCrop(bitmap)
+                    }
+                } catch (e: Exception) {
+                    Log.e("FloatingCropService", "Error taking screenshot frame", e)
+                    stopSelf()
+                }
+            }, Handler(Looper.getMainLooper()))
+        } catch (e: Exception) {
+            Log.e("FloatingCropService", "Fehler bei executeScreenshot", e)
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    Toast.makeText(this, "Screenshot abgebrochen. Bitte erneut versuchen.", Toast.LENGTH_LONG).show()
+                } catch (_: Exception) {}
+            }
+            stopSelf()
+        }
     }
 
     private fun saveAndLaunchCrop(bitmap: Bitmap) {

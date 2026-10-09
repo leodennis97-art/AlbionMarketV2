@@ -20,6 +20,7 @@ import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import java.io.File
 import java.nio.ByteBuffer
@@ -83,23 +84,38 @@ class ScreenScannerService : Service() {
     }
 
     private fun setupMediaProjection(resultCode: Int, data: Intent) {
-        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        mediaProjection = mpm.getMediaProjection(resultCode, data)
-        
-        val metrics = resources.displayMetrics
-        val width = metrics.widthPixels
-        val height = metrics.heightPixels
-        val density = metrics.densityDpi
+        try {
+            val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+            mediaProjection = mpm.getMediaProjection(resultCode, data)
+            if (mediaProjection == null) {
+                Log.e("BotScanner", "MediaProjection ist null")
+                stopSelf()
+                return
+            }
+            
+            val metrics = resources.displayMetrics
+            val width = metrics.widthPixels
+            val height = metrics.heightPixels
+            val density = metrics.densityDpi
 
-        imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
-        virtualDisplay = mediaProjection?.createVirtualDisplay(
-            "BotScanner", width, height, density,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            imageReader?.surface, null, null
-        )
+            imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
+            virtualDisplay = mediaProjection?.createVirtualDisplay(
+                "BotScanner", width, height, density,
+                DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
+                imageReader?.surface, null, null
+            )
 
-        isRunning = true
-        startScanningLoop()
+            isRunning = true
+            startScanningLoop()
+        } catch (e: Exception) {
+            Log.e("BotScanner", "Fehler bei MediaProjection Start", e)
+            Handler(Looper.getMainLooper()).post {
+                try {
+                    Toast.makeText(this, "Bildschirmaufnahme abgebrochen oder nicht erlaubt.", Toast.LENGTH_LONG).show()
+                } catch (_: Exception) {}
+            }
+            stopSelf()
+        }
     }
 
     private fun startScanningLoop() {
