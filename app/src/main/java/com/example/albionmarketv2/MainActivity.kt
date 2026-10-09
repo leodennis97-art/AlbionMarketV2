@@ -1197,21 +1197,6 @@ fun UnlockedLockscreenContent(
                                 }
                             }
                         }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // NEUER BUTTON für den Bot
-                        Button(
-                            onClick = {
-                                val intent = Intent(context, BotSetupActivity::class.java)
-                                context.startActivity(intent)
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("🤖 Auto-Bot (OpenCV) Setup öffnen", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color.White)
-                        }
                     }
                 }
 

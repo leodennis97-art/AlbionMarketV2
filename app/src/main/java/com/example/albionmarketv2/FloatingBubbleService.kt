@@ -1031,6 +1031,26 @@ fun BubbleOverlayContent(
                                 }
                             }
                             item {
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = Color(0xFF0284C7),
+                                    modifier = Modifier.clickable {
+                                        showCityRoutesPopup = !showCityRoutesPopup
+                                    },
+                                ) {
+                                    Text(
+                                        text = "🗺️ Routen",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = if (isCompactMode) 8.sp else 9.sp,
+                                        modifier = Modifier.padding(
+                                            vertical = if (isCompactMode) 2.dp else 4.dp,
+                                            horizontal = if (isCompactMode) 3.dp else 4.dp
+                                        ),
+                                    )
+                                }
+                            }
+                            item {
                                 val isAdminUser = prefs.isAdmin || prefs.savedUsername.equals("dnnx", ignoreCase = true)
                                 if (isAdminUser) {
                                     Surface(
@@ -2439,7 +2459,19 @@ fun BubbleOverlayContent(
                                 BubbleTab.GOLD_MARKET -> BubbleGoldTab(viewModel = viewModel, uiState = uiState, onFocusModeChanged = onFocusModeChanged, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.BUILDS -> BubbleBuildsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab, onRefresh = onRefresh)
-                                BubbleTab.BOT -> BubbleBotTab(context = context, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.BOT -> BubbleBotTab(
+                                    context = context,
+                                    maxHeight = maxBubbleHeightTab,
+                                    onFocusModeChanged = onFocusModeChanged,
+                                    onStartCropMode = {
+                                        try {
+                                            val intent = Intent(context, BotSetupActivity::class.java).apply {
+                                                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (e: Exception) { e.printStackTrace() }
+                                    }
+                                )
                                 else -> {}
                             }
                         }
@@ -2490,6 +2522,17 @@ fun BubbleOverlayContent(
                 AdminControlDialog(
                     viewModel = viewModel,
                     onDismiss = { showNativeAdminPanel = false }
+                )
+            }
+
+            if (showCityRoutesPopup) {
+                CityRoutesPopup(
+                    currentCity = "Martlock",
+                    onRouteSelected = { destCity ->
+                        showCityRoutesPopup = false
+                        Toast.makeText(context, "Zielstadt gewählt: $destCity", Toast.LENGTH_SHORT).show()
+                    },
+                    onDismiss = { showCityRoutesPopup = false }
                 )
             }
         }
@@ -4513,7 +4556,9 @@ fun CityRoutesPopup(
 @Composable
 fun BubbleBotTab(
     context: Context,
-    maxHeight: Dp
+    maxHeight: Dp,
+    onFocusModeChanged: (Boolean) -> Unit,
+    onStartCropMode: () -> Unit
 ) {
     var templates by remember { mutableStateOf(TemplateManager.getTemplates(context)) }
     var userPrompt by remember { mutableStateOf("") }
@@ -4556,7 +4601,7 @@ fun BubbleBotTab(
             }
         }
 
-        // KI Anforderung (Self-Programming Prompt)
+        // KI Anforderung (Self-Programming Prompt) MIT KEYBOARD FOCUS FIX!
         OutlinedTextField(
             value = userPrompt,
             onValueChange = { userPrompt = it },
@@ -4571,11 +4616,18 @@ fun BubbleBotTab(
                 focusedContainerColor = Color(0xFF0F172A),
                 unfocusedContainerColor = Color(0xFF0F172A)
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .onFocusChanged { focusState ->
+                    if (focusState.isFocused) {
+                        onFocusModeChanged(true)
+                    }
+                }
         )
 
         Button(
             onClick = {
+                onFocusModeChanged(false)
                 if (userPrompt.isNotBlank()) {
                     isThinking = true
                     scope.launch {
@@ -4602,6 +4654,21 @@ fun BubbleBotTab(
 
         HorizontalDivider(color = Color(0xFF334155))
 
+        // Direct In-Bubble Crop Tool Button
+        Button(
+            onClick = {
+                onFocusModeChanged(false)
+                onStartCropMode()
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(36.dp)
+        ) {
+            Text("📸 Ziel durch Streichen (Rechteck) markieren", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        HorizontalDivider(color = Color(0xFF334155))
+
         // Saved Templates Section
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -4615,7 +4682,7 @@ fun BubbleBotTab(
         }
 
         if (templates.isEmpty()) {
-            Text("Keine Ziele gespeichert. Klicke unten auf Crop-Tool!", fontSize = 9.sp, color = Color.Gray)
+            Text("Keine Ziele gespeichert. Klicke oben auf Rechteck markieren!", fontSize = 9.sp, color = Color.Gray)
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 templates.forEach { tmpl ->
@@ -4677,22 +4744,7 @@ fun BubbleBotTab(
         // Main Bot Action Buttons
         Button(
             onClick = {
-                try {
-                    val intent = Intent(context, BotSetupActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    }
-                    context.startActivity(intent)
-                } catch (e: Exception) { e.printStackTrace() }
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
-            shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().height(32.dp)
-        ) {
-            Text("📸 Kamera Crop-Tool / Setup öffnen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
-        }
-
-        Button(
-            onClick = {
+                onFocusModeChanged(false)
                 try {
                     val intent = Intent(context, BotSetupActivity::class.java).apply {
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
@@ -4710,6 +4762,7 @@ fun BubbleBotTab(
 
         Button(
             onClick = {
+                onFocusModeChanged(false)
                 try {
                     val intent = Intent(context, ScreenScannerService::class.java).apply {
                         action = "STOP"
