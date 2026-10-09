@@ -158,6 +158,18 @@ class BotSetupActivity : ComponentActivity() {
     }
 
     private fun startScreenCapture() {
+        val templates = TemplateManager.getTemplates(this)
+        if (templates.isEmpty()) {
+            Toast.makeText(this, "⚠️ Bitte zuerst mit (3.) ein Ziel-Bild ausschneiden!", Toast.LENGTH_LONG).show()
+            return
+        }
+        val workflows = TemplateManager.getWorkflows(this)
+        if (workflows.isEmpty()) {
+            val steps = templates.map { BotStep(it.id, 2000L) }
+            val workflow = BotWorkflow("wf_1", "Automatischer Ablauf", steps)
+            TemplateManager.saveWorkflows(this, listOf(workflow))
+        }
+
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         screenCaptureLauncher.launch(mpm.createScreenCaptureIntent())
     }

@@ -48,9 +48,7 @@ class ScreenScannerService : Service() {
             currentWorkflow = TemplateManager.getWorkflows(this).find { it.id == workflowId }
             currentStepIndex = 0
             if (currentWorkflow == null) {
-                Log.e("BotScanner", "Workflow nicht gefunden!")
-                stopSelf()
-                return START_NOT_STICKY
+                Log.i("BotScanner", "Workflow '$workflowId' nicht gefunden. Verwende automatischen Template-Suchmodus.")
             }
         }
 
