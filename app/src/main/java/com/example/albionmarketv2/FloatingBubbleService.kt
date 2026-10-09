@@ -25,6 +25,7 @@ import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -58,6 +59,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
@@ -4513,8 +4515,12 @@ fun BubbleBotTab(
     context: Context,
     maxHeight: Dp
 ) {
-    val templates = remember { TemplateManager.getTemplates(context) }
-    
+    var templates by remember { mutableStateOf(TemplateManager.getTemplates(context)) }
+    var userPrompt by remember { mutableStateOf("") }
+    var isThinking by remember { mutableStateOf(false) }
+    var botLogText by remember { mutableStateOf("🤖 High-End Auto-Bot v3.5.4 Bereit.") }
+    val scope = rememberCoroutineScope()
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -4523,10 +4529,152 @@ fun BubbleBotTab(
             .padding(4.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        Text("🤖 Auto-Bot & Makro Steuerung", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
-        
-        Text("Gespeicherte Ziele / Templates: ${templates.size}", fontSize = 10.sp, color = Color.White)
-        
+        // High-End Header Card
+        Surface(
+            shape = RoundedCornerShape(8.dp),
+            color = Color(0xFF0F172A),
+            border = BorderStroke(1.dp, Color(0xFF8B5CF6)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("🤖 Auto-Bot Control Center", fontWeight = FontWeight.Bold, fontSize = 11.sp, color = Color(0xFF38BDF8))
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = Color(0xFF10B981).copy(alpha = 0.2f),
+                        border = BorderStroke(1.dp, Color(0xFF10B981))
+                    ) {
+                        Text("v3.5.4 HIGH-END", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF34D399), modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                    }
+                }
+                Text("🛡️ Anti-Cheat Klick-Jitter (±4px / 60-140ms) & Haptik aktiv", fontSize = 8.sp, color = Color(0xFFA7F3D0))
+                Text(botLogText, fontSize = 9.sp, color = Color(0xFFF59E0B), fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        // KI Anforderung (Self-Programming Prompt)
+        OutlinedTextField(
+            value = userPrompt,
+            onValueChange = { userPrompt = it },
+            label = { Text("🧠 KI Anforderung (z.B. 'Klicke Holz')", fontSize = 9.sp, color = Color.Gray) },
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = Color(0xFF8B5CF6),
+                unfocusedBorderColor = Color(0xFF334155),
+                focusedTextColor = Color.White,
+                unfocusedTextColor = Color.White,
+                focusedContainerColor = Color(0xFF0F172A),
+                unfocusedContainerColor = Color(0xFF0F172A)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Button(
+            onClick = {
+                if (userPrompt.isNotBlank()) {
+                    isThinking = true
+                    scope.launch {
+                        botLogText = "🧠 KI analysiert: '$userPrompt'..."
+                        val interpretation = AiBotAgent.interpretPrompt(userPrompt)
+                        botLogText = "💡 KI-Programmierung: $interpretation"
+                        isThinking = false
+                    }
+                }
+            },
+            enabled = !isThinking,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(32.dp)
+        ) {
+            if (isThinking) {
+                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(12.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("KI programmiert...", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+            } else {
+                Text("🧠 KI Anforderung anwenden", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        }
+
+        HorizontalDivider(color = Color(0xFF334155))
+
+        // Saved Templates Section
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("🎯 Markierte Ziele (${templates.size}):", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("🔄 Aktualisieren", fontSize = 8.sp, color = Color(0xFF38BDF8), modifier = Modifier.clickable {
+                templates = TemplateManager.getTemplates(context)
+            })
+        }
+
+        if (templates.isEmpty()) {
+            Text("Keine Ziele gespeichert. Klicke unten auf Crop-Tool!", fontSize = 9.sp, color = Color.Gray)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                templates.forEach { tmpl ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, if (tmpl.isActive) Color(0xFF10B981) else Color(0xFF475569)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(4.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                val bmp = remember(tmpl.id) { TemplateManager.loadTemplateBitmap(context, tmpl.id) }
+                                if (bmp != null) {
+                                    Image(
+                                        bitmap = bmp.asImageBitmap(),
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp).clip(RoundedCornerShape(4.dp))
+                                    )
+                                }
+                                Column {
+                                    Text(tmpl.name, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                    if (tmpl.category.isNotBlank()) {
+                                        Text(tmpl.category, fontSize = 7.sp, color = Color(0xFF94A3B8))
+                                    }
+                                }
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Switch(
+                                    checked = tmpl.isActive,
+                                    onCheckedChange = { active ->
+                                        tmpl.isActive = active
+                                        TemplateManager.saveTemplates(context, templates)
+                                        templates = TemplateManager.getTemplates(context)
+                                    },
+                                    modifier = Modifier.scale(0.6f)
+                                )
+                                IconButton(
+                                    onClick = {
+                                        TemplateManager.deleteTemplate(context, tmpl.id)
+                                        templates = TemplateManager.getTemplates(context)
+                                    },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "Löschen", tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = Color(0xFF334155))
+
+        // Main Bot Action Buttons
         Button(
             onClick = {
                 try {
@@ -4534,15 +4682,13 @@ fun BubbleBotTab(
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     context.startActivity(intent)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (e: Exception) { e.printStackTrace() }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0EA5E9)),
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().height(36.dp)
+            modifier = Modifier.fillMaxWidth().height(32.dp)
         ) {
-            Text("⚙️ Bot Setup & Crop-Tool öffnen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("📸 Kamera Crop-Tool / Setup öffnen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
 
         Button(
@@ -4552,16 +4698,14 @@ fun BubbleBotTab(
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     }
                     context.startActivity(intent)
-                    Toast.makeText(context, "Bitte 'Ablauf starten' wählen, um die Bildschirmberechtigung zu erteilen.", Toast.LENGTH_LONG).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                    Toast.makeText(context, "Bitte dort 'Ablauf starten' wählen, um Berechtigung zu erteilen.", Toast.LENGTH_LONG).show()
+                } catch (e: Exception) { e.printStackTrace() }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().height(36.dp)
+            modifier = Modifier.fillMaxWidth().height(32.dp)
         ) {
-            Text("🚀 Ablauf starten / Konfigurieren", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("🚀 Bot-Ablauf starten", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
 
         Button(
@@ -4572,15 +4716,13 @@ fun BubbleBotTab(
                     }
                     context.startService(intent)
                     Toast.makeText(context, "🛑 Bot gestoppt", Toast.LENGTH_SHORT).show()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                } catch (e: Exception) { e.printStackTrace() }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
             shape = RoundedCornerShape(8.dp),
-            modifier = Modifier.fillMaxWidth().height(36.dp)
+            modifier = Modifier.fillMaxWidth().height(32.dp)
         ) {
-            Text("🛑 Bot Sofort Stoppen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("🛑 Bot Sofort Stoppen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
     }
 }
