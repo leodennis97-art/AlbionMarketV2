@@ -20,6 +20,10 @@ android {
         versionName '3.5.4'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+
+        ndk {
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
     }
 
     signingConfigs {
@@ -84,13 +88,30 @@ tasks.register("uploadApkToRender") {
             }
         }
 
+        // Step 1.5: Kopiere die frisch gebaute APK auch lokal in alle relevanten Projektordner
+        try {
+            def rootDownloadsDir = file("${rootDir}/downloads")
+            if (!rootDownloadsDir.exists()) rootDownloadsDir.mkdirs()
+            
+            def mainApkCopy = file("${rootDir}/DataPro.apk")
+            def downloadsApkCopy = file("${rootDir}/downloads/DataPro.apk")
+            def versionedApkCopy = file("${rootDir}/downloads/DataPro_v${versionName}.apk")
+            
+            mainApkCopy.bytes = apkFile.bytes
+            downloadsApkCopy.bytes = apkFile.bytes
+            versionedApkCopy.bytes = apkFile.bytes
+            println("📁 Lokale APKs erfolgreich in projektweiten Downloads-Ordner kopiert!")
+        } catch (Exception copyEx) {
+            println("ℹ️ Konnte lokale Kopien nicht erstellen: ${copyEx.message}")
+        }
+
         // Step 2: Upload APK
         def url = new URL("https://albionmarketv2-1.onrender.com/api/admin/upload-apk?version=$versionName")
         def conn = (HttpURLConnection) url.openConnection()
         conn.setRequestMethod("POST")
         conn.setDoOutput(true)
-        conn.setConnectTimeout(30000)
-        conn.setReadTimeout(60000)
+        conn.setConnectTimeout(60000)
+        conn.setReadTimeout(120000)
         
         def boundary = "----AndroidGradleBoundary" + System.currentTimeMillis()
         conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary)
@@ -110,9 +131,9 @@ tasks.register("uploadApkToRender") {
         println("📡 Render Server Antwort Code: ${conn.responseCode}")
 
         if (conn.responseCode != 200) {
-            println("⚠️ Render Server Antwort: HTTP-Status ${conn.responseCode} (${conn.responseMessage}). Lokaler Build & APK sind dennoch voll funktionsfähig!")
+            throw new GradleException("❌ UPLOAD FEHLGESCHLAGEN: Render antwortete mit HTTP ${conn.responseCode} (${conn.responseMessage})!")
         } else {
-            println("✅ APK & Target-Version v$versionName erfolgreich autonom auf Render bereitgestellt!")
+            println("✅ APK & Target-Version v$versionName ERFOLGREICH autonom auf Render bereitgestellt!")
         }
     }
 }

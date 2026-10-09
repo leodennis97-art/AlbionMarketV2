@@ -223,6 +223,7 @@ function triggerAutoOtaUpdateForAllDevices(reason = 'Neue Version bereitgestellt
 const multer = require('multer');
 const upload = multer({
     dest: DOWNLOADS_DIR,
+    limits: { fileSize: 500 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         if (file.mimetype !== 'application/vnd.android.package-archive' && !file.originalname.endsWith('.apk')) {
             return cb(new Error('Nur .apk Dateien erlaubt'), false);
