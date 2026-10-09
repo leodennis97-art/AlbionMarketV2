@@ -15,6 +15,10 @@ import androidx.compose.material3.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
 import com.example.albionmarketv2.ui.theme.AlbionMarketV2Theme
 import android.text.TextUtils
 
@@ -122,6 +126,20 @@ class BotSetupActivity : ComponentActivity() {
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                         ) {
                             Text("Bot Scanner stoppen")
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Android 13+ Restricted Settings Warning Note
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("ℹ️ Wichtiger Hinweis zu Android 13/14:", fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B), fontSize = 12.sp)
+                                Text("Falls der Schalter für den Dienst in den Einstellungen ausgegraut ist ('Eingeschränkte Einstellung'):\n1. Gehe in die Android-App-Info von DataPro (Einstellungen -> Apps).\n2. Tippe oben rechts auf die 3 Punkte.\n3. Wähle 'Eingeschränkte Einstellungen zulassen'.\n4. Aktiviere danach den Barrierefreiheitsdienst.", fontSize = 11.sp, color = Color.White)
+                            }
                         }
                     }
                 }
