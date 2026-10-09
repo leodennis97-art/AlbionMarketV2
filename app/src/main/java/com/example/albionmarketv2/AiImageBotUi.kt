@@ -176,7 +176,7 @@ fun AiImageBotSection(
                         if (imagePickerLauncher != null) {
                             imagePickerLauncher.launch("image/*")
                         } else {
-                            val intent = Intent(context, BotSetupActivity::class.java).apply {
+                            val intent = Intent(context, BotPermissionActivity::class.java).apply {
                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
                             }
                             context.startActivity(intent)

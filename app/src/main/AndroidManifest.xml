@@ -54,9 +54,9 @@
         </activity>
 
         <activity
-            android:name=".BotSetupActivity"
+            android:name=".BotPermissionActivity"
             android:exported="false"
-            android:theme="@style/Theme.AlbionMarketV2" />
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <!-- AutoClicker Accessibility Service -->
         <service

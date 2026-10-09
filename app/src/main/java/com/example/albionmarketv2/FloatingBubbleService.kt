@@ -2487,7 +2487,7 @@ fun BubbleOverlayContent(
                                     onFocusModeChanged = onFocusModeChanged,
                                     onStartCropMode = {
                                         try {
-                                            val intent = Intent(context, BotSetupActivity::class.java).apply {
+                                            val intent = Intent(context, BotPermissionActivity::class.java).apply {
                                                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                             }
                                             context.startActivity(intent)
@@ -4863,7 +4863,7 @@ fun BubbleBotTab(
                         val workflow = BotWorkflow("wf_1", "Automatischer Ablauf", steps)
                         TemplateManager.saveWorkflows(context, listOf(workflow))
                         
-                        val intent = Intent(context, BotSetupActivity::class.java).apply {
+                        val intent = Intent(context, BotPermissionActivity::class.java).apply {
                             flags = Intent.FLAG_ACTIVITY_NEW_TASK
                         }
                         context.startActivity(intent)
@@ -4963,7 +4963,7 @@ fun BubbleBotTab(
                                                 val wf = BotWorkflow("smart_${act.id}", act.name, steps)
                                                 TemplateManager.saveWorkflows(context, listOf(wf))
                                                 
-                                                val intent = Intent(context, BotSetupActivity::class.java).apply {
+                                                val intent = Intent(context, BotPermissionActivity::class.java).apply {
                                                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                                                 }
                                                 context.startActivity(intent)
