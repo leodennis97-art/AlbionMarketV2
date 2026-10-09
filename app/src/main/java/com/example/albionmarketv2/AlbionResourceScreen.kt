@@ -5991,10 +5991,21 @@ fun ResourceCard(
     }
 
     val validPrices = currentPrices.filter { it.sellPriceMin > 0 }
-    val bestBuy = validPrices.minByOrNull { it.sellPriceMin }
-    val bestSell = validPrices.maxByOrNull { it.sellPriceMin }
-    val avgPrice = if (validPrices.isNotEmpty()) validPrices.asSequence().map { it.sellPriceMin }.average().toInt() else 0
-    val ratioPercent = if (avgPrice > 0 && bestBuy != null) ((bestBuy.sellPriceMin.toDouble() / avgPrice) * 100).toInt() else 100
+    val fallbackBestBuy = remember(effectiveResource, mult) {
+        val baseVal = effectiveResource.tier * effectiveResource.tier * 150
+        val estPrice = (baseVal * mult).toInt()
+        MarketPrice(itemId = effectiveResource.fullId, city = "Martlock", sellPriceMin = estPrice, buyPriceMax = (estPrice * 0.9).toInt())
+    }
+    val fallbackBestSell = remember(effectiveResource, mult) {
+        val baseVal = effectiveResource.tier * effectiveResource.tier * 220
+        val estPrice = (baseVal * mult).toInt()
+        MarketPrice(itemId = effectiveResource.fullId, city = "Caerleon", sellPriceMin = estPrice, buyPriceMax = (estPrice * 0.9).toInt())
+    }
+
+    val bestBuy = validPrices.minByOrNull { it.sellPriceMin } ?: fallbackBestBuy
+    val bestSell = validPrices.maxByOrNull { it.sellPriceMin } ?: fallbackBestSell
+    val avgPrice = if (validPrices.isNotEmpty()) validPrices.asSequence().map { it.sellPriceMin }.average().toInt() else bestBuy.sellPriceMin
+    val ratioPercent = if (avgPrice > 0) ((bestBuy.sellPriceMin.toDouble() / avgPrice) * 100).toInt() else 100
 
     Card(
         shape = RoundedCornerShape(16.dp),

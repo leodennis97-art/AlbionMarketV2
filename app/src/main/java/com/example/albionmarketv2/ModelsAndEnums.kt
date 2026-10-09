@@ -16,7 +16,50 @@ enum class AlbionServer(val displayName: String, val apiDomain: String) {
         fun fromName(name: String?): AlbionServer {
             return entries.find { it.name.equals(name, true) } ?: EUROPE
         }
-        fun generateLiveEvents(): List<LiveEventItem> = emptyList()
+        fun generateLiveEvents(): List<LiveEventItem> {
+            return listOf(
+                LiveEventItem(
+                    id = "event_1",
+                    title = "⚔️ Avalonian Invasion (T7 Blackzone)",
+                    category = "Invasion",
+                    remainingMinutes = 15,
+                    zoneName = "Eldertree Slope (T7)",
+                    zoneSafety = ZoneSafety.RED,
+                    description = "Avalonian troops have invaded the zone. High rewards upon closing portals.",
+                    rewardSummary = "Runen, Artefakte & Avalonian Energy"
+                ),
+                LiveEventItem(
+                    id = "event_2",
+                    title = "🕷️ Crystal Spider Boss Spawn",
+                    category = "Boss",
+                    remainingMinutes = 8,
+                    zoneName = "Sting Fen (T6 Redzone)",
+                    zoneSafety = ZoneSafety.RED,
+                    description = "Crystal Spider has spawned in the Red Zone. High combat fame and loot.",
+                    rewardSummary = "Kristalle, Seltene Ausrüstung & Silber"
+                ),
+                LiveEventItem(
+                    id = "event_3",
+                    title = "🌀 Legendary Mists Chest Active",
+                    category = "Mists",
+                    remainingMinutes = 24,
+                    zoneName = "Die Nebel (The Mists)",
+                    zoneSafety = ZoneSafety.RED,
+                    description = "A radiant legendary chest has appeared in the Mists.",
+                    rewardSummary = "Verzauberte T8 Ausrüstung & Folianten"
+                ),
+                LiveEventItem(
+                    id = "event_4",
+                    title = "🔥 2v2 Hellgate Portal Opened",
+                    category = "PvP",
+                    remainingMinutes = 11,
+                    zoneName = "T5 Blackzone Portal",
+                    zoneSafety = ZoneSafety.RED,
+                    description = "Hellgate is active for group PvP combat and elite chest drop.",
+                    rewardSummary = "PvP Ruhm, Folianten & Combat Loot"
+                )
+            )
+        }
     }
 }
 
