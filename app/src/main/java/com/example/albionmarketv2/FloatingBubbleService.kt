@@ -4898,51 +4898,49 @@ fun BubbleBotTab(
 
         HorizontalDivider(color = Color(0xFF334155))
 
-        // 🧠 Imitation Learning / Verhalten lernen (Macro Recorder)
-        Text("🧠 Verhalten lernen & Makro Recorder", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
-        var isRecordingMacro by remember { mutableStateOf(MacroRecorder.isRecording) }
-        var macrosList by remember { mutableStateOf(MacroRecorder.getMacros(context)) }
-        var macroNameInput by remember { mutableStateOf("Mein Makro") }
+        HorizontalDivider(color = Color(0xFF334155))
+
+        // 🧠 Intelligente KI-Aktionen (z.B. Bäume fällen, Erz abbauen)
+        Text("🧠 Intelligente Aktionen (KI-Wissen)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+        var smartActions by remember { mutableStateOf(SmartActionManager.getActions(context)) }
+        var newActionName by remember { mutableStateOf("Bäume fällen") }
+        var newActionCategory by remember { mutableStateOf("Holz") }
 
         OutlinedTextField(
-            value = macroNameInput,
-            onValueChange = { macroNameInput = it },
-            label = { Text("Makro Name", fontSize = 8.sp) },
+            value = newActionName,
+            onValueChange = { newActionName = it },
+            label = { Text("Aktions-Name (z.B. 'Bäume fällen')", fontSize = 8.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            Button(
-                onClick = {
-                    if (!isRecordingMacro) {
-                        MacroRecorder.startRecording()
-                        isRecordingMacro = true
-                        Toast.makeText(context, "🔴 Aufnahme läuft! Tippe im Spiel deine Aktionen...", Toast.LENGTH_LONG).show()
-                    } else {
-                        val saved = MacroRecorder.saveMacro(context, macroNameInput)
-                        isRecordingMacro = false
-                        macrosList = MacroRecorder.getMacros(context)
-                        if (saved != null) {
-                            Toast.makeText(context, "✅ Makro '${saved.name}' (${saved.actions.size} Aktionen) gespeichert!", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(context, "⚠️ Keine Aktionen aufgezeichnet.", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = if (isRecordingMacro) Color(0xFFEF4444) else Color(0xFF10B981)),
-                modifier = Modifier.weight(1f).height(32.dp)
-            ) {
-                Text(if (isRecordingMacro) "⏹️ Aufnahme Stoppen & Speichern" else "🔴 Verhalten Aufnehmen", fontSize = 8.sp, fontWeight = FontWeight.Bold)
-            }
+        Button(
+            onClick = {
+                onFocusModeChanged(false)
+                val templates = TemplateManager.getTemplates(context)
+                if (templates.isEmpty()) {
+                    Toast.makeText(context, "⚠️ Bitte erst oben mit 'Ziel markieren' das Objekt (z.B. Baum) ausschneiden!", Toast.LENGTH_LONG).show()
+                } else {
+                    val latestTmpl = templates.last()
+                    SmartActionManager.addAction(context, newActionName, latestTmpl.id, newActionCategory)
+                    smartActions = SmartActionManager.getActions(context)
+                    Toast.makeText(context, "✅ Intelligente Aktion '${newActionName}' erfolgreich angelernt!", Toast.LENGTH_LONG).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(32.dp)
+        ) {
+            Text("🧠 Letztes Ziel als '${newActionName}' anlernen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
 
-        if (macrosList.isNotEmpty()) {
+        if (smartActions.isNotEmpty()) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                macrosList.forEach { mac ->
+                smartActions.forEach { act ->
                     Surface(
                         shape = RoundedCornerShape(6.dp),
                         color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, Color(0xFF38BDF8)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -4951,28 +4949,39 @@ fun BubbleBotTab(
                             modifier = Modifier.padding(6.dp)
                         ) {
                             Column {
-                                Text(mac.name, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                                Text("${mac.actions.size} Schritte", fontSize = 7.sp, color = Color(0xFF94A3B8))
+                                Text("🎯 ${act.name}", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("Kategorie: ${act.category}", fontSize = 7.sp, color = Color(0xFF94A3B8))
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 Button(
                                     onClick = {
                                         scope.launch {
-                                            Toast.makeText(context, "▶️ Spiele Makro '${mac.name}' ab...", Toast.LENGTH_SHORT).show()
-                                            MacroRecorder.replayMacro(mac)
-                                            Toast.makeText(context, "✅ Makro beendet", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "▶️ Führe intelligente Aktion '${act.name}' aus...", Toast.LENGTH_SHORT).show()
+                                            val bmp = TemplateManager.loadTemplateBitmap(context, act.templateId)
+                                            if (bmp != null) {
+                                                val steps = listOf(BotStep(act.templateId, 3000L))
+                                                val wf = BotWorkflow("smart_${act.id}", act.name, steps)
+                                                TemplateManager.saveWorkflows(context, listOf(wf))
+                                                
+                                                val intent = Intent(context, BotSetupActivity::class.java).apply {
+                                                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                                                }
+                                                context.startActivity(intent)
+                                            } else {
+                                                Toast.makeText(context, "❌ Template Bild nicht gefunden", Toast.LENGTH_SHORT).show()
+                                            }
                                         }
                                     },
                                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
                                     modifier = Modifier.height(24.dp),
                                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
                                 ) {
-                                    Text("Abspielen", fontSize = 8.sp)
+                                    Text("Ausführen", fontSize = 8.sp)
                                 }
                                 IconButton(
                                     onClick = {
-                                        MacroRecorder.deleteMacro(context, mac.id)
-                                        macrosList = MacroRecorder.getMacros(context)
+                                        SmartActionManager.deleteAction(context, act.id)
+                                        smartActions = SmartActionManager.getActions(context)
                                     },
                                     modifier = Modifier.size(20.dp)
                                 ) {
