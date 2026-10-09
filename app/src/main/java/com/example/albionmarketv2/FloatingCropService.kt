@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.PixelFormat
 import android.hardware.display.DisplayManager
@@ -69,7 +70,11 @@ class FloatingCropService : Service() {
             .setContentText("Klicke auf das schwebende Kamera-Icon, um ein Ziel zu markieren.")
             .setSmallIcon(R.mipmap.ic_launcher)
             .build()
-        startForeground(2003, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(2003, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(2003, notification)
+        }
     }
 
     private fun setupFloatingView() {

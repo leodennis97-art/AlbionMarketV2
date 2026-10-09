@@ -734,7 +734,8 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     EVENTS("Event & Boss Loot", "Event & Boss Loot", "⚔️"),
     GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
     BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
-    SETTINGS("Einstellungen", "Settings", "⚙️");
+    SETTINGS("Einstellungen", "Settings", "⚙️"),
+    BOT("Auto-Bot", "Auto-Bot", "🤖");
 
     fun getTitle(lang: String): String = if (lang == "DE") titleDe else titleEn
 }
@@ -2436,6 +2437,7 @@ fun BubbleOverlayContent(
                                 BubbleTab.GOLD_MARKET -> BubbleGoldTab(viewModel = viewModel, uiState = uiState, onFocusModeChanged = onFocusModeChanged, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.BUILDS -> BubbleBuildsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.SETTINGS -> BubbleSettingsTab(context = context, maxHeight = maxBubbleHeightTab, onRefresh = onRefresh)
+                                BubbleTab.BOT -> BubbleBotTab(context = context, maxHeight = maxBubbleHeightTab)
                                 else -> {}
                             }
                         }
@@ -4502,6 +4504,71 @@ fun CityRoutesPopup(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun BubbleBotTab(
+    context: Context,
+    maxHeight: Dp
+) {
+    val templates = remember { TemplateManager.getTemplates(context) }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(max = maxHeight)
+            .verticalScroll(rememberScrollState())
+            .padding(4.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text("🤖 Auto-Bot & Makro Steuerung", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color(0xFF38BDF8))
+        
+        Text("Gespeicherte Ziele: ${templates.size}", fontSize = 10.sp, color = Color.White)
+        
+        Button(
+            onClick = {
+                val intent = Intent(context, BotSetupActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5CF6)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(36.dp)
+        ) {
+            Text("⚙️ Bot Setup & Crop-Tool öffnen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        Button(
+            onClick = {
+                val intent = Intent(context, BotSetupActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                context.startActivity(intent)
+                Toast.makeText(context, "Bitte dort 'Ablauf starten' wählen, um die Berechtigung zu erteilen.", Toast.LENGTH_LONG).show()
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(36.dp)
+        ) {
+            Text("🚀 Ablauf starten / Konfigurieren", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        Button(
+            onClick = {
+                val intent = Intent(context, ScreenScannerService::class.java).apply {
+                    action = "STOP"
+                }
+                context.startService(intent)
+                Toast.makeText(context, "🛑 Bot gestoppt", Toast.LENGTH_SHORT).show()
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(36.dp)
+        ) {
+            Text("🛑 Bot Sofort Stoppen", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
     }
 }

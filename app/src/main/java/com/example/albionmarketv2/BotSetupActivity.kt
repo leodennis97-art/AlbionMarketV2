@@ -18,6 +18,8 @@ import androidx.compose.ui.unit.dp
 import com.example.albionmarketv2.ui.theme.AlbionMarketV2Theme
 import android.text.TextUtils
 
+import androidx.core.content.ContextCompat
+
 class BotSetupActivity : ComponentActivity() {
 
     private val screenCaptureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -27,7 +29,7 @@ class BotSetupActivity : ComponentActivity() {
                 putExtra("DATA", result.data)
                 putExtra("WORKFLOW_ID", "wf_1")
             }
-            startForegroundService(serviceIntent)
+            ContextCompat.startForegroundService(this, serviceIntent)
             Toast.makeText(this, "Ablauf gestartet!", Toast.LENGTH_SHORT).show()
             moveTaskToBack(true)
         } else {
@@ -41,7 +43,7 @@ class BotSetupActivity : ComponentActivity() {
                 putExtra("RESULT_CODE", result.resultCode)
                 putExtra("DATA", result.data)
             }
-            startForegroundService(serviceIntent)
+            ContextCompat.startForegroundService(this, serviceIntent)
             Toast.makeText(this, "Crop-Tool-Button aktiviert! Gehe ins Spiel.", Toast.LENGTH_LONG).show()
             moveTaskToBack(true)
         } else {

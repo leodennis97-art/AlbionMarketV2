@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.PixelFormat
@@ -74,7 +75,11 @@ class ScreenScannerService : Service() {
             .setContentText("Ablauf '${currentWorkflow?.name ?: "Unbekannt"}' aktiv...")
             .setSmallIcon(R.mipmap.ic_launcher)
             .build()
-        startForeground(2001, notification)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(2001, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION)
+        } else {
+            startForeground(2001, notification)
+        }
     }
 
     private fun setupMediaProjection(resultCode: Int, data: Intent) {
