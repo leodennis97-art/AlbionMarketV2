@@ -770,11 +770,15 @@ app.get(['/download', '/download/', '/download/:filename'], (req, res, next) => 
         `);
     }
 
+    const downloadFilename = (req.params.filename && req.params.filename.endsWith('.apk'))
+        ? req.params.filename
+        : `DataPro_v${CURRENT_SERVER_VERSION}.apk`;
+
     const stat = fs.statSync(apkFile);
     res.writeHead(200, {
         'Content-Type': 'application/vnd.android.package-archive',
         'Content-Length': stat.size,
-        'Content-Disposition': 'attachment; filename="DataPro.apk"',
+        'Content-Disposition': `attachment; filename="${downloadFilename}"`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
