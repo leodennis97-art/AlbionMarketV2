@@ -199,12 +199,17 @@
                     if (data.version) {
                         const ver = data.version;
                         downloadBtn.textContent = `📥 DataPro v${ver} APK Herunterladen`;
+                        downloadBtn.setAttribute("href", `https://albionmarketv2-1.onrender.com/download/DataPro_v${ver}.apk`);
+
                         if (statusBadge) {
                             statusBadge.innerHTML = `<div class="pulse-dot"></div> Live Server Sync Active (v${ver} — Autonom Verifiziert)`;
                         }
                         if (versionSpan) {
                             versionSpan.textContent = `Version ${ver} • Autonom Scanned • Android 8.0+`;
                         }
+                        // Update the page title as well to reflect the live version
+                        document.title = `DataPro - Market Companion (Unofficial) v${ver} – APK Download & Live-Markt`;
+
                         console.log("✅ [Autonomer Link-Scanner] Live Version erfolgreich erkannt & aktualisiert:", ver);
                         return;
                     }

@@ -741,7 +741,11 @@ app.get(['/api/download/token', '/download/token'], (req, res) => {
 });
 
 // Direct High-Performance Streaming APK Download with Rate-Limiting & Memory Overflow Protection
-app.get(['/download', '/download/', '/download/DataPro.apk', '/download/app-update.apk', '/download/latest.apk', '/download/latest', '/download/app'], (req, res) => {
+app.get(['/download', '/download/', '/download/:filename'], (req, res, next) => {
+    // Falls ein Filename übergeben wurde, aber es keine APK ist und auch keines der alten Aliase, ignorieren
+    if (req.params.filename && !req.params.filename.endsWith('.apk') && !['latest', 'app'].includes(req.params.filename)) {
+        return next();
+    }
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
 
     // Check rate limit: max 1000 downloads per hour per IP
