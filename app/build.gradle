@@ -100,7 +100,11 @@ tasks.register("uploadApkToRender") {
             mainApkCopy.bytes = apkFile.bytes
             downloadsApkCopy.bytes = apkFile.bytes
             versionedApkCopy.bytes = apkFile.bytes
-            println("📁 Lokale APKs erfolgreich in projektweiten Downloads-Ordner kopiert!")
+            
+            def versionTxt = file("${rootDir}/downloads/version.txt")
+            versionTxt.text = versionName
+            
+            println("📁 Lokale APKs & version.txt ($versionName) erfolgreich in projektweiten Downloads-Ordner kopiert!")
         } catch (Exception copyEx) {
             println("ℹ️ Konnte lokale Kopien nicht erstellen: ${copyEx.message}")
         }

@@ -19,14 +19,9 @@ object OtaUpdateManager {
     fun getInstalledVersionName(context: Context): String {
         return try {
             val pInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val manifestName = pInfo.versionName ?: "3.5.0"
-            if (compareVersionStrings(manifestName, "3.5.0") < 0) {
-                "3.5.0"
-            } else {
-                manifestName
-            }
+            pInfo.versionName ?: CURRENT_APP_VERSION
         } catch (_: Exception) {
-            "3.5.0"
+            CURRENT_APP_VERSION
         }
     }
 
