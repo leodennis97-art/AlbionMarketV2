@@ -4763,23 +4763,119 @@ fun BubbleBotTab(
 
         HorizontalDivider(color = Color(0xFF334155))
 
-        // Main Bot Action Buttons
+        HorizontalDivider(color = Color(0xFF334155))
+
+        // 🌲 Albion Abbau-Plan (Gathering Manager für alle Ressourcen)
+        Text("🌲 Albion Abbau-Plan (Ressourcen Farm)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+        var selectedCategory by remember { mutableStateOf(AlbionGatheringManager.config.category) }
+        var selectedTier by remember { mutableStateOf(AlbionGatheringManager.config.minTier) }
+        var autoMount by remember { mutableStateOf(AlbionGatheringManager.config.autoMountAfterHarvest) }
+        var isGatheringRunning by remember { mutableStateOf(AlbionGatheringManager.isGatheringActive) }
+
+        Row(horizontalArrangement = Arrangement.spacedBy(2.dp), modifier = Modifier.fillMaxWidth()) {
+            GatheringCategory.entries.forEach { cat ->
+                val isSelected = cat == selectedCategory
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
+                    modifier = Modifier.weight(1f).clickable {
+                        selectedCategory = cat
+                        AlbionGatheringManager.config.category = cat
+                    }
+                ) {
+                    Text(
+                        text = cat.displayNameDe.split(" ")[0],
+                        fontSize = 7.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        color = Color.White,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 2.dp)
+                    )
+                }
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Tier T$selectedTier", fontSize = 9.sp, color = Color.White)
+            Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                (2..8).forEach { t ->
+                    val isSel = t == selectedTier
+                    Surface(
+                        shape = RoundedCornerShape(4.dp),
+                        color = if (isSel) Color(0xFF8B5CF6) else Color(0xFF334155),
+                        modifier = Modifier.size(20.dp).clickable {
+                            selectedTier = t
+                            AlbionGatheringManager.config.minTier = t
+                        }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("T$t", fontSize = 7.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                        }
+                    }
+                }
+            }
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+            Text("Auto-Mount nach Abbau (Sattel)", fontSize = 9.sp, color = Color.White)
+            Switch(
+                checked = autoMount,
+                onCheckedChange = {
+                    autoMount = it
+                    AlbionGatheringManager.config.autoMountAfterHarvest = it
+                },
+                modifier = Modifier.scale(0.6f)
+            )
+        }
+
+        Button(
+            onClick = {
+                if (!isGatheringRunning) {
+                    AlbionGatheringManager.startGathering(context) { msg -> botLogText = msg }
+                    isGatheringRunning = true
+                    Toast.makeText(context, "🌲 Abbau-Plan gestartet!", Toast.LENGTH_SHORT).show()
+                } else {
+                    AlbionGatheringManager.stopGathering()
+                    isGatheringRunning = false
+                    botLogText = "🛑 Abbau-Plan gestoppt."
+                    Toast.makeText(context, "🛑 Abbau-Plan gestoppt", Toast.LENGTH_SHORT).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = if (isGatheringRunning) Color(0xFFEF4444) else Color(0xFF10B981)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(32.dp)
+        ) {
+            Text(if (isGatheringRunning) "🛑 Abbau-Plan Stoppen" else "🌲 Abbau-Plan Starten", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        HorizontalDivider(color = Color(0xFF334155))
+
+        // Direktstart Bot-Ablauf in Bubble
         Button(
             onClick = {
                 onFocusModeChanged(false)
                 try {
-                    val intent = Intent(context, BotSetupActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    val templates = TemplateManager.getTemplates(context)
+                    if (templates.isEmpty()) {
+                        Toast.makeText(context, "⚠️ Bitte zuerst mit 'Ziel markieren' ein Bild ausschneiden!", Toast.LENGTH_LONG).show()
+                    } else {
+                        val steps = templates.map { BotStep(it.id, 2000L) }
+                        val workflow = BotWorkflow("wf_1", "Automatischer Ablauf", steps)
+                        TemplateManager.saveWorkflows(context, listOf(workflow))
+                        
+                        val intent = Intent(context, BotSetupActivity::class.java).apply {
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        context.startActivity(intent)
+                        Toast.makeText(context, "Bitte 'Ablauf starten' wählen, um die Bildschirmberechtigung zu erteilen.", Toast.LENGTH_LONG).show()
                     }
-                    context.startActivity(intent)
-                    Toast.makeText(context, "Bitte dort 'Ablauf starten' wählen, um Berechtigung zu erteilen.", Toast.LENGTH_LONG).show()
                 } catch (e: Exception) { e.printStackTrace() }
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
             shape = RoundedCornerShape(8.dp),
             modifier = Modifier.fillMaxWidth().height(32.dp)
         ) {
-            Text("🚀 Bot-Ablauf starten", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text("🚀 Bot-Ablauf direkt starten", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
 
         Button(
@@ -4798,6 +4894,108 @@ fun BubbleBotTab(
             modifier = Modifier.fillMaxWidth().height(32.dp)
         ) {
             Text("🛑 Bot Sofort Stoppen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+        }
+
+        HorizontalDivider(color = Color(0xFF334155))
+
+        // 🧠 Imitation Learning / Verhalten lernen (Macro Recorder)
+        Text("🧠 Verhalten lernen & Makro Recorder", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+        var isRecordingMacro by remember { mutableStateOf(MacroRecorder.isRecording) }
+        var macrosList by remember { mutableStateOf(MacroRecorder.getMacros(context)) }
+        var macroNameInput by remember { mutableStateOf("Mein Makro") }
+
+        OutlinedTextField(
+            value = macroNameInput,
+            onValueChange = { macroNameInput = it },
+            label = { Text("Makro Name", fontSize = 8.sp) },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = {
+                    if (!isRecordingMacro) {
+                        MacroRecorder.startRecording()
+                        isRecordingMacro = true
+                        Toast.makeText(context, "🔴 Aufnahme läuft! Tippe im Spiel deine Aktionen...", Toast.LENGTH_LONG).show()
+                    } else {
+                        val saved = MacroRecorder.saveMacro(context, macroNameInput)
+                        isRecordingMacro = false
+                        macrosList = MacroRecorder.getMacros(context)
+                        if (saved != null) {
+                            Toast.makeText(context, "✅ Makro '${saved.name}' (${saved.actions.size} Aktionen) gespeichert!", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(context, "⚠️ Keine Aktionen aufgezeichnet.", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = if (isRecordingMacro) Color(0xFFEF4444) else Color(0xFF10B981)),
+                modifier = Modifier.weight(1f).height(32.dp)
+            ) {
+                Text(if (isRecordingMacro) "⏹️ Aufnahme Stoppen & Speichern" else "🔴 Verhalten Aufnehmen", fontSize = 8.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        if (macrosList.isNotEmpty()) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                macrosList.forEach { mac ->
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF1E293B),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(6.dp)
+                        ) {
+                            Column {
+                                Text(mac.name, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                Text("${mac.actions.size} Schritte", fontSize = 7.sp, color = Color(0xFF94A3B8))
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Button(
+                                    onClick = {
+                                        scope.launch {
+                                            Toast.makeText(context, "▶️ Spiele Makro '${mac.name}' ab...", Toast.LENGTH_SHORT).show()
+                                            MacroRecorder.replayMacro(mac)
+                                            Toast.makeText(context, "✅ Makro beendet", Toast.LENGTH_SHORT).show()
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                    modifier = Modifier.height(24.dp),
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp)
+                                ) {
+                                    Text("Abspielen", fontSize = 8.sp)
+                                }
+                                IconButton(
+                                    onClick = {
+                                        MacroRecorder.deleteMacro(context, mac.id)
+                                        macrosList = MacroRecorder.getMacros(context)
+                                    },
+                                    modifier = Modifier.size(20.dp)
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(12.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Auto-Walk Stoppen Button
+        Button(
+            onClick = {
+                FloatingBubbleService.stopAutoWalk()
+                Toast.makeText(context, "🚶 Auto-Walk gestoppt", Toast.LENGTH_SHORT).show()
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier.fillMaxWidth().height(32.dp)
+        ) {
+            Text("🚶 Auto-Walk Stoppen", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
         }
     }
 }
