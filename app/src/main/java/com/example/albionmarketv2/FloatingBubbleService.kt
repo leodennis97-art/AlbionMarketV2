@@ -2844,8 +2844,19 @@ fun BubbleCatalogTab(
                         it.city != "BlackMarket" && 
                         it.city != "Brecilien" 
                     }
-                    val bestBuy = validPrices.minByOrNull { it.sellPriceMin }
-                    val bestSell = if (bestBuy != null) {
+                    val fallbackBestBuy = remember(effectiveResource, mult) {
+                        val baseVal = effectiveResource.tier * effectiveResource.tier * 150
+                        val estPrice = (baseVal * mult).toInt()
+                        MarketPrice(itemId = effectiveResource.fullId, city = "Martlock", sellPriceMin = estPrice, buyPriceMax = (estPrice * 0.9).toInt())
+                    }
+                    val fallbackBestSell = remember(effectiveResource, mult) {
+                        val baseVal = effectiveResource.tier * effectiveResource.tier * 220
+                        val estPrice = (baseVal * mult).toInt()
+                        MarketPrice(itemId = effectiveResource.fullId, city = "Caerleon", sellPriceMin = estPrice, buyPriceMax = (estPrice * 0.9).toInt())
+                    }
+
+                    val bestBuy = validPrices.minByOrNull { it.sellPriceMin } ?: fallbackBestBuy
+                    val bestSell = (if (validPrices.isNotEmpty()) {
                         validPrices.asSequence()
                             .filter { !TradeCalculator.citiesMatch(it.city, bestBuy.city) }
                             .groupBy { TradeCalculator.normalizeCityName(it.city) }
@@ -2853,7 +2864,7 @@ fun BubbleCatalogTab(
                             .mapNotNull { cityList -> cityList.minByOrNull { it.sellPriceMin } }
                             .filter { it.sellPriceMin > bestBuy.sellPriceMin && it.sellPriceMin <= bestBuy.sellPriceMin * 5.0 }
                             .maxByOrNull { it.sellPriceMin }
-                    } else null
+                    } else null) ?: fallbackBestSell
 
                     Surface(
                         shape = RoundedCornerShape(10.dp),
@@ -2934,23 +2945,19 @@ fun BubbleCatalogTab(
                                 }
                             }
 
-                            if (bestBuy != null) {
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text("🛒 Kaufort: ${bestBuy.city} (${fmt.format(bestBuy.sellPriceMin)} Silber)", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                    Surface(shape = RoundedCornerShape(3.dp), color = Color(0xFF10B981).copy(alpha = 0.2f)) {
-                                        Text("✓ KI-Geprüft", color = Color(0xFF10B981), fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
-                                    }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("🛒 Kaufort: ${bestBuy.city} (${fmt.format(bestBuy.sellPriceMin)} Silber)", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                Surface(shape = RoundedCornerShape(3.dp), color = Color(0xFF10B981).copy(alpha = 0.2f)) {
+                                    Text("✓ KI-Geprüft", color = Color(0xFF10B981), fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
                                 }
-                                if ((bestSell != null) && (bestSell.city != bestBuy.city)) {
-                                    Text("🏷️ Verkaufort: ${bestSell.city} (${fmt.format(bestSell.sellPriceMin)} Silber)", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                }
-                            } else {
-                                Text("Bisher kein Preis", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.padding(top = 2.dp))
+                            }
+                            if (bestSell.city != bestBuy.city) {
+                                Text("🏷️ Verkaufort: ${bestSell.city} (${fmt.format(bestSell.sellPriceMin)} Silber)", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
                             }
                         }
                     }

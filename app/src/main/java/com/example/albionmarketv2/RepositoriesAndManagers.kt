@@ -528,7 +528,126 @@ object CraftingRepository {
 
 object IslandRepository {
     val buildings = listOf(
-        IslandBuilding(id = "farm", nameDe = "Bauernhof", nameEn = "Farm")
+        IslandBuilding(
+            id = "farm",
+            nameDe = "Bauernhof",
+            nameEn = "Farm",
+            maxTier = 8,
+            cityBonusCity = "Martlock",
+            cityBonusDescDe = "+10% Ernte-Ertrag für Ackerbau & Tiere",
+            cityBonusDescEn = "+10% crop & animal yield bonus",
+            estimatedDailyIncomeSilver = 45000L,
+            estimatedRoiPercent = 46.5,
+            abilityDescDe = "Ermöglicht den Anbau von Nutzpflanzen und Kräutern sowie Tierzucht."
+        ),
+        IslandBuilding(
+            id = "herb_garden",
+            nameDe = "Kräutergarten",
+            nameEn = "Herb Garden",
+            maxTier = 8,
+            cityBonusCity = "Bridgewatch",
+            cityBonusDescDe = "+10% Kräuter-Ertrag & Alchemie-Effizienz",
+            cityBonusDescEn = "+10% herb yield bonus",
+            estimatedDailyIncomeSilver = 52000L,
+            estimatedRoiPercent = 52.3,
+            abilityDescDe = "Ermöglicht den Anbau von seltenen Zaubertränken-Kräutern."
+        ),
+        IslandBuilding(
+            id = "pasture",
+            nameDe = "Weide",
+            nameEn = "Pasture",
+            maxTier = 8,
+            cityBonusCity = "Lymhurst",
+            cityBonusDescDe = "+10% Zuchtgeschwindigkeit für Reittiere & Tiere",
+            cityBonusDescEn = "+10% animal breeding speed",
+            estimatedDailyIncomeSilver = 48000L,
+            estimatedRoiPercent = 48.0,
+            abilityDescDe = "Zur Aufzucht von Nutztieren, Milchvieh und seltenen Reittieren."
+        ),
+        IslandBuilding(
+            id = "alchemist",
+            nameDe = "Alchemielabor",
+            nameEn = "Alchemist's Laboratory",
+            maxTier = 8,
+            cityBonusCity = "Caerleon",
+            cityBonusDescDe = "+15% Trank-Herstellungs-Bonus (RRR)",
+            cityBonusDescEn = "+15% potion crafting bonus",
+            estimatedDailyIncomeSilver = 68000L,
+            estimatedRoiPercent = 65.0,
+            abilityDescDe = "Für die Produktion von Heil-, Mana- und Widerstandstränken."
+        ),
+        IslandBuilding(
+            id = "kitchen",
+            nameDe = "Kochstelle",
+            nameEn = "Kitchen",
+            maxTier = 8,
+            cityBonusCity = "Thetford",
+            cityBonusDescDe = "+15% Nahrungs-Herstellungs-Bonus (RRR)",
+            cityBonusDescEn = "+15% food crafting bonus",
+            estimatedDailyIncomeSilver = 58000L,
+            estimatedRoiPercent = 58.2,
+            abilityDescDe = "Zum Kochen von Suppen, Pasteten und Buff-Nahrung."
+        ),
+        IslandBuilding(
+            id = "forge",
+            nameDe = "Schmiede",
+            nameEn = "Warrior's Forge",
+            maxTier = 8,
+            cityBonusCity = "Fort Sterling",
+            cityBonusDescDe = "+15% Metall-Verarbeitung & Waffen-Bonus",
+            cityBonusDescEn = "+15% metal crafting bonus",
+            estimatedDailyIncomeSilver = 55000L,
+            estimatedRoiPercent = 55.0,
+            abilityDescDe = "Zur Herstellung von Metallbarren, Plattenrüstungen und Schwertern."
+        ),
+        IslandBuilding(
+            id = "sawmill",
+            nameDe = "Sägewerk",
+            nameEn = "Sawmill",
+            maxTier = 8,
+            cityBonusCity = "Lymhurst",
+            cityBonusDescDe = "+15% Holz-Veredelungs-Bonus (RRR)",
+            cityBonusDescEn = "+15% wood refining bonus",
+            estimatedDailyIncomeSilver = 53000L,
+            estimatedRoiPercent = 53.4,
+            abilityDescDe = "Zur Verarbeitung von Rohholz zu Planken."
+        ),
+        IslandBuilding(
+            id = "hunter_lodge",
+            nameDe = "Jägerhütte",
+            nameEn = "Hunter's Lodge",
+            maxTier = 8,
+            cityBonusCity = "Martlock",
+            cityBonusDescDe = "+15% Leder-Verarbeitungs-Bonus (RRR)",
+            cityBonusDescEn = "+15% leather crafting bonus",
+            estimatedDailyIncomeSilver = 51000L,
+            estimatedRoiPercent = 51.0,
+            abilityDescDe = "Zur Verarbeitung von Häuten zu Leder und Leder Rüstungen."
+        ),
+        IslandBuilding(
+            id = "mage_tower",
+            nameDe = "Magierturm",
+            nameEn = "Mage Tower",
+            maxTier = 8,
+            cityBonusCity = "Thetford",
+            cityBonusDescDe = "+15% Stoff-Verarbeitungs-Bonus (RRR)",
+            cityBonusDescEn = "+15% cloth crafting bonus",
+            estimatedDailyIncomeSilver = 49000L,
+            estimatedRoiPercent = 49.5,
+            abilityDescDe = "Zur Verarbeitung von Fasern zu Stoff und Stoffroben."
+        ),
+        IslandBuilding(
+            id = "stonecutter",
+            nameDe = "Steinmetzhütte",
+            nameEn = "Stonecutter's Lodge",
+            maxTier = 8,
+            cityBonusCity = "Bridgewatch",
+            cityBonusDescDe = "+15% Stein-Veredelungs-Bonus (RRR)",
+            cityBonusDescEn = "+15% stone refining bonus",
+            estimatedDailyIncomeSilver = 41000L,
+            estimatedRoiPercent = 42.0,
+            abilityDescDe = "Zur Verarbeitung von Rohstein zu Steinblöcken."
+        )
     )
 }
 

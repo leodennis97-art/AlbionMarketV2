@@ -16,8 +16,8 @@ android {
         applicationId 'com.AlbionDataPro'
         minSdk 26
         targetSdk 35
-        versionCode 3511
-        versionName '3.5.6'
+        versionCode 3512
+        versionName '3.5.7'
 
         testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
 

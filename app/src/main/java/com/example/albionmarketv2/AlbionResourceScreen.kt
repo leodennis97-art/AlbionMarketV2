@@ -4676,8 +4676,9 @@ fun CraftingTabContent(
                     ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, targetCity, priceMap).toLong()
                 }
                 val profit = itemSellPrice.toLong() - totalCost
-                Triple(res, profit, targetCity)
-            }.sortedByDescending { it.second }.distinctBy { it.first.id }.take(3).toList()
+                val roiPercent = if (totalCost > 0) (profit.toDouble() / totalCost) * 100.0 else 0.0
+                Triple(res, Triple(profit, roiPercent, targetCity), totalCost)
+            }.sortedByDescending { it.second.first }.distinctBy { it.first.id }.take(3).toList()
         } catch (_: Exception) {
             emptyList()
         }
@@ -4697,14 +4698,15 @@ fun CraftingTabContent(
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text(
-                        text = "🔥 Top 3 Gewinn in Königsstadt mit Veredelungs-Bonus (+56% RRR)",
+                        text = "🔥 Top 3 Gewinn in ${if (selectedCity == "ALLE") "Königsstädten (nach Bonus)" else selectedCity} mit Marge",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = Color(0xFF10B981)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    top3BonusCrafts.forEachIndexed { idx, (res, profit, bonusCity) ->
+                    top3BonusCrafts.forEachIndexed { idx, (res, data, _) ->
+                        val (profit, roiPercent, bonusCity) = data
                         Column(modifier = Modifier.padding(vertical = 4.dp)) {
                             Row(
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -4726,7 +4728,7 @@ fun CraftingTabContent(
                                     )
                                 }
                                 Text(
-                                    text = "+${fmt.format(profit)} Silber",
+                                    text = "+${fmt.format(profit)} S. (+${String.format(Locale.GERMANY, "%.1f", roiPercent)}% Marge)",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = Color(0xFF10B981)
@@ -5215,32 +5217,44 @@ fun IslandTabContent(
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Text(
-                        text = "🏆 Top 3 Einnahme-Gebäude auf Inseln mit Marge",
+                        text = "🏆 Top 3 Insel-Gebäude in ${if (selectedCity == "ALLE") "allen Städten" else selectedCity} nach Marge",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = Color(0xFF10B981)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    val top3Income = remember { buildings.asSequence().sortedByDescending { it.estimatedDailyIncomeSilver }.take(3).toList() }
-                    top3Income.forEachIndexed { idx, bldg ->
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = "${idx + 1}. ${bldg.nameDe}",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 12.sp,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = "~${fmt.format(bldg.estimatedDailyIncomeSilver)} S./Tag (+${bldg.estimatedRoiPercent}% Marge)",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp,
-                                color = Color(0xFF10B981)
-                            )
+                    val top3Income = remember(buildings, selectedCity) {
+                        val base = if (selectedCity == "ALLE") buildings else buildings.filter { it.cityBonusCity.contains(selectedCity, ignoreCase = true) }
+                        base.asSequence().sortedByDescending { it.estimatedRoiPercent }.take(3).toList()
+                    }
+
+                    if (top3Income.isEmpty()) {
+                        Text(
+                            text = "Keine Gebäude für $selectedCity gefunden.",
+                            fontSize = 11.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        top3Income.forEachIndexed { idx, bldg ->
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+                            ) {
+                                Text(
+                                    text = "${idx + 1}. ${bldg.nameDe} (${bldg.cityBonusCity})",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = "~${fmt.format(bldg.estimatedDailyIncomeSilver)} S./Tag (+${String.format(Locale.GERMANY, "%.1f", bldg.estimatedRoiPercent)}% Marge)",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF10B981)
+                                )
+                            }
                         }
                     }
                 }
@@ -6040,7 +6054,7 @@ fun ResourceCard(
                     )
                 }
 
-                if (bestBuy != null) {
+                if (validPrices.isNotEmpty()) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = if (ratioPercent <= 90) Color(0xFF10B981) else if (ratioPercent >= 150) Color(0xFFEF4444) else MaterialTheme.colorScheme.primaryContainer,

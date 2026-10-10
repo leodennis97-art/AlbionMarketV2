@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataPro - Market Companion (Unofficial) v3.5.6 – APK Download & Live-Markt</title>
+    <title>DataPro - Market Companion (Unofficial) v3.5.7 – APK Download & Live-Markt</title>
     <style>
         :root {
             --bg: #080d1a;
@@ -144,17 +144,17 @@
         <h1>DataPro</h1>
         <div class="subtitle">Market Companion (Unofficial)</div>
 
-        <div class="status-badge"><div class="pulse-dot"></div> Live Server Sync Active (v3.5.5)</div>
+        <div class="status-badge"><div class="pulse-dot"></div> Live Server Sync Active (v3.5.7)</div>
 
         <p>Das ultimative Markt-Overlay, Arbitrage-Radar, Stadt-Routen & Silber-Rechner für Mobile MMO Spieler.</p>
 
         <!-- Download Link zur APK -->
-        <a href="https://albionmarketv2-1.onrender.com/download/DataPro_v3.5.5.apk" class="btn-download" download>
-            📥 DataPro v3.5.5 APK Herunterladen
+        <a href="https://albionmarketv2-1.onrender.com/download/DataPro.apk" class="btn-download" download>
+            📥 DataPro v3.5.7 APK Herunterladen
         </a>
 
         <div class="features">
-            <h3>🚀 High-End Features (v3.5.5 Release):</h3>
+            <h3>🚀 High-End Features (v3.5.7 Release):</h3>
             <div class="feature-grid">
                 <div class="feature-card">
                     <strong>🗺️ Stadt-Routen & Zielnavigation</strong>
@@ -165,8 +165,8 @@
                     <span>Echtzeit-Marktpreise, Arbitrage & KI-Signale direkt als schwebendes Fenster.</span>
                 </div>
                 <div class="feature-card">
-                    <strong>📊 Preis-Feineinstellung & Steuern</strong>
-                    <span>Premium-Steuermodus (4%), adaptive Order-Spreads & optimierte Kategorien.</span>
+                    <strong>📊 Preis-Stabilität & Fixes</strong>
+                    <span>Flackerfreie Katalog-Preisanzeige & optimierte Performance.</span>
                 </div>
                 <div class="feature-card">
                     <strong>🛡️ Google Play Compliance</strong>
@@ -176,7 +176,7 @@
         </div>
 
         <div class="footer-info">
-            <span id="version-display">Version 3.5.6 • Build 3511 • Android 8.0+</span>
+            <span id="version-display">Version 3.5.7 • Build 3512 • Android 8.0+</span>
             <a href="/admin" class="admin-link">🔒 Admin Portal</a>
         </div>
     </div>
@@ -199,7 +199,7 @@
                     if (data.version) {
                         const ver = data.version;
                         downloadBtn.textContent = `📥 DataPro v${ver} APK Herunterladen`;
-                        downloadBtn.setAttribute("href", `https://albionmarketv2-1.onrender.com/download/DataPro_v${ver}.apk`);
+                        downloadBtn.setAttribute("href", `https://albionmarketv2-1.onrender.com/download/DataPro.apk`);
 
                         if (statusBadge) {
                             statusBadge.innerHTML = `<div class="pulse-dot"></div> Live Server Sync Active (v${ver} — Autonom Verifiziert)`;
@@ -207,7 +207,6 @@
                         if (versionSpan) {
                             versionSpan.textContent = `Version ${ver} • Autonom Scanned • Android 8.0+`;
                         }
-                        // Update the page title as well to reflect the live version
                         document.title = `DataPro - Market Companion (Unofficial) v${ver} – APK Download & Live-Markt`;
 
                         console.log("✅ [Autonomer Link-Scanner] Live Version erfolgreich erkannt & aktualisiert:", ver);
@@ -216,14 +215,6 @@
                 }
             } catch (e) {
                 console.log("ℹ️ Server-Abfrage nicht erreichbar, verwende Link-Fallback:", e.message);
-            }
-
-            // Fallback: Link scannen und Version extrahieren
-            const match = link.match(/v=([0-9.]+)/) || link.match(/v([0-9.]+)/) || link.match(/DataPro[-_]?v?([0-9.]+)/i);
-            if (match && match[1]) {
-                const detectedVersion = match[1];
-                downloadBtn.textContent = `📥 DataPro v${detectedVersion} APK Herunterladen`;
-                console.log("✅ [Autonomer Link-Scanner] Version erfolgreich aus Link extrahiert:", detectedVersion);
             }
         });
     </script>
