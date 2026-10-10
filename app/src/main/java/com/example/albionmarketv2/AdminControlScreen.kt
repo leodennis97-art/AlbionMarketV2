@@ -944,7 +944,7 @@ fun AdminControlDialog(
     // Dashboard Statistics Metrics
     val totalAdmins = remember(users) { users.count { it.isAdmin } }
     val totalBannedDevices = remember(devices) { devices.count { it.isBanned } }
-    val totalOutdatedDevices = remember(devices) { devices.count { OtaUpdateManager.compareVersionStrings(it.appVersion ?: CURRENT_APP_VERSION, CURRENT_APP_VERSION) < 0 } }
+    val totalOutdatedDevices = remember(devices) { devices.count { OtaUpdateManager.compareVersionStrings(it.appVersion, CURRENT_APP_VERSION) < 0 } }
 
     SafeAlertDialog(
         onDismissRequest = onDismiss,
@@ -3372,7 +3372,7 @@ fun AdminDevicesTab(
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
                 filteredDevices.forEach { dev ->
-                    val isUpToDate = OtaUpdateManager.compareVersionStrings(dev.appVersion ?: CURRENT_APP_VERSION, CURRENT_APP_VERSION) >= 0
+                    val isUpToDate = OtaUpdateManager.compareVersionStrings(dev.appVersion, CURRENT_APP_VERSION) >= 0
 
                     Card(
                         shape = RoundedCornerShape(8.dp),

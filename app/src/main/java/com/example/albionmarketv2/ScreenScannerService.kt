@@ -61,8 +61,19 @@ class ScreenScannerService : Service() {
         }
 
         if (resultCode != 0 && data != null) {
-            startForegroundService()
-            setupMediaProjection(resultCode, data)
+            try {
+                startForegroundService()
+                // Kurze Verzögerung, damit Android 14+ den Foreground-Service-Status 
+                // zuverlässig registriert, bevor die MediaProjection abgerufen wird.
+                Handler(Looper.getMainLooper()).postDelayed({
+                    setupMediaProjection(resultCode, data)
+                }, 500)
+            } catch (e: Exception) {
+                Log.e("BotScanner", "Fehler in onStartCommand", e)
+                Handler(Looper.getMainLooper()).post {
+                    Toast.makeText(this, "Start-Fehler: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
         }
         return START_STICKY
     }
@@ -97,9 +108,12 @@ class ScreenScannerService : Service() {
             }
             
             val metrics = resources.displayMetrics
-            val width = metrics.widthPixels
-            val height = metrics.heightPixels
+            var width = metrics.widthPixels
+            var height = metrics.heightPixels
             val density = metrics.densityDpi
+
+            if (width <= 0) width = 1080
+            if (height <= 0) height = 1920
 
             imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
             virtualDisplay = mediaProjection?.createVirtualDisplay(
@@ -114,7 +128,7 @@ class ScreenScannerService : Service() {
             Log.e("BotScanner", "Fehler bei MediaProjection Start", e)
             Handler(Looper.getMainLooper()).post {
                 try {
-                    Toast.makeText(this, "Bildschirmaufnahme abgebrochen oder nicht erlaubt.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "⚠️ Fehler bei Aufnahme: ${e.javaClass.simpleName} - ${e.message}", Toast.LENGTH_LONG).show()
                 } catch (_: Exception) {}
             }
             stopSelf()

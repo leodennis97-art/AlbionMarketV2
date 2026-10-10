@@ -136,9 +136,12 @@ class FloatingCropService : Service() {
             }
             
             val metrics = resources.displayMetrics
-            val width = metrics.widthPixels
-            val height = metrics.heightPixels
+            var width = metrics.widthPixels
+            var height = metrics.heightPixels
             val density = metrics.densityDpi
+
+            if (width <= 0) width = 1080
+            if (height <= 0) height = 1920
 
             imageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2)
             virtualDisplay = mediaProjection?.createVirtualDisplay(
@@ -166,7 +169,7 @@ class FloatingCropService : Service() {
             Log.e("FloatingCropService", "Fehler bei executeScreenshot", e)
             Handler(Looper.getMainLooper()).post {
                 try {
-                    Toast.makeText(this, "Screenshot abgebrochen. Bitte erneut versuchen.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, "⚠️ Fehler bei Aufnahme: ${e.javaClass.simpleName} - ${e.message}", Toast.LENGTH_LONG).show()
                 } catch (_: Exception) {}
             }
             stopSelf()

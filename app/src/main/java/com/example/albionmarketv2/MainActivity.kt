@@ -88,6 +88,10 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.albionmarketv2.ui.theme.AlbionMarketV2Theme
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -102,6 +106,14 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Server Config
         ServerConfigManager.initServerConfig(this)
+        
+        // Start Price Alert Worker
+        val priceAlertWork = PeriodicWorkRequestBuilder<PriceAlertWorker>(1, TimeUnit.HOURS).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+            "PriceAlertWork",
+            ExistingPeriodicWorkPolicy.KEEP,
+            priceAlertWork
+        )
 
         // Setup Notification Channel & Request Notifications Permission
         NotificationHelper.createNotificationChannel(this)

@@ -173,6 +173,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
     // Memory caching to avoid parsing SharedPreferences JSON on every frame
     private var cachedPriceMap: Map<String, List<MarketPrice>>? = null
 
+    private var ocrResultText by mutableStateOf<String?>(null)
+
     override fun onCreate() {
         try {
             savedStateRegistryController.performRestore(null)
@@ -192,6 +194,12 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
+        if (intent?.action == "ACTION_OCR_RESULT") {
+            val text = intent.getStringExtra("EXTRA_TEXT")
+            if (!text.isNullOrBlank()) {
+                ocrResultText = text
+            }
+        }
         return START_STICKY
     }
 
@@ -307,6 +315,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                             activeOrder = activeOrder,
                             topOpportunities = topOpportunities,
                             isLoadingOpps = isLoadingOpps,
+                            initialSearchQuery = ocrResultText,
+                            onSearchQueryConsumed = { ocrResultText = null },
                             onRefresh = { loadData(forceRefreshPrices = true) },
                             onAcceptOpportunity = { opp -> acceptOpportunity(opp) },
                             onDrag = { dx, dy ->
@@ -772,6 +782,7 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
     BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
     SETTINGS("Einstellungen", "Settings", "⚙️"),
+    SEARCH("Schnellsuche", "Quick Search", "🔍"),
     BOT("Auto-Bot", "Auto-Bot", "🤖");
 
     fun getTitle(lang: String): String = if (lang == "DE") titleDe else titleEn
@@ -814,7 +825,9 @@ fun PreviewBubbleOverlayContent() {
             onAcceptOpportunity = {},
             onDrag = { _, _ -> },
             onFocusModeChanged = {},
-            onOrderBooked = {}
+            onOrderBooked = {},
+            initialSearchQuery = "",
+            onSearchQueryConsumed = {}
         )
     }
 }
@@ -825,6 +838,8 @@ fun BubbleOverlayContent(
     activeOrder: TradeOrder?,
     topOpportunities: List<TradeOpportunity>,
     isLoadingOpps: Boolean,
+    initialSearchQuery: String?,
+    onSearchQueryConsumed: () -> Unit,
     onRefresh: () -> Unit,
     onAcceptOpportunity: (TradeOpportunity) -> Unit,
     onDrag: (Float, Float) -> Unit,
@@ -862,6 +877,18 @@ fun BubbleOverlayContent(
     var showAdminPasswordDialog by remember { mutableStateOf(false) }
     var showNativeAdminPanel by remember { mutableStateOf(false) }
     val viewModel = remember { AlbionResourceViewModel(context.applicationContext as Application) }
+    
+    var searchQuery by remember { mutableStateOf("") }
+    
+    LaunchedEffect(initialSearchQuery) {
+        if (!initialSearchQuery.isNullOrBlank()) {
+            isExpanded = true
+            isGhostMode = false
+            searchQuery = initialSearchQuery
+            selectedTab = BubbleTab.SEARCH
+            onSearchQueryConsumed()
+        }
+    }
 
     LaunchedEffect(activeOrder) {
         if ((activeOrder != null) && !isBookingMode) {
@@ -1564,6 +1591,70 @@ fun BubbleOverlayContent(
                                 }
                             }
                         }
+                        } else if (selectedTab == BubbleTab.SEARCH) {
+                            var searchResults by remember { mutableStateOf<List<AlbionResource>>(emptyList()) }
+                            
+                            LaunchedEffect(searchQuery) {
+                                if (searchQuery.isNotBlank()) {
+                                    val q = searchQuery.lowercase()
+                                    searchResults = AlbionResourceRepository.resources.filter { 
+                                        it.id.lowercase().contains(q) || 
+                                        it.nameDe.lowercase().contains(q) ||
+                                        it.nameEn.lowercase().contains(q)
+                                    }.take(10)
+                                } else {
+                                    searchResults = emptyList()
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = maxBubbleHeight)
+                                    .padding(8.dp)
+                            ) {
+                                OutlinedTextField(
+                                    value = searchQuery,
+                                    onValueChange = { searchQuery = it },
+                                    placeholder = { Text("Item suchen (z.B. T4 Pferd)...", color = Color.Gray) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color(0xFF1E3A4C),
+                                        unfocusedContainerColor = Color(0xFF0A1922),
+                                        focusedTextColor = Color.White,
+                                        unfocusedTextColor = Color.White
+                                    )
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                LazyColumn {
+                                    items(searchResults) { item ->
+                                        Surface(
+                                            color = Color(0xFF1E3A4C),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable {
+                                                // Switch to Top Margin tab and somehow pass the item selection.
+                                                // For now just switch tab.
+                                                selectedTab = BubbleTab.TOP_MARGIN
+                                            }
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                                                AsyncImage(
+                                                    model = item.imageUrl,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(40.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = if (lang == "DE") item.nameDe else item.nameEn,
+                                                    color = Color.White,
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         } else if (selectedTab == BubbleTab.TOP_MARGIN) {
                         val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
                         val uiState by viewModel.uiState.collectAsState()
@@ -2516,9 +2607,9 @@ fun BubbleOverlayContent(
 
             if (showAdminPasswordDialog) {
                 var pwd by remember { mutableStateOf("") }
-                AlertDialog(
+                SafeAlertDialog(
                     onDismissRequest = { showAdminPasswordDialog = false },
-                    title = { Text("Admin-Bereich gesperrt", fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+                    title = { Text("Admin-Bereich gesperrt", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = Color.White) },
                     text = {
                         OutlinedTextField(
                             value = pwd,

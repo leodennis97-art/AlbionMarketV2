@@ -23,6 +23,12 @@ class BotPermissionActivity : ComponentActivity() {
             try {
                 ContextCompat.startForegroundService(this, serviceIntent)
                 Toast.makeText(this, "🚀 Auto-Bot im Hintergrund gestartet!", Toast.LENGTH_SHORT).show()
+                // Wichtig: Activity verzögert schließen, damit der Foreground-Service Zeit hat, 
+                // die MediaProjection im Vordergrund zu initialisieren (Android 14+ Restriktion)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    finish()
+                }, 1000)
+                return@registerForActivityResult
             } catch (e: Exception) {
                 e.printStackTrace()
                 Toast.makeText(this, "Fehler beim Starten des Bot-Dienstes: ${e.message}", Toast.LENGTH_LONG).show()

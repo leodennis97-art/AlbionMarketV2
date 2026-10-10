@@ -533,12 +533,18 @@ object TradeCalculator {
                 val priceDropPercent = (volatility * 0.85 * 100.0).coerceIn(3.0, 18.0)
                 val priceRisePercent = (volatility * 1.10 * 100.0).coerceIn(4.0, 25.0)
 
-                // Optimal Buy Order (Dip-Level für Schnäppchen-Einkauf)
-                val recBuyOrderPrice = (buyPrice * (1.0 - (priceDropPercent / 100.0))).toInt().coerceAtLeast(1)
+                // Reale Kauforder: Um die Kauforder auch auszuführen, muss sie minimal höher als der aktuelle Buy-Price des Marktes sein.
+                // Wir verwenden als Basis den tatsächlichen besten Kaufort, aber passen ihn an den echten Markt an,
+                // indem wir eine reale Marge nehmen (+1 Silber auf das höchste Gebot der Mitbewerber)
+                val marketBuyMax = prices.filter { it.city == bestBuy.city && it.buyPriceMax > 0 }.maxByOrNull { it.buyPriceMax }?.buyPriceMax ?: (buyPrice * 0.85).toInt()
+                val recBuyOrderPrice = (marketBuyMax + 1).coerceAtLeast(1)
+
+                // Reale Verkauforder: Wir orientieren uns am echten Minimum-Verkaufspreis des Zielmarkts und gehen 1 Silber darunter (Undercut),
+                // anstatt unrealistisch hohe "Peaks" zu verlangen.
+                val marketSellMin = prices.filter { it.city == bestSell.city && it.sellPriceMin > 0 }.minByOrNull { it.sellPriceMin }?.sellPriceMin ?: (sellPrice * 0.95).toInt()
+                val recSellOrderPrice = (marketSellMin - 1).coerceAtLeast(recBuyOrderPrice + 1)
                 
-                // Optimal Sell Order (Peak-Level für maximale Marge nach Steuer)
                 val targetTax = marketTaxPercent / 100.0
-                val recSellOrderPrice = maxOf((sellPrice * (1.0 + (priceRisePercent / 100.0))).toInt(), (recBuyOrderPrice * 1.12).toInt())
 
                 val orderNetSellPrice = (recSellOrderPrice * (1.0 - targetTax - 0.025)).toInt()
                 val orderNetProfitUnit = orderNetSellPrice - recBuyOrderPrice
