@@ -756,7 +756,7 @@ class MainActivity : ComponentActivity() {
                                                                 Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
 
                                                                 if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
-                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "3.6.2"
+                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "3.6.3"
                                                                     Toast.makeText(context, "🚀 App aktualisieren: Installiere neueste Version v$targetV...", Toast.LENGTH_LONG).show()
                                                                     lifecycleScope.launch(Dispatchers.IO) {
                                                                         OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
@@ -857,7 +857,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.6.2"})!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.6.3"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {
