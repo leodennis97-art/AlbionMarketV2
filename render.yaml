@@ -1,0 +1,23 @@
+version: "1"
+
+services:
+  - type: web
+    name: DataPro - Market Companion (Unofficial)
+    runtime: node
+    repo: https://github.com/leodennis97-art/AlbionMarketV2
+    plan: 0.5c-512mb
+    region: frankfurt
+    rootDir: render_server
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeployTrigger: commit
+    domains:
+      - datapro.com
+      - www.datapro.com
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+    previews:
+      generation: automatic

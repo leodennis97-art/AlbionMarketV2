@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataPro - Market Companion (Unofficial) v3.6.2 – APK Download & Live-Markt</title>
+    <style>
+        :root {
+            --bg: #080d1a;
+            --card: rgba(18, 26, 43, 0.85);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --primary: #38bdf8;
+            --accent: #a855f7;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --text: #f8fafc;
+            --subtext: #94a3b8;
+        }
+        body {
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.15), transparent 60%), radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.1), transparent 50%);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            text-align: center;
+            padding: 40px 20px;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            max-width: 680px;
+            width: 100%;
+            background: var(--card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            padding: 48px 36px;
+            border-radius: 28px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #38bdf8, #a855f7, #10b981);
+        }
+        .logo-box {
+            width: 108px;
+            height: 108px;
+            margin: 0 auto 24px auto;
+            filter: drop-shadow(0 0 20px rgba(56, 189, 248, 0.4));
+        }
+        h1 { color: #ffffff; margin-bottom: 6px; font-size: 36px; font-weight: 900; letter-spacing: -0.5px; }
+        .subtitle { color: var(--warning); font-size: 13px; font-weight: 800; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; }
+        p { color: var(--subtext); margin-bottom: 32px; line-height: 1.6; font-size: 16px; max-width: 520px; margin-left: auto; margin-right: auto; }
+
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success);
+            color: #34d399; padding: 6px 16px; border-radius: 30px; font-size: 13px; font-weight: 700;
+            margin-bottom: 28px;
+        }
+        .pulse-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; box-shadow: 0 0 10px var(--success); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; } }
+
+        .btn-download {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            text-decoration: none;
+            padding: 20px 42px;
+            font-size: 18px;
+            font-weight: 800;
+            border-radius: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 10px 30px rgba(16, 185, 129, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 40px rgba(16, 185, 129, 0.6);
+        }
+        .features {
+            margin-top: 40px;
+            text-align: left;
+            border-top: 1px solid var(--card-border);
+            padding-top: 28px;
+        }
+        .features h3 { color: #f8fafc; font-size: 18px; margin-bottom: 18px; font-weight: 800; }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+        .feature-card {
+            background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 16px; border-radius: 14px; text-align: left;
+        }
+        .feature-card strong { color: var(--primary); display: block; font-size: 14px; margin-bottom: 4px; }
+        .feature-card span { color: var(--subtext); font-size: 13px; line-height: 1.4; display: block; }
+
+        .footer-info {
+            margin-top: 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: var(--subtext);
+            border-top: 1px solid var(--card-border);
+            padding-top: 20px;
+        }
+        .admin-link {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: bold;
+            padding: 6px 12px;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            transition: background 0.2s;
+        }
+        .admin-link:hover { background: rgba(56, 189, 248, 0.2); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="logo-box">
+            <svg viewBox="0 0 128 128" width="100%" height="100%">
+                <path d="M64,6 L112,28 L112,76 L64,122 L16,76 L16,28 Z" fill="#0F172A" stroke="#38BDF8" stroke-width="4" />
+                <path d="M64,14 L104,32 L104,72 L64,110 L24,72 L24,32 Z" fill="#1E293B" stroke="#F59E0B" stroke-width="2" />
+                <path d="M36,42 L52,42 C64,42 70,48 70,58 C70,68 64,74 52,74 L36,74 Z" stroke="#38BDF8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M72,86 L72,42 L88,42 C96,42 100,46 100,52 C100,58 96,62 88,62 L72,62" stroke="#10B981" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M32,82 L48,68 L64,78 L96,46" stroke="#F59E0B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <path d="M84,46 L96,46 L96,58" stroke="#F59E0B" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+                <circle cx="48" cy="68" r="3" fill="#38BDF8" />
+                <circle cx="64" cy="78" r="3" fill="#F59E0B" />
+                <circle cx="96" cy="46" r="4" fill="#10B981" />
+            </svg>
+        </div>
+
+        <h1>DataPro</h1>
+        <div class="subtitle">Market Companion (Unofficial)</div>
+
+        <div class="status-badge"><div class="pulse-dot"></div> Live Server Sync Active (v3.6.2)</div>
+
+        <p>Das ultimative Markt-Overlay, Arbitrage-Radar, Stadt-Routen & Silber-Rechner für Mobile MMO Spieler.</p>
+
+        <!-- Download Link zur APK -->
+        <a href="/api/download-apk" class="btn-download" download>
+            📥 DataPro v3.6.2 APK Herunterladen
+        </a>
+
+        <div class="features">
+            <h3>🚀 High-End Features (v3.6.2 Release):</h3>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <strong>🗺️ Stadt-Routen & Zielnavigation</strong>
+                    <span>Zweiter Floating-Button für Live-Laufwege zwischen Städten (Martlock, Caerleon, Brecilien etc.).</span>
+                </div>
+                <div class="feature-card">
+                    <strong>🔮 Schwebendes In-Game Overlay</strong>
+                    <span>Echtzeit-Marktpreise, Arbitrage & KI-Signale direkt als schwebendes Fenster.</span>
+                </div>
+                <div class="feature-card">
+                    <strong>📊 Preis-Stabilität & Fixes</strong>
+                    <span>Flackerfreie Katalog-Preisanzeige & optimierte Performance.</span>
+                </div>
+                <div class="feature-card">
+                    <strong>🛡️ Google Play Compliance</strong>
+                    <span>Sicheres, sauberes Android APK Package ohne eingeschränkte Rechte.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-info">
+            <span id="version-display">Version 3.6.2 • Build 3620 • Android 8.0+</span>
+            <a href="/admin" class="admin-link">🔒 Admin Portal</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+            const downloadBtn = document.querySelector(".btn-download");
+            const statusBadge = document.querySelector(".status-badge");
+            const versionSpan = document.getElementById("version-display");
+
+            if (!downloadBtn) return;
+
+            const link = downloadBtn.getAttribute("href");
+            console.log("🔍 [Autonomer Link-Scanner] Scanne Download-Link:", link);
+
+            try {
+                const response = await fetch('/api/health');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.version) {
+                        const ver = data.version;
+                        downloadBtn.textContent = `📥 DataPro v${ver} APK Herunterladen`;
+                        downloadBtn.setAttribute("href", `/api/download-apk`);
+
+                        if (statusBadge) {
+                            statusBadge.innerHTML = `<div class="pulse-dot"></div> Live Server Sync Active (v${ver} — Autonom Verifiziert)`;
+                        }
+                        if (versionSpan) {
+                            versionSpan.textContent = `Version ${ver} • Autonom Scanned • Android 8.0+`;
+                        }
+                        document.title = `DataPro - Market Companion (Unofficial) v${ver} – APK Download & Live-Markt`;
+
+                        console.log("✅ [Autonomer Link-Scanner] Live Version erfolgreich erkannt & aktualisiert:", ver);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.log("ℹ️ Server-Abfrage nicht erreichbar, verwende Link-Fallback:", e.message);
+            }
+        });
+    </script>
+</body>
+</html>
