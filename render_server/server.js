@@ -774,7 +774,17 @@ app.get(['/download', '/download/', '/download/:filename'], (req, res, next) => 
         `);
     }
 
-    const apkFile = path.join(DOWNLOADS_DIR, 'DataPro.apk');
+    let apkFile = path.join(DOWNLOADS_DIR, 'DataPro.apk');
+    if (!fs.existsSync(apkFile)) {
+        try {
+            const files = fs.readdirSync(DOWNLOADS_DIR);
+            const foundApk = files.find(f => f.endsWith('.apk'));
+            if (foundApk) {
+                apkFile = path.join(DOWNLOADS_DIR, foundApk);
+            }
+        } catch (e) {}
+    }
+
     if (!fs.existsSync(apkFile)) {
         return res.status(404).send(`
             <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">
@@ -1218,7 +1228,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
 
         <!-- DOWNLOAD BUTTON SECTION -->
         <div class="flex flex-col items-center gap-4 mb-16 max-w-md mx-auto w-full">
-            <a href="https://albionmarketv2-1.onrender.com/download/DataPro.apk" class="pulse-glow bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black py-5 px-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 flex items-center justify-center gap-4 text-2xl border border-emerald-300/40 w-full">
+            <a href="/download/DataPro.apk?v=${CURRENT_SERVER_VERSION}" class="pulse-glow bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-white font-black py-5 px-8 rounded-2xl shadow-2xl transition-all transform hover:scale-105 flex items-center justify-center gap-4 text-2xl border border-emerald-300/40 w-full">
                 <i class="fa-solid fa-download text-3xl"></i>
                 <div class="text-left">
                     <div data-i18n="download_btn_subtitle" class="text-xs uppercase tracking-wider font-extrabold text-emerald-200">Kostenlos Herunterladen</div>
