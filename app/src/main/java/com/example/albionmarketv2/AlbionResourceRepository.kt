@@ -6,11 +6,11 @@ object AlbionResourceRepository {
         // WOOD (Holz)
         AlbionResource("T2_WOOD", "Birkenstamm", "Birch Logs", 2, ResourceCategory.WOOD, 0, "Rohstoff Stufe 2"),
         AlbionResource("T3_WOOD", "Kastanienstamm", "Chestnut Logs", 3, ResourceCategory.WOOD, 0, "Rohstoff Stufe 3"),
-        AlbionResource("T4_LOGS", "Kiefernstamm", "Pine Logs", 4, ResourceCategory.WOOD, 0, "Rohstoff Stufe 4"),
-        AlbionResource("T5_LOGS", "Zedernstamm", "Cedar Logs", 5, ResourceCategory.WOOD, 0, "Rohstoff Stufe 5"),
-        AlbionResource("T6_LOGS", "Bluteichenstamm", "Bloodoak Logs", 6, ResourceCategory.WOOD, 0, "Rohstoff Stufe 6"),
-        AlbionResource("T7_LOGS", "Eschenrindenstamm", "Ashenbark Logs", 7, ResourceCategory.WOOD, 0, "Rohstoff Stufe 7"),
-        AlbionResource("T8_LOGS", "Weißholzstamm", "Whitewood Logs", 8, ResourceCategory.WOOD, 0, "Rohstoff Stufe 8"),
+        AlbionResource("T4_WOOD", "Kiefernstamm", "Pine Logs", 4, ResourceCategory.WOOD, 0, "Rohstoff Stufe 4"),
+        AlbionResource("T5_WOOD", "Zedernstamm", "Cedar Logs", 5, ResourceCategory.WOOD, 0, "Rohstoff Stufe 5"),
+        AlbionResource("T6_WOOD", "Bluteichenstamm", "Bloodoak Logs", 6, ResourceCategory.WOOD, 0, "Rohstoff Stufe 6"),
+        AlbionResource("T7_WOOD", "Eschenrindenstamm", "Ashenbark Logs", 7, ResourceCategory.WOOD, 0, "Rohstoff Stufe 7"),
+        AlbionResource("T8_WOOD", "Weißholzstamm", "Whitewood Logs", 8, ResourceCategory.WOOD, 0, "Rohstoff Stufe 8"),
 
         // ORE (Erz)
         AlbionResource("T2_ORE", "Kupfererz", "Copper Ore", 2, ResourceCategory.ORE, 0, "Rohstoff Stufe 2"),
@@ -42,11 +42,11 @@ object AlbionResourceRepository {
         // STONE (Stein)
         AlbionResource("T2_STONE", "Kalkstein", "Limestone", 2, ResourceCategory.STONE, 0, "Rohstoff Stufe 2"),
         AlbionResource("T3_STONE", "Sandstein", "Sandstone", 3, ResourceCategory.STONE, 0, "Rohstoff Stufe 3"),
-        AlbionResource("T4_ROCK", "Travertin", "Travertine", 4, ResourceCategory.STONE, 0, "Rohstoff Stufe 4"),
-        AlbionResource("T5_ROCK", "Granit", "Granite", 5, ResourceCategory.STONE, 0, "Rohstoff Stufe 5"),
-        AlbionResource("T6_ROCK", "Schiefer", "Slate", 6, ResourceCategory.STONE, 0, "Rohstoff Stufe 6"),
-        AlbionResource("T7_ROCK", "Basalt", "Basalt", 7, ResourceCategory.STONE, 0, "Rohstoff Stufe 7"),
-        AlbionResource("T8_ROCK", "Marmor", "Marble", 8, ResourceCategory.STONE, 0, "Rohstoff Stufe 8"),
+        AlbionResource("T4_STONE", "Travertin", "Travertine", 4, ResourceCategory.STONE, 0, "Rohstoff Stufe 4"),
+        AlbionResource("T5_STONE", "Granit", "Granite", 5, ResourceCategory.STONE, 0, "Rohstoff Stufe 5"),
+        AlbionResource("T6_STONE", "Schiefer", "Slate", 6, ResourceCategory.STONE, 0, "Rohstoff Stufe 6"),
+        AlbionResource("T7_STONE", "Basalt", "Basalt", 7, ResourceCategory.STONE, 0, "Rohstoff Stufe 7"),
+        AlbionResource("T8_STONE", "Marmor", "Marble", 8, ResourceCategory.STONE, 0, "Rohstoff Stufe 8"),
 
         // REFINED (Planks)
         AlbionResource("T2_PLANKS", "Birkenbretter", "Birch Planks", 2, ResourceCategory.REFINED, 0, "Veredeltes Holz"),
