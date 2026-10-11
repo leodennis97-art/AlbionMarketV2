@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+
+    <!-- Hexagonal Shield / Badge Base -->
+    <path
+        android:pathData="M64,6 L112,28 L112,76 L64,122 L16,76 L16,28 Z"
+        android:fillColor="#0F172A"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="4" />
+
+    <!-- Inner Metallic Accent Frame -->
+    <path
+        android:pathData="M64,14 L104,32 L104,72 L64,110 L24,72 L24,32 Z"
+        android:fillColor="#1E293B"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="2" />
+
+    <!-- Stylized "D" (Data) - Cyan Loop -->
+    <path
+        android:pathData="M36,42 L52,42 C64,42 70,48 70,58 C70,68 64,74 52,74 L36,74 Z"
+        android:strokeColor="#38BDF8"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Stylized "P" (Pro) - Emerald Loop -->
+    <path
+        android:pathData="M72,86 L72,42 L88,42 C96,42 100,46 100,52 C100,58 96,62 88,62 L72,62"
+        android:strokeColor="#10B981"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Ascending Market Line Graph (Companion Analytics Signal) -->
+    <path
+        android:pathData="M32,82 L48,68 L64,78 L96,46"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Upward Trend Arrowhead -->
+    <path
+        android:pathData="M84,46 L96,46 L96,58"
+        android:strokeColor="#F59E0B"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Glowing Node Bullets -->
+    <path
+        android:pathData="M48,68 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#38BDF8" />
+
+    <path
+        android:pathData="M64,78 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0"
+        android:fillColor="#F59E0B" />
+
+    <path
+        android:pathData="M96,46 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0"
+        android:fillColor="#10B981" />
+</vector>

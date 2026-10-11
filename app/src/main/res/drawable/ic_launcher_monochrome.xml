@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Hexagonal Shield / Badge Base -->
+    <path
+        android:pathData="M54,8 L92,26 L92,68 L54,100 L16,68 L16,26 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5" />
+
+    <!-- Stylized "D" (Data) -->
+    <path
+        android:pathData="M32,38 L45,38 C55,38 60,43 60,52 C60,61 55,66 45,66 L32,66 Z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Stylized "P" (Pro) -->
+    <path
+        android:pathData="M61,76 L61,38 L74,38 C81,38 85,42 85,47 C85,52 81,56 74,56 L61,56"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Ascending Market Line Graph -->
+    <path
+        android:pathData="M28,72 L41,60 L54,68 L81,40"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+
+    <!-- Upward Trend Arrowhead -->
+    <path
+        android:pathData="M71,40 L81,40 L81,50"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round" />
+</vector>

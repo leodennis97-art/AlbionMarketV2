@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+
+    <!-- Background dark rounded rect / panel -->
+    <path
+        android:pathData="M16,16 H112 V112 H16 Z"
+        android:fillColor="#030712" />
+
+    <!-- Left Pixel Blocks (Cyan Gradient effect) -->
+    <path
+        android:pathData="M24,56 H36 V68 H24 Z"
+        android:fillColor="#00E5FF" />
+    <path
+        android:pathData="M34,44 H46 V56 H34 Z"
+        android:fillColor="#00B8D4" />
+    <path
+        android:pathData="M34,68 H46 V80 H34 Z"
+        android:fillColor="#0097A7" />
+    <path
+        android:pathData="M44,56 H56 V68 H44 Z"
+        android:fillColor="#00838F" />
+
+    <!-- Outer D Shape (Vibrant Blue Gradient) -->
+    <path
+        android:pathData="M46,32 H82 C100,32 108,42 108,64 C108,86 100,96 82,96 H46 Z"
+        android:fillColor="#0077FF" />
+
+    <!-- D Inner Cutout to form loop -->
+    <path
+        android:pathData="M56,44 H78 C88,44 94,50 94,64 C94,78 88,84 78,84 H56 Z"
+        android:fillColor="#030712" />
+
+    <!-- Inner P Shape (White) -->
+    <path
+        android:pathData="M56,44 H74 C83,44 88,49 88,57 C88,65 83,70 74,70 H56 Z"
+        android:fillColor="#FFFFFF" />
+    <path
+        android:pathData="M56,44 H66 V84 H56 Z"
+        android:fillColor="#FFFFFF" />
+
+    <!-- Accent inside P loop -->
+    <path
+        android:pathData="M64,52 H72 C76,52 78,54 78,57 C78,60 76,62 72,62 H64 Z"
+        android:fillColor="#00A3FF" />
+</vector>

@@ -1,0 +1,101 @@
+{
+  "total": 2006080,
+  "hourly": [
+    {
+      "hour": "00:00",
+      "itemsCollected": 780
+    },
+    {
+      "hour": "01:00",
+      "itemsCollected": 1007
+    },
+    {
+      "hour": "02:00",
+      "itemsCollected": 888
+    },
+    {
+      "hour": "03:00",
+      "itemsCollected": 990
+    },
+    {
+      "hour": "04:00",
+      "itemsCollected": 884
+    },
+    {
+      "hour": "05:00",
+      "itemsCollected": 793
+    },
+    {
+      "hour": "06:00",
+      "itemsCollected": 790
+    },
+    {
+      "hour": "07:00",
+      "itemsCollected": 816
+    },
+    {
+      "hour": "08:00",
+      "itemsCollected": 774
+    },
+    {
+      "hour": "09:00",
+      "itemsCollected": 841
+    },
+    {
+      "hour": "10:00",
+      "itemsCollected": 834
+    },
+    {
+      "hour": "11:00",
+      "itemsCollected": 957
+    },
+    {
+      "hour": "12:00",
+      "itemsCollected": 796
+    },
+    {
+      "hour": "13:00",
+      "itemsCollected": 1021
+    },
+    {
+      "hour": "14:00",
+      "itemsCollected": 947
+    },
+    {
+      "hour": "15:00",
+      "itemsCollected": 766
+    },
+    {
+      "hour": "16:00",
+      "itemsCollected": 1043
+    },
+    {
+      "hour": "17:00",
+      "itemsCollected": 975
+    },
+    {
+      "hour": "18:00",
+      "itemsCollected": 788
+    },
+    {
+      "hour": "19:00",
+      "itemsCollected": 938
+    },
+    {
+      "hour": "20:00",
+      "itemsCollected": 998
+    },
+    {
+      "hour": "21:00",
+      "itemsCollected": 874
+    },
+    {
+      "hour": "22:00",
+      "itemsCollected": 92054
+    },
+    {
+      "hour": "23:00",
+      "itemsCollected": 1870403
+    }
+  ]
+}
