@@ -811,7 +811,7 @@ fun BubbleOverlayContent(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        painter = painterResource(id = R.drawable.aot_logo),
+                        painter = painterResource(id = R.drawable.adp_logo),
                         contentDescription = "DataPro Overlay",
                         tint = Color.Unspecified,
                         modifier = Modifier.size(minIconSize),
@@ -868,7 +868,7 @@ fun BubbleOverlayContent(
                                 },
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.aot_logo),
+                                painter = painterResource(id = R.drawable.adp_logo),
                                 contentDescription = null,
                                 tint = Color.Unspecified,
                                 modifier = Modifier.size(if (isCompactMode) 18.dp else 24.dp),

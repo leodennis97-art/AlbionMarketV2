@@ -986,6 +986,7 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
 
 // Landing Pages (10 Specialized SEO Portal Routes for Google Rank #1)
 app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/calculator', '/overlay', '/mobile', '/guide'], (req, res) => {
+    return res.sendFile(path.join(__dirname, 'index.html'));
     const route = req.path.toLowerCase();
 
     let pageTitle = `DataPro - Market Companion (Unofficial) v${CURRENT_SERVER_VERSION}`;
