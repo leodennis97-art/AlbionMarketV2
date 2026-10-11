@@ -59,6 +59,7 @@ tasks.register("uploadApkToRender") {
     def releaseApkProvider = layout.buildDirectory.file("outputs/apk/release/app-release.apk")
     def debugApkProvider = layout.buildDirectory.file("outputs/apk/debug/app-debug.apk")
     def vName = android.defaultConfig.versionName
+    def rootDirFile = project.rootDir
     doLast {
         def releaseApk = releaseApkProvider.get().asFile
         def debugApk = debugApkProvider.get().asFile
@@ -71,6 +72,15 @@ tasks.register("uploadApkToRender") {
 
         def versionName = vName
         println("🚀 Lade APK (v$versionName, ${apkFile.length() / (1024 * 1024)} MB) autonom auf Render & Ngrok hoch & setze targetVersion...")
+
+        // Lokal nach render_server/downloads/DataPro.apk kopieren, damit sie direkt im Repo liegt
+        def serverDownloadsDir = new File(rootDirFile, "render_server/downloads")
+        if (!serverDownloadsDir.exists()) {
+            serverDownloadsDir.mkdirs()
+        }
+        def localTargetApk = new File(serverDownloadsDir, "DataPro.apk")
+        ant.copy(file: apkFile, tofile: localTargetApk)
+        println("📦 APK erfolgreich nach ${localTargetApk.absolutePath} kopiert.")
 
         try {
             // Upload direkt zu Render
