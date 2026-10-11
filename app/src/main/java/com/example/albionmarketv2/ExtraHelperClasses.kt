@@ -5,6 +5,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.ui.graphics.Color
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -53,7 +56,27 @@ object NetworkDependencyManager {
 
 @Composable
 fun AlbionMarketV2Theme(content: @Composable () -> Unit) {
-    content()
+    val darkColorScheme = darkColorScheme(
+        primary = Color(0xFF00A2FF),
+        onPrimary = Color.White,
+        primaryContainer = Color(0xFF0369A1),
+        onPrimaryContainer = Color(0xFFE0F2FE),
+        secondary = Color(0xFF38BDF8),
+        onSecondary = Color.Black,
+        tertiary = Color(0xFFF59E0B),
+        background = Color(0xFF050B14),
+        onBackground = Color(0xFFF8FAFC),
+        surface = Color(0xFF0F172A),
+        onSurface = Color(0xFFF8FAFC),
+        surfaceContainer = Color(0xFF1E293B),
+        surfaceContainerHigh = Color(0xFF1E293B),
+        outline = Color(0xFF334155),
+        error = Color(0xFFEF4444)
+    )
+    MaterialTheme(
+        colorScheme = darkColorScheme,
+        content = content
+    )
 }
 
 fun isPriceStillValid(vararg args: Any?): Boolean = true
