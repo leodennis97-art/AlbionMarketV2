@@ -385,19 +385,19 @@ fun WebsiteLicensePurchaseSection(context: Context) {
         Button(
             onClick = {
                 try {
-                    val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
-                    context.startActivity(intent)
+                    val paypalIntent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/FK8JDAFFUGYMA".toUri())
+                    context.startActivity(paypalIntent)
                 } catch (_: Exception) {
-                    Toast.makeText(context, "Webseite konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "PayPal Link konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA)),
             shape = RoundedCornerShape(10.dp),
             modifier = Modifier.fillMaxWidth(),
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
         ) {
             Text(
-                text = "🌐 Offizielle Webseite besuchen:\nalbionmarketv2-1.onrender.com",
+                text = "💳 PayPal Sofort-Bezahlung & Freischaltung:\nwww.paypal.com/ncp/payment/FK8JDAFFUGYMA",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color.White,

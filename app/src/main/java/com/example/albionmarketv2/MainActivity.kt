@@ -775,6 +775,27 @@ class MainActivity : ComponentActivity() {
                                             }
                                         }
 
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        // 💳 PAYPAL DIREKT-BEZAHLUNG LINK
+                                        Button(
+                                            onClick = {
+                                                try {
+                                                    val paypalIntent = Intent(Intent.ACTION_VIEW, "https://www.paypal.com/ncp/payment/FK8JDAFFUGYMA".toUri())
+                                                    context.startActivity(paypalIntent)
+                                                } catch (_: Exception) {
+                                                    Toast.makeText(context, "PayPal Link konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0070BA)),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                                Text("💳 PayPal Bezahlen / Konto Freischalten", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 12.sp)
+                                            }
+                                        }
+
                                         Spacer(modifier = Modifier.height(4.dp))
 
                                         Row(
@@ -857,7 +878,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.6.14"})!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.6.15"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {
