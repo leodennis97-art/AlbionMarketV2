@@ -2,21 +2,27 @@ version: "1"
 
 services:
   - type: web
-    name: DataPro - Market Companion (Unofficial)
+    name: albionmarketv2-1
     runtime: node
     repo: https://github.com/leodennis97-art/AlbionMarketV2
-    plan: 0.5c-512mb
+    plan: free
     region: frankfurt
     buildCommand: npm install
     startCommand: npm start
     autoDeployTrigger: commit
-    domains:
-      - datapro.com
-      - www.datapro.com
+    healthCheckPath: /api/health
+    disk:
+      name: datapro-storage
+      mountPath: /opt/render/project/src/downloads
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
       - key: GMAIL_APP_PASSWORD
         sync: false
-    previews:
-      generation: automatic
+      - key: SERVER_HMAC_SECRET
+        generateValue: true
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: NGROK_AUTHTOKEN
+        sync: false
