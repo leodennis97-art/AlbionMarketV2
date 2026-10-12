@@ -495,17 +495,17 @@ object TradeCalculator {
                 val roi = if (totalInvestment > 0) (totalNetProfit.toDouble() / totalInvestment) * 100.0 else 0.0
 
                 val currentNowMs = System.currentTimeMillis()
-                val buyDateMs = parseIsoToEpochMs(bestBuy.sellPriceMinDate)
-                val sellDateMs = parseIsoToEpochMs(bestSell.sellPriceMinDate)
+                val parsedBuyMs = parseIsoToEpochMs(bestBuy.sellPriceMinDate)
+                val parsedSellMs = parseIsoToEpochMs(bestSell.sellPriceMinDate)
+                val buyDateMs = if (parsedBuyMs > 0) parsedBuyMs else currentNowMs
+                val sellDateMs = if (parsedSellMs > 0) parsedSellMs else currentNowMs
 
-                // Strikter Filter: Nur echte Marktchancen mit garantiert aktuellem Marktpreis (max. 15 Minuten alt)
-                val maxAgeMs = 15 * 60 * 1000L
-                if (buyDateMs <= 0 || sellDateMs <= 0) continue
-
+                // Filter: Max. 24h alte Marktpreise
+                val maxAgeMs = 24 * 60 * 60 * 1000L
                 val buyAgeMs = currentNowMs - buyDateMs
                 val sellAgeMs = currentNowMs - sellDateMs
 
-                if (buyAgeMs > maxAgeMs || sellAgeMs > maxAgeMs || buyAgeMs < 0 || sellAgeMs < 0) {
+                if (buyAgeMs > maxAgeMs || sellAgeMs > maxAgeMs) {
                     continue
                 }
 
