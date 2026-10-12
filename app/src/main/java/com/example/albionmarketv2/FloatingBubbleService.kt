@@ -35,6 +35,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.util.Locale
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.PathEffect
@@ -911,6 +912,57 @@ fun BubbleOverlayContent(
                     }
 
                     Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
+
+                    // 🤖 KI SILBER-BOT BEST DEAL BANNER
+                    if (!isBookingMode && topOpportunities.isNotEmpty()) {
+                        val bestDeal = topOpportunities.maxByOrNull { it.totalNetProfit }
+                        if (bestDeal != null && bestDeal.totalNetProfit > 0) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF0369A1),
+                                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 2.dp)
+                                    .clickable {
+                                        onAcceptOpportunity(bestDeal)
+                                    }
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "🤖 KI Silber-Bot: Bester Deal!",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color(0xFF38BDF8)
+                                        )
+                                        Text(
+                                            text = "Kaufe ${bestDeal.resource.nameDe} (${bestDeal.buyCity}) ➔ Verkaufe in ${bestDeal.sellCity}",
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFF10B981)
+                                    ) {
+                                        Text(
+                                            text = "+${NumberFormat.getNumberInstance(Locale.GERMANY).format(bestDeal.totalNetProfit)} S.",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Black,
+                                            color = Color.Black,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // 🎛️ Floating Mini-Controller (Quick Silver Budget Bar)
                     if (!isBookingMode) {
