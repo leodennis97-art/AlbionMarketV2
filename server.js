@@ -184,10 +184,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.6.15";
+    return "3.6.16";
 }
 
-let CURRENT_SERVER_VERSION = "3.6.15";
+let CURRENT_SERVER_VERSION = "3.6.16";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -3224,7 +3224,7 @@ app.get(['/admin'], (req, res) => {
     const expectedToken = crypto.createHmac('sha256', SERVER_HMAC_SECRET).update('admin_session').digest('hex');
 
     if (clientToken !== expectedToken) {
-        return res.status(401).send(`
+        return res.send(`
             <!DOCTYPE html>
             <html lang="de" style="background:#080d1a;color:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;">
             <head>
