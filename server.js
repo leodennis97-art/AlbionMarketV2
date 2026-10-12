@@ -3262,12 +3262,15 @@ app.get(['/admin'], (req, res) => {
 
     const tunnelUrl = getActiveTunnelUrl();
     const nowTime = Date.now();
-    const onlineDevicesCount = registeredDevices.filter(d => d.lastSeen && (nowTime - new Date(d.lastSeen).getTime() < 120000)).length;
-    const maxItems = Math.max(...hourlyData24h.map(h => h.itemsCollected), 100);
+    const safeDevices = Array.isArray(registeredDevices) ? registeredDevices : [];
+    const onlineDevicesCount = safeDevices.filter(d => d.lastSeen && (nowTime - new Date(d.lastSeen).getTime() < 120000)).length;
+    const safeHourly = Array.isArray(hourlyData24h) ? hourlyData24h : [];
+    const maxItems = safeHourly.length > 0 ? Math.max(...safeHourly.map(h => h.itemsCollected || 0), 100) : 100;
 
     // Initial Revenue Calculation
     const revenueMap = { '1m': 15, '3m': 30, '6m': 50, '12m': 100, 'lifetime': 250 };
-    const initialEstRevenue = generatedLicenses.reduce((acc, l) => acc + (revenueMap[l.tier] || 0), 0);
+    const safeLicenses = Array.isArray(generatedLicenses) ? generatedLicenses : [];
+    const initialEstRevenue = safeLicenses.reduce((acc, l) => acc + (revenueMap[l.tier] || 0), 0);
 
     res.send(`<!DOCTYPE html>
 <html lang="de">
