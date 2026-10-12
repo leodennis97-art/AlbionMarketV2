@@ -432,7 +432,8 @@ object TradeCalculator {
                     }
 
                     if (candSellPrice <= buyPrice) continue
-                    if (candSellPrice > buyPrice * 5.0) continue // Anomaly check
+                    val maxMultiplier = if (buyPrice < 1000) 15.0 else 8.0
+                    if (candSellPrice > buyPrice * maxMultiplier) continue // Realistic Anomaly check
 
                     // Für Schwarzmarkt keine Einstellungsgebühr (0%), da Direktverkauf an Kauforder
                     val setupFeeRate = if (isBm) 0.0 else 0.025
