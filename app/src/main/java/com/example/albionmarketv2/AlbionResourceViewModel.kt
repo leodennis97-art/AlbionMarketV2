@@ -320,7 +320,6 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     fun onResourceClicked(resource: AlbionResource) {
         _uiState.value = _uiState.value.copy(selectedResource = resource)
-        fetchQuantMetricsAndHistory(listOf(resource.fullId, resource.id))
     }
 
     fun onDismissDetails() {

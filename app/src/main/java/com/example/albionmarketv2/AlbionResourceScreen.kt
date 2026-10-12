@@ -488,7 +488,6 @@ fun AlbionResourceScreen(
                 ResourceDetailContent(
                     resource = resource,
                     prices = uiState.marketPrices[resource.fullId] ?: uiState.marketPrices[resource.id] ?: emptyList(),
-                    quantMetrics = uiState.quantMetricsMap[resource.fullId],
                     onCopyId = { idToCopy ->
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("Albion Item ID", idToCopy)
@@ -6017,7 +6016,6 @@ fun ResourceCard(
 fun ResourceDetailContent(
     resource: AlbionResource,
     prices: List<MarketPrice>,
-    quantMetrics: MarketQuantMetrics?,
     onCopyId: (String) -> Unit
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
