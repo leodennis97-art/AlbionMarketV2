@@ -3431,10 +3431,10 @@ app.get(['/admin'], (req, res) => {
         <!-- Top Executive Header -->
         <div class="top-header">
             <div class="title-group">
-                <img src="/logo.png" alt="DataPro Logo" style="width: 44px; height: 44px; object-fit: contain; border-radius: 10px; box-shadow: 0 0 20px rgba(56,189,248,0.5);">
-                <div>
-                    <h1>DataPro Executive Admin</h1>
-                    <div style="font-size: 13px; color: var(--subtext); margin-top: 2px;">DataPro Control & Tunnel Dashboard • military-grade</div>
+                <img src="/logo.png" alt="DataPro Logo" style="width: 48px; height: 48px; object-fit: contain; border-radius: 12px; box-shadow: 0 0 20px rgba(0,162,255,0.4);">
+                <div style="display: flex; flex-direction: column; justify-content: center;">
+                    <h1 style="margin: 0; font-size: 24px; font-weight: 900; color: #ffffff; letter-spacing: -0.5px; line-height: 1.1;">DataPro Executive Admin</h1>
+                    <div style="font-size: 13px; color: var(--subtext); margin-top: 4px;">DataPro Control & Tunnel Dashboard • military-grade</div>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 12px;">
