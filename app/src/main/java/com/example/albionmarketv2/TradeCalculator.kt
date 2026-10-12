@@ -500,8 +500,8 @@ object TradeCalculator {
                 val buyDateMs = if (parsedBuyMs > 0) parsedBuyMs else currentNowMs
                 val sellDateMs = if (parsedSellMs > 0) parsedSellMs else currentNowMs
 
-                // Filter: Max. 24h alte Marktpreise
-                val maxAgeMs = 24 * 60 * 60 * 1000L
+                // Strikter Filter: Max. 10 Minuten alte Marktpreise (ausblenden wenn älter als 10 Min)
+                val maxAgeMs = 10 * 60 * 1000L
                 val buyAgeMs = currentNowMs - buyDateMs
                 val sellAgeMs = currentNowMs - sellDateMs
 
