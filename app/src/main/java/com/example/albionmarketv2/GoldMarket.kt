@@ -66,9 +66,9 @@ object AlbionGoldApi {
                 map[server] = latest
             } else {
                 map[server] = when (server) {
-                    AlbionServer.EUROPE -> 4850
-                    AlbionServer.WEST -> 5120
-                    AlbionServer.EAST -> 4200
+                    AlbionServer.EUROPE -> 5450
+                    AlbionServer.WEST -> 5950
+                    AlbionServer.EAST -> 5100
                 }
             }
         }
@@ -112,9 +112,9 @@ object AlbionGoldApi {
 
         if (results.isEmpty()) {
             val defaultPrice = when (server) {
-                AlbionServer.EUROPE -> 4850
-                AlbionServer.WEST -> 5120
-                AlbionServer.EAST -> 4200
+                AlbionServer.EUROPE -> 5450
+                AlbionServer.WEST -> 5950
+                AlbionServer.EAST -> 5100
             }
             results.add(GoldPrice(price = defaultPrice, timestamp = "Echtzeit"))
         }

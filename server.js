@@ -184,10 +184,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.6.8";
+    return "3.6.9";
 }
 
-let CURRENT_SERVER_VERSION = "3.6.8";
+let CURRENT_SERVER_VERSION = "3.6.9";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 

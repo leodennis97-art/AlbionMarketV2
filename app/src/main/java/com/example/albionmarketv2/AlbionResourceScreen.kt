@@ -2388,33 +2388,7 @@ fun EquipmentBuildsTabContent(
             }
         }
 
-        uiState.guildReGearSummary?.let { regear ->
-            AlertDialog(
-                onDismissRequest = { viewModel.onDismissDetails() }, // we need a dismiss func, or we just use a quick state reset. Let's add a wrapper or modify viewmodel later. Actually we can do it inline
-                title = { Text("Gilden Re-Gear Liste (${regear.playerCount} Spieler)") },
-                text = {
-                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                        Text("Build: ${regear.buildName}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Kosten (Total): ${NumberFormat.getNumberInstance(Locale.GERMANY).format(regear.grandTotalSilverCost)} Silber")
-                        Text("Traglast (Total): ${String.format(Locale.GERMANY, "%.1f", regear.grandTotalWeightKg)} kg")
-                        Text("Transport: ${regear.recommendedTransportMountDe}", fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        HorizontalDivider()
-                        Spacer(modifier = Modifier.height(8.dp))
-                        regear.bomItems.forEach { item ->
-                            Text("• ${item.totalRequiredQuantity}x ${item.itemNameDe}", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            Text("  Bester Preis in: ${item.cheapestCityName} (${item.cheapestPricePerUnit} S./Stk)", fontSize = 11.sp, color = Color.Gray)
-                        }
-                    }
-                },
-                confirmButton = {
-                    Button(onClick = { viewModel.clearGuildReGearSummary() }) {
-                        Text("Schließen")
-                    }
-                }
-            )
-        }
+
 
         Spacer(modifier = Modifier.height(4.dp))
 
@@ -2491,17 +2465,7 @@ fun EquipmentBuildsTabContent(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            Button(
-                                onClick = { viewModel.calculateGuildReGearBOM(build.title, 50) },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
-                                modifier = Modifier.height(28.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
-                            ) {
-                                Text("⚔️ Gilden Re-Gear Liste (50)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
-                            }
-                        }
+
 
                         if (build.strongestWeaponHighlight.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(3.dp))
@@ -6114,27 +6078,6 @@ fun ResourceDetailContent(
         )
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        if (quantMetrics != null) {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(12.dp)) {
-                    Text("📊 Quantitative Daten (24h)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    Text("Volumen-Gewichteter Durchschnittspreis (VWAP): ${numberFormat.format(quantMetrics.vwap24h)} S.", fontSize = 12.sp)
-                    Text("Handelsvolumen 24h: ${numberFormat.format(quantMetrics.totalVolume24h)} Stk.", fontSize = 12.sp)
-                    Text("Liquiditäts-Score: ${quantMetrics.liquidityLevel.labelDe}", fontSize = 12.sp)
-                    if (quantMetrics.isPriceManipulated) {
-                        Text("⚠️ WARNUNG: Potentielle Preismanipulation erkannt! (Volatilität: ${String.format(Locale.GERMANY, "%.1f", quantMetrics.priceVolatilityPercent)}%)", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Text("Schwarzmarkt-Schluckrate: ${quantMetrics.blackMarketSinkVelocity}", fontSize = 11.sp, color = Color.Gray)
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
-        }
 
         if (prices.isNotEmpty()) {
             Text(

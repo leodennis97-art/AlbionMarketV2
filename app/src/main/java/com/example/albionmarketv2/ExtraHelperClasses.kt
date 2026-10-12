@@ -391,16 +391,36 @@ object IslandRepository {
 }
 
 object IslandTimerManager {
-    fun getTimers(context: Context): List<IslandTimer> {
-        val now = System.currentTimeMillis()
-        return listOf(
-            IslandTimer("1", "Möhrenfeld T3", "Möhrenfeld T3", TimerCategory.CROP, harvestTimeMs = now - 1000),
-            IslandTimer("2", "Kletten-Garten T5", "Kletten-Garten T5", TimerCategory.HERB, harvestTimeMs = now + (4 * 3600 * 1000)),
-            IslandTimer("3", "Ochsen-Zucht T6", "Ochsen-Zucht T6", TimerCategory.ANIMAL, harvestTimeMs = now + (18 * 3600 * 1000))
-        )
+    private val inMemoryTimers = mutableListOf<IslandTimer>()
+    private var isInitialized = false
+
+    private fun ensureInit() {
+        if (!isInitialized) {
+            val now = System.currentTimeMillis()
+            inMemoryTimers.add(IslandTimer("1", "Möhrenfeld T3", "Möhrenfeld T3", TimerCategory.CROP, harvestTimeMs = now - 1000))
+            inMemoryTimers.add(IslandTimer("2", "Kletten-Garten T5", "Kletten-Garten T5", TimerCategory.HERB, harvestTimeMs = now + (4 * 3600 * 1000)))
+            inMemoryTimers.add(IslandTimer("3", "Ochsen-Zucht T6", "Ochsen-Zucht T6", TimerCategory.ANIMAL, harvestTimeMs = now + (18 * 3600 * 1000)))
+            isInitialized = true
+        }
     }
-    fun addTimer(context: Context, cropName: String, category: TimerCategory, hours: Int) {}
-    fun removeTimer(context: Context, timerId: String) {}
+
+    fun getTimers(context: Context): List<IslandTimer> {
+        ensureInit()
+        return inMemoryTimers.toList()
+    }
+
+    fun addTimer(context: Context, cropName: String, category: TimerCategory, hours: Int) {
+        ensureInit()
+        val newId = System.currentTimeMillis().toString()
+        val harvestTimeMs = System.currentTimeMillis() + (hours * 3600 * 1000L)
+        inMemoryTimers.add(IslandTimer(newId, cropName, cropName, category, harvestTimeMs = harvestTimeMs))
+    }
+
+    fun removeTimer(context: Context, timerId: String) {
+        ensureInit()
+        inMemoryTimers.removeAll { it.id == timerId }
+    }
+
     val standardCropOptions: List<Pair<String, Int>> = listOf("Möhren" to 22, "Weizen" to 22, "Rübchen" to 22, "Mais" to 22, "Kürbis" to 22)
     val standardAnimalOptions: List<Pair<String, Int>> = listOf("Hühner" to 22, "Ziegen" to 22, "Kühe" to 22, "Pferde" to 44, "Ochsen" to 44)
 }
