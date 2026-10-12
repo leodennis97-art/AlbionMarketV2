@@ -10,6 +10,9 @@ services:
     buildCommand: npm install
     startCommand: npm start
     autoDeployTrigger: commit
+    domains:
+      - datapro.com
+      - www.datapro.com
     healthCheckPath: /api/health
     disk:
       name: datapro-storage
