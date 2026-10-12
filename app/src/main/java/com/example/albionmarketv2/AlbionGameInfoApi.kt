@@ -28,7 +28,7 @@ object AlbionGameInfoApi {
             val url = URL(urlString)
             connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "GET"
-            connection.setRequestProperty("User-Agent", "AlbionDataPro/3.6.19")
+            connection.setRequestProperty("User-Agent", "AlbionDataPro/3.6.20")
             connection.connectTimeout = 8000
             connection.readTimeout = 8000
 
