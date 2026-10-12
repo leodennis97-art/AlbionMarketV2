@@ -378,72 +378,78 @@ object TradeCalculator {
                     noBmPrices
                 }
                 
-                val pricesByQuality = filteredPrices.groupBy { it.quality }
-
-                for ((qual, qPrices) in pricesByQuality) {
-                    val validBuyPrices = if (!standpunktCity.isNullOrBlank() && standpunktCity != "ALLE") {
-                        qPrices.filter { citiesMatch(it.city, standpunktCity) && it.sellPriceMin > 0 }
+                // Wir ignorieren die Qualität und suchen für jeden Handelsposten (Stadt) den günstigsten Preis!
+                val pricesByCity = filteredPrices.groupBy { it.city }
+                
+                // Wir erstellen eine künstliche Liste, in der jede Stadt nur noch EINEN Eintrag hat (den absolut günstigsten)
+                val cheapestPricesAcrossQualities = mutableListOf<MarketPrice>()
+                for ((city, cityPrices) in pricesByCity) {
+                    val validSells = cityPrices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }
+                    if (validSells.isNotEmpty()) {
+                        val cheapest = validSells.minByOrNull { it.sellPriceMin }
+                        if (cheapest != null) cheapestPricesAcrossQualities.add(cheapest)
                     } else {
-                        qPrices.filter { it.sellPriceMin > 0 }
+                        // Falls wir keinen Sell-Preis haben, nehmen wir den mit der höchsten Buy-Order (wichtig für Schwarzmarkt)
+                        val bestBuyOrder = cityPrices.filter { it.buyPriceMax > 0 }.maxByOrNull { it.buyPriceMax }
+                        if (bestBuyOrder != null) cheapestPricesAcrossQualities.add(bestBuyOrder)
                     }
-                    if (validBuyPrices.isEmpty()) continue
+                }
 
-                    // Kleinsten Kaufpreis auf dem Markt wählen
-                    val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
-                    val buyPrice = bestBuy.sellPriceMin
-                    if (buyPrice < 10) continue
+                if (cheapestPricesAcrossQualities.isEmpty()) continue
 
-                    // In anderen Städten den Verkaufspreis suchen für echte Marktlücken (für Schwarzmarkt: buyPriceMax, für normale Städte: sellPriceMin)
-                    val targetCityCandidates = qPrices
-                        .filter { !citiesMatch(it.city, bestBuy.city) }
-                        .groupBy { it.city }
+                val validBuyPrices = if (!standpunktCity.isNullOrBlank() && standpunktCity != "ALLE") {
+                    cheapestPricesAcrossQualities.filter { citiesMatch(it.city, standpunktCity) && it.sellPriceMin > 0 }
+                } else {
+                    cheapestPricesAcrossQualities.filter { it.sellPriceMin > 0 }
+                }
+                
+                if (validBuyPrices.isEmpty()) continue
 
-                    var bestSellPrice = 0
-                    var bestSellCityPrice: MarketPrice? = null
-                    var maxNetProfitUnit = 0L
+                // Kleinsten Kaufpreis (über alle Städte hinweg) wählen
+                val bestBuy = validBuyPrices.minByOrNull { it.sellPriceMin } ?: continue
+                val buyPrice = bestBuy.sellPriceMin
+                if (buyPrice < 10) continue
 
-                    for ((cityName, cityPrices) in targetCityCandidates) {
-                        if (avoidDangerousZones && isDangerousCity(cityName)) continue
-                        if (hideBlackMarket && isBlackMarket(cityName)) continue
-                        if (hideBrecilien && isBrecilien(cityName)) continue
+                // In anderen Städten den Verkaufspreis suchen für echte Marktlücken (für Schwarzmarkt: buyPriceMax, für normale Städte: sellPriceMin)
+                val targetCityCandidates = cheapestPricesAcrossQualities.filter { !citiesMatch(it.city, bestBuy.city) }
 
-                        val isBm = isBlackMarket(cityName)
+                var bestSellPrice = 0
+                var bestSellCityPrice: MarketPrice? = null
+                var maxNetProfitUnit = 0L
 
-                        val candSellPrice = if (isBm) {
-                            // Schwarzmarkt: Sofortverkauf an die höchste aktive Kauforder (buyPriceMax)
-                            cityPrices.map { it.buyPriceMax }.filter { it > 0 }.maxOrNull() ?: 0
-                        } else {
-                            // Normale Städte: Aktuell niedrigster Angebotspreis (sellPriceMin) im Auktionshaus der Zielstadt,
-                            // um das Angebot als günstigste Verkaufsorder im Auktionshaus der Zielstadt zu platzieren.
-                            val lowestSellOrderInCity = cityPrices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }.map { it.sellPriceMin }.minOrNull() ?: 0
-                            val highestBuyOrderInCity = cityPrices.map { it.buyPriceMax }.filter { it > 0 }.maxOrNull() ?: 0
-                            
-                            if (lowestSellOrderInCity > 0) lowestSellOrderInCity else highestBuyOrderInCity
-                        }
+                for (targetPrice in targetCityCandidates) {
+                    val cityName = targetPrice.city
+                    if (avoidDangerousZones && isDangerousCity(cityName)) continue
+                    if (hideBlackMarket && isBlackMarket(cityName)) continue
+                    if (hideBrecilien && isBrecilien(cityName)) continue
 
-                        if (candSellPrice <= buyPrice) continue
-                        if (candSellPrice > buyPrice * 5.0) continue // Anomaly check
+                    val isBm = isBlackMarket(cityName)
 
-                        val bestMarketPriceForCity = cityPrices.find { 
-                            it.sellPriceMin == candSellPrice || it.buyPriceMax == candSellPrice 
-                        } ?: cityPrices.firstOrNull() ?: continue
-
-                        // Für Schwarzmarkt keine Einstellungsgebühr (0%), da Direktverkauf an Kauforder
-                        val setupFeeRate = if (isBm) 0.0 else 0.025
-                        val tax = (candSellPrice * (marketTaxPercent / 100.0)).toLong()
-                        val setupFee = (candSellPrice * setupFeeRate).toLong()
-                        val net = candSellPrice - tax - setupFee
-                        val profit = net - buyPrice
-
-                        if (profit > maxNetProfitUnit) {
-                            maxNetProfitUnit = profit
-                            bestSellPrice = candSellPrice
-                            bestSellCityPrice = bestMarketPriceForCity
-                        }
+                    val candSellPrice = if (isBm) {
+                        targetPrice.buyPriceMax
+                    } else {
+                        if (targetPrice.sellPriceMin > 0) targetPrice.sellPriceMin else targetPrice.buyPriceMax
                     }
 
-                    val bestSell = bestSellCityPrice ?: continue
-                    val sellPrice = bestSellPrice
+                    if (candSellPrice <= buyPrice) continue
+                    if (candSellPrice > buyPrice * 5.0) continue // Anomaly check
+
+                    // Für Schwarzmarkt keine Einstellungsgebühr (0%), da Direktverkauf an Kauforder
+                    val setupFeeRate = if (isBm) 0.0 else 0.025
+                    val tax = (candSellPrice * (marketTaxPercent / 100.0)).toLong()
+                    val setupFee = (candSellPrice * setupFeeRate).toLong()
+                    val net = candSellPrice - tax - setupFee
+                    val profit = net - buyPrice
+
+                    if (profit > maxNetProfitUnit) {
+                        maxNetProfitUnit = profit
+                        bestSellPrice = candSellPrice
+                        bestSellCityPrice = targetPrice
+                    }
+                }
+
+                val bestSell = bestSellCityPrice ?: continue
+                val sellPrice = bestSellPrice
 
                 if (avoidDangerousZones && (isDangerousCity(bestBuy.city) || isDangerousCity(bestSell.city))) {
                     continue
@@ -619,7 +625,6 @@ object TradeCalculator {
                         focusProfitPerPoint = focusProfit
                     )
                 )
-                }
             }
         }
 
