@@ -3287,11 +3287,11 @@ app.get(['/admin'], (req, res) => {
     <title>DataPro — High-End Executive Control Center (v${CURRENT_SERVER_VERSION})</title>
     <style>
         :root {
-            --bg: #080d1a;
-            --card: rgba(18, 26, 43, 0.85);
-            --card-border: rgba(255, 255, 255, 0.08);
-            --primary: #38bdf8;
-            --accent: #a855f7;
+            --bg: #050b14;
+            --card: rgba(15, 23, 42, 0.85);
+            --card-border: rgba(0, 162, 255, 0.2);
+            --primary: #00a2ff;
+            --accent: #38bdf8;
             --success: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
