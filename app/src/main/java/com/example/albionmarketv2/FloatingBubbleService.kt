@@ -1718,45 +1718,51 @@ fun BubbleOverlayContent(
                                         }
                                     }
 
-                                    Text("⭐ Tier-Filter:", color = Color(0xFFFDD835), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("⭐ Tier & Stufe Filter:", color = Color(0xFFFDD835), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.height(2.dp))
                                     var currentBubbleTier by remember { mutableIntStateOf(prefsForCity.bubbleTier) }
-                                    val bubbleTiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
+                                    var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
+
+                                    val combinedOptions = remember {
+                                        listOf(
+                                            Triple("Alle", 0, -1),
+                                            Triple("T4", 4, -1),
+                                            Triple("T4.1", 4, 1),
+                                            Triple("T5", 5, -1),
+                                            Triple("T5.1", 5, 1),
+                                            Triple("T6", 6, -1),
+                                            Triple("T6.1", 6, 1),
+                                            Triple("T7", 7, -1),
+                                            Triple("T7.1", 7, 1),
+                                            Triple("T8", 8, -1),
+                                            Triple("T8.1", 8, 1),
+                                            Triple("T8.2", 8, 2),
+                                            Triple("T8.3", 8, 3),
+                                            Triple("T8.4", 8, 4)
+                                        )
+                                    }
+
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(items = bubbleTiers) { tier: Int ->
-                                            val isSelected = currentBubbleTier == tier
+                                        items(items = combinedOptions) { (label, tVal, eVal) ->
+                                            val isSelected = (currentBubbleTier == tVal && currentBubbleEnchantment == eVal) || (tVal == 0 && currentBubbleTier == 0)
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
                                                 color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
                                                 modifier = Modifier.clickable {
-                                                    currentBubbleTier = tier
-                                                    prefsForCity.bubbleTier = tier
+                                                    currentBubbleTier = tVal
+                                                    currentBubbleEnchantment = eVal
+                                                    prefsForCity.bubbleTier = tVal
+                                                    prefsForCity.bubbleEnchantment = eVal
                                                     onRefresh()
                                                 }
                                             ) {
-                                                Text(if (tier == 0) "Alle" else "T$tier", color = if (isSelected) Color.Black else Color.White, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
-                                            }
-                                        }
-                                    }
-
-                                    Text("✨ Verzauberungs-Filter:", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
-                                    val bubbleEnchantments = listOf(-1 to "ALLE", 0 to ".0", 1 to ".1", 2 to ".2", 3 to ".3", 4 to ".4")
-                                    LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(items = bubbleEnchantments) { pair: Pair<Int, String> ->
-                                            val (enc, label) = pair
-                                            val isSelected = currentBubbleEnchantment == enc
-                                            Surface(
-                                                shape = RoundedCornerShape(4.dp),
-                                                color = if (isSelected) Color(0xFF00E676) else Color(0xFF1E3A4C),
-                                                modifier = Modifier.clickable {
-                                                    currentBubbleEnchantment = enc
-                                                    prefsForCity.bubbleEnchantment = enc
-                                                    onRefresh()
-                                                }
-                                            ) {
-                                                Text(label, color = if (isSelected) Color.Black else Color.White, fontSize = 9.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
+                                                Text(
+                                                    text = label,
+                                                    color = if (isSelected) Color.Black else Color.White,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                )
                                             }
                                         }
                                     }
