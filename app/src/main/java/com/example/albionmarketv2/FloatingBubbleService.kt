@@ -418,7 +418,13 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         var fetchedPrices = emptyList<MarketPrice>()
         if (forceRefresh || (cachedPriceMap == null)) {
             val resources = AlbionResourceRepository.resources
-            val itemIds = resources.asSequence().map { it.fullId }.distinct().toList()
+            val itemIds = resources.flatMap { res ->
+                if (res.tier >= 4) {
+                    listOf(res.id, "${res.id}@1", "${res.id}@2", "${res.id}@3", "${res.id}@4")
+                } else {
+                    listOf(res.id)
+                }
+            }.distinct()
 
             val livePrices = try {
                 AlbionMarketApi.fetchPrices(prefs.server, itemIds)
