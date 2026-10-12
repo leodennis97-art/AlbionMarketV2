@@ -548,7 +548,17 @@ object AlbionMonsterRepository {
                 combatTipsDe = "Weiche den Spinnennetz-Kreisen am Boden aus."
             )
         )
-        return monsters
+        val filtered = monsters.filter { 
+            (playerCategoryFilter == PlayerCategory.ALL || it.playerCategory == playerCategoryFilter) &&
+            (regionFilter == "ALLE" || it.zoneLocationDe.contains(regionFilter, ignoreCase = true)) &&
+            (query.isBlank() || it.nameDe.contains(query, ignoreCase = true) || it.name.contains(query, ignoreCase = true))
+        }
+
+        return when (sortMode) {
+            MonsterSortMode.MOST_LUCRATIVE -> filtered.sortedByDescending { it.estimatedProfitSilver }
+            MonsterSortMode.EASIEST -> filtered.sortedBy { it.difficultyDe }
+            MonsterSortMode.FASTEST_RESPAWN -> filtered.sortedBy { it.respawnTimeDe }
+        }
     }
 }
 
@@ -649,6 +659,91 @@ object EquipmentBuildRepository {
             healingRating = 99,
             aiEvaluationDe = "💚 Der stärkste Gruppen-Heiler in Hellgates, Dungeons & Smallscale PvP! Sprung-Heilung knockt Gegner zurück.",
             combatRotationDe = "E-Sprung direkt in verletzte Verbündete ➔ W-Sacred Pulse ➔ Q-Generous Heal spamen."
+        ),
+        EquipmentBuild(
+            id = "BLOODLETTER_GANK",
+            title = "Bloodletter Ganking (T8.1)",
+            category = BuildCategory.GANKING,
+            weapon = "Blutbrief (T8.1)",
+            head = "Jäger-Kapuze (T8.1)",
+            armor = "Kleriker-Robe (T8.1)",
+            shoes = "Königliche Sandalen (T8.1)",
+            potion = "Gifttrank (T8)",
+            food = "Schweine-Omelett (T8)",
+            estimatedCostSilver = 1100000L,
+            damageRating = 95,
+            defenseRating = 40,
+            mobilityRating = 100,
+            aiEvaluationDe = "🥷 Das ultimative Ganking-Tool. 100% Execute-Chance bei Zielen unter 40% Leben mit unschlagbarer Mobilität.",
+            combatRotationDe = "1. W-Fähigkeit (Dash) ➔ 2. Q-Fähigkeit stacken ➔ 3. E-Spell zum sofortigen Execute."
+        ),
+        EquipmentBuild(
+            id = "MACE_TANK",
+            title = "Camlann Tank ZvZ (T8.1)",
+            category = BuildCategory.TANK,
+            weapon = "Camlann-Streitkolben (T8.1)",
+            head = "Ritter-Helm (T8.1)",
+            armor = "Richter-Rüstung (T8.1)",
+            shoes = "Jäger-Schuhe (T8.1)",
+            potion = "Widerstandstrank (T8)",
+            food = "Schweine-Omelett (T8)",
+            estimatedCostSilver = 2500000L,
+            damageRating = 30,
+            defenseRating = 100,
+            mobilityRating = 50,
+            aiEvaluationDe = "🛡️ Massiver ZvZ Engage-Tank. Der E-Spell zieht das gesamte Gegner-Team an einen Punkt für perfekten AoE Burst.",
+            combatRotationDe = "1. Ritter-Helm zünden ➔ 2. Richter-Rüstung aktivieren ➔ 3. Camlann E in den Gegner-Blob werfen."
+        ),
+        EquipmentBuild(
+            id = "LIGHT_CROSSBOW_PVE",
+            title = "Leichte Armbrust Solo PvE/HCE (T8.1)",
+            category = BuildCategory.PVE_FARMING,
+            weapon = "Leichte Armbrust (T8.1)",
+            head = "Kultisten-Kapuze (T8.1)",
+            armor = "Druiden-Robe (T8.1)",
+            shoes = "Königliche Sandalen (T8.1)",
+            potion = "Gifttrank (T8)",
+            food = "Rindfleischeintopf (T8)",
+            estimatedCostSilver = 1350000L,
+            damageRating = 100,
+            defenseRating = 30,
+            mobilityRating = 40,
+            aiEvaluationDe = "🌾 Bester Ranged PvE Clear. Explosiver Flächenschaden kombiniert mit Rüstungs-Shred.",
+            combatRotationDe = "1. Druiden-Robe (Stacks sammeln) ➔ 2. Kultisten-Kapuze (Shred) ➔ 3. Q/W Spam für maximalen Burst."
+        ),
+        EquipmentBuild(
+            id = "HALBERD_MELEE",
+            title = "Hellebarde Bruiser (T8.1)",
+            category = BuildCategory.MELEE_DPS,
+            weapon = "Hellebarde (T8.1)",
+            head = "Gelehrten-Kapuze (T8.1)",
+            armor = "Söldner-Rüstung (T8.1)",
+            shoes = "Lederstiefel (T8.1)",
+            potion = "Riesentrank (T8)",
+            food = "Rindfleischeintopf (T8)",
+            estimatedCostSilver = 1050000L,
+            damageRating = 85,
+            defenseRating = 75,
+            mobilityRating = 60,
+            aiEvaluationDe = "⚔️ Beständiger AoE Schaden und Blutungseffekte, exzellent für kleinere Gruppenkämpfe und Brawls.",
+            combatRotationDe = "1. Q-Stacks aufbauen ➔ 2. E-Spell in die Menge ➔ 3. W-Fähigkeit für Extra-Schaden."
+        ),
+        EquipmentBuild(
+            id = "LOCUS_SUPPORT",
+            title = "Arkaner Locus Support ZvZ (T8.1)",
+            category = BuildCategory.SUPPORT,
+            weapon = "Arkaner Locus (T8.1)",
+            head = "Ritter-Helm (T8.1)",
+            armor = "Kleriker-Robe (T8.1)",
+            shoes = "Söldner-Schuhe (T8.1)",
+            potion = "Widerstandstrank (T8)",
+            food = "Schweine-Omelett (T8)",
+            estimatedCostSilver = 1750000L,
+            damageRating = 10,
+            defenseRating = 80,
+            mobilityRating = 60,
+            aiEvaluationDe = "✨ Absolut unverzichtbarer Support für große Kämpfe. Entfernt Buffs der Gegner und schützt die eigene Gruppe.",
+            combatRotationDe = "1. Warten bis Gegner engagen ➔ 2. E-Spell in die Front werfen (Purge & Shield)."
         )
     )
     val MELEE_DPS = BuildCategory.MELEE_DPS

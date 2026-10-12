@@ -320,6 +320,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
     fun onResourceClicked(resource: AlbionResource) {
         _uiState.value = _uiState.value.copy(selectedResource = resource)
+        fetchQuantMetricsAndHistory(listOf(resource.fullId, resource.id))
     }
 
     fun onDismissDetails() {
@@ -540,9 +541,23 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
     }
 
     fun calculateGuildReGearBOM(buildName: String = "ZvZ Permafrost Set", playerCount: Int = 50) {
-        val loadout = GuildLogisticsManager.PRESET_ZVZ_BUILDS.first()
+        val build = EquipmentBuildRepository.builds.find { it.title == buildName || it.id == buildName } ?: return
+        // Generate a dynamic loadout based on the EquipmentBuild!
+        val loadout = mutableListOf<GuildGearSlotItem>()
+        // Simplified mapping logic: just using dummy IDs for visual effect in Regear demo
+        loadout.add(GuildGearSlotItem("Waffe", "T8_WEAPON", build.weapon, 8))
+        loadout.add(GuildGearSlotItem("Kopf", "T8_HEAD", build.head, 8))
+        loadout.add(GuildGearSlotItem("Brust", "T8_ARMOR", build.armor, 8))
+        loadout.add(GuildGearSlotItem("Schuhe", "T8_SHOES", build.shoes, 8))
+        if (build.potion.isNotBlank()) loadout.add(GuildGearSlotItem("Trank", "T8_POTION", build.potion, 8, 5))
+        if (build.food.isNotBlank()) loadout.add(GuildGearSlotItem("Essen", "T8_FOOD", build.food, 8, 2))
+
         val summary = GuildLogisticsManager.calculateGuildReGearBOM(buildName, loadout, playerCount, _uiState.value.marketPrices)
         _uiState.value = _uiState.value.copy(guildReGearSummary = summary)
+    }
+
+    fun clearGuildReGearSummary() {
+        _uiState.value = _uiState.value.copy(guildReGearSummary = null)
     }
 
     fun startAndroidVpnSniffer(context: Context) {

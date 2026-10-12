@@ -488,6 +488,7 @@ fun AlbionResourceScreen(
                 ResourceDetailContent(
                     resource = resource,
                     prices = uiState.marketPrices[resource.fullId] ?: uiState.marketPrices[resource.id] ?: emptyList(),
+                    quantMetrics = uiState.quantMetricsMap[resource.fullId],
                     onCopyId = { idToCopy ->
                         val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
                         val clip = ClipData.newPlainText("Albion Item ID", idToCopy)
@@ -2387,6 +2388,34 @@ fun EquipmentBuildsTabContent(
             }
         }
 
+        uiState.guildReGearSummary?.let { regear ->
+            AlertDialog(
+                onDismissRequest = { viewModel.onDismissDetails() }, // we need a dismiss func, or we just use a quick state reset. Let's add a wrapper or modify viewmodel later. Actually we can do it inline
+                title = { Text("Gilden Re-Gear Liste (${regear.playerCount} Spieler)") },
+                text = {
+                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                        Text("Build: ${regear.buildName}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Kosten (Total): ${NumberFormat.getNumberInstance(Locale.GERMANY).format(regear.grandTotalSilverCost)} Silber")
+                        Text("Traglast (Total): ${String.format(Locale.GERMANY, "%.1f", regear.grandTotalWeightKg)} kg")
+                        Text("Transport: ${regear.recommendedTransportMountDe}", fontWeight = FontWeight.Bold, color = Color(0xFFF59E0B))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        HorizontalDivider()
+                        Spacer(modifier = Modifier.height(8.dp))
+                        regear.bomItems.forEach { item ->
+                            Text("• ${item.totalRequiredQuantity}x ${item.itemNameDe}", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            Text("  Bester Preis in: ${item.cheapestCityName} (${item.cheapestPricePerUnit} S./Stk)", fontSize = 11.sp, color = Color.Gray)
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(onClick = { viewModel.clearGuildReGearSummary() }) {
+                        Text("Schließen")
+                    }
+                }
+            )
+        }
+
         Spacer(modifier = Modifier.height(4.dp))
 
         // Category Filter Chips
@@ -2459,6 +2488,18 @@ fun EquipmentBuildsTabContent(
                                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                 )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                            Button(
+                                onClick = { viewModel.calculateGuildReGearBOM(build.title, 50) },
+                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                                modifier = Modifier.height(28.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                            ) {
+                                Text("⚔️ Gilden Re-Gear Liste (50)", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.Black)
                             }
                         }
 
@@ -4489,18 +4530,25 @@ fun CraftingTabContent(
         }
     }
 
-    val top3BonusCrafts = remember(filteredItems, selectedCity, priceMap) {
+    val top3ByCity = remember(filteredItems, selectedCity, priceMap) {
         try {
-            filteredItems.asSequence().take(30).map { res ->
-                val targetCity = if (selectedCity == "ALLE") getBonusCityFor(res) else selectedCity
-                val recipe = CraftingRepository.getRecipeFor(res)
-                val itemSellPrice = CraftingRepository.getPriceInCity(res.fullId, targetCity, priceMap)
-                val totalCost = recipe.ingredients.sumOf { ing ->
-                    ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, targetCity, priceMap).toLong()
-                }
-                val profit = itemSellPrice.toLong() - totalCost
-                Triple(res, profit, targetCity)
-            }.sortedByDescending { it.second }.distinctBy { it.first.id }.take(3).toList()
+            val targetCities = if (selectedCity == "ALLE") cities.filter { it != "ALLE" && it != "Brecilien" } else listOf(selectedCity)
+            targetCities.map { city ->
+                val top3 = filteredItems.asSequence().take(150).mapNotNull { res ->
+                    val recipe = CraftingRepository.getRecipeFor(res)
+                    if (recipe.ingredients.isEmpty()) return@mapNotNull null
+                    val itemSellPrice = CraftingRepository.getPriceInCity(res.fullId, city, priceMap)
+                    if (itemSellPrice <= 0) return@mapNotNull null
+                    
+                    val totalCost = recipe.ingredients.sumOf { ing ->
+                        ing.amount.toLong() * CraftingRepository.getPriceInCity(ing.resourceId, city, priceMap).toLong()
+                    }
+                    val profit = itemSellPrice.toLong() - totalCost
+                    if (profit <= 0) return@mapNotNull null
+                    Triple(res, profit, city)
+                }.sortedByDescending { it.second }.distinctBy { it.first.id }.take(3).toList()
+                city to top3
+            }.filter { it.second.isNotEmpty() }
         } catch (_: Exception) {
             emptyList()
         }
@@ -4520,42 +4568,45 @@ fun CraftingTabContent(
             ) {
                 Column(modifier = Modifier.padding(8.dp)) {
                     Text(
-                        text = "🔥 Top 3 Gewinn in Königsstadt mit Veredelungs-Bonus (+56% RRR)",
+                        text = "🔥 Top 3 Crafting-Gewinn pro Stadt (Lokale Märkte)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = Color(0xFF10B981)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    top3BonusCrafts.forEachIndexed { idx, (res, profit, bonusCity) ->
-                        Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                            Row(
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    AsyncImage(
-                                        model = res.imageUrl,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                    top3ByCity.forEach { (city, list) ->
+                        Text(text = "🏙️ $city", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = MaterialTheme.colorScheme.secondary, modifier = Modifier.padding(top = 4.dp))
+                        list.forEachIndexed { idx, (res, profit, _) ->
+                            Column(modifier = Modifier.padding(vertical = 4.dp)) {
+                                Row(
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        AsyncImage(
+                                            model = res.imageUrl,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "${idx + 1}. ${res.nameDe}",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                    }
                                     Text(
-                                        text = "${idx + 1}. ${res.nameDe} ($bonusCity)",
+                                        text = "+${fmt.format(profit)} Silber",
                                         fontSize = 11.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
+                                        color = Color(0xFF10B981)
                                     )
                                 }
-                                Text(
-                                    text = "+${fmt.format(profit)} Silber",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF10B981)
-                                )
+                                Spacer(modifier = Modifier.height(2.dp))
                             }
-                            Spacer(modifier = Modifier.height(2.dp))
                         }
                     }
                 }
@@ -6002,6 +6053,7 @@ fun ResourceCard(
 fun ResourceDetailContent(
     resource: AlbionResource,
     prices: List<MarketPrice>,
+    quantMetrics: MarketQuantMetrics?,
     onCopyId: (String) -> Unit
 ) {
     val numberFormat = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -6063,6 +6115,27 @@ fun ResourceDetailContent(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        if (quantMetrics != null) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp)) {
+                    Text("📊 Quantitative Daten (24h)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = MaterialTheme.colorScheme.primary)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text("Volumen-Gewichteter Durchschnittspreis (VWAP): ${numberFormat.format(quantMetrics.vwap24h)} S.", fontSize = 12.sp)
+                    Text("Handelsvolumen 24h: ${numberFormat.format(quantMetrics.totalVolume24h)} Stk.", fontSize = 12.sp)
+                    Text("Liquiditäts-Score: ${quantMetrics.liquidityLevel.labelDe}", fontSize = 12.sp)
+                    if (quantMetrics.isPriceManipulated) {
+                        Text("⚠️ WARNUNG: Potentielle Preismanipulation erkannt! (Volatilität: ${String.format(Locale.GERMANY, "%.1f", quantMetrics.priceVolatilityPercent)}%)", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                    Text("Schwarzmarkt-Schluckrate: ${quantMetrics.blackMarketSinkVelocity}", fontSize = 11.sp, color = Color.Gray)
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         if (prices.isNotEmpty()) {
             Text(
                 text = "Preise in den Hauptstädten:",
@@ -6088,8 +6161,8 @@ fun ResourceDetailContent(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val sortedPrices = prices.sortedByDescending { TradeCalculator.parseIsoToEpochMs(it.sellPriceMinDate) }
-                    sortedPrices.forEach { pr ->
+                    val cheapestByCity = prices.filter { it.sellPriceMin > 0 }.groupBy { it.city }.mapNotNull { (_, cityPrices) -> cityPrices.minByOrNull { it.sellPriceMin } }.sortedBy { it.sellPriceMin }
+                    cheapestByCity.forEach { pr ->
                         if (pr.sellPriceMin > 0) {
                             val isDangerous = listOf("Caerleon", "Arthur's Rest", "Merlyn's Rest", "Morgana's Rest", "Cairn Drain").any { pr.city.equals(it, ignoreCase = true) }
                             val ageStr = TradeCalculator.formatPriceAge(TradeCalculator.parseIsoToEpochMs(pr.sellPriceMinDate))
