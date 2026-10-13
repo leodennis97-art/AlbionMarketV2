@@ -4827,6 +4827,65 @@ fun CraftingTabContent(
     }
 }
 
+@Composable
+fun IslandBuildingCityPricesCard(
+    buildingId: String,
+    priceMap: Map<String, List<MarketPrice>>,
+    fmt: NumberFormat
+) {
+    val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
+    val seedOrBabyId = when (buildingId) {
+        "HERB_GARDEN" -> "T5_HERB_SKYFLOWER"
+        "FARM" -> "T5_CROP_CARROT"
+        "PASTURE" -> "T5_MOUNT_RIDING_HORSE"
+        else -> "T5_PLANKS"
+    }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = Color(0xFF0F172A),
+        border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+    ) {
+        Column(modifier = Modifier.padding(10.dp)) {
+            Text(
+                text = "🏙️ Marktpreise & Zuchtkosten nach Stadt:",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF38BDF8)
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+
+            cities.forEach { city ->
+                val buyPrice = CraftingRepository.getPriceInCity(seedOrBabyId, city, priceMap)
+                val baseFoodCost = when (buildingId) {
+                    "PASTURE" -> 1200
+                    "FARM" -> 250
+                    "HERB_GARDEN" -> 300
+                    else -> 500
+                }
+                val harvestSellPrice = (buyPrice * 1.85).toInt().coerceAtLeast(baseFoodCost + 200)
+                val netProfit = harvestSellPrice - buyPrice - baseFoodCost
+
+                Row(
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+                ) {
+                    Text(city, fontSize = 10.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text("Kauf: ${fmt.format(buyPrice)} S.", fontSize = 9.sp, color = Color(0xFF94A3B8))
+                        Text("Zucht: ${fmt.format(baseFoodCost)} S.", fontSize = 9.sp, color = Color(0xFFFFB74D))
+                        Text("Verkauf: ${fmt.format(harvestSellPrice)} S.", fontSize = 9.sp, color = Color(0xFF4ADE80))
+                        Text("+${fmt.format(netProfit)} S.", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF10B981))
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ----------------------------------------------------
 // TAB 4: INSEL GUIDE
 // ----------------------------------------------------
@@ -4843,6 +4902,7 @@ fun IslandTabContent(
     val cities = listOf("ALLE", "Caerleon", "Martlock", "Lymhurst", "Bridgewatch", "Fort Sterling", "Thetford", "Brecilien")
     val tiers = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8)
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val buildings = IslandRepository.buildings
 
     val filteredBuildings = remember(searchQuery, selectedCity) {
@@ -5193,6 +5253,13 @@ fun IslandTabContent(
                             )
                         }
                     }
+
+                    // 🏙️ City-by-City Market & Breeding/Fodder Cost Card
+                    IslandBuildingCityPricesCard(
+                        buildingId = bldg.id,
+                        priceMap = priceMap,
+                        fmt = fmt
+                    )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
