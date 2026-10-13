@@ -726,14 +726,18 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String) {
     ACTIVE_ORDER("Aufträge", "Orders", "📦"),
     COMPLETED_ORDERS("Historie", "History", "📜"),
-    TOP_MARGIN("Handel & Marge", "Trade Margin", "🔥"),
-    SMUGGLER_GUIDE("Schmuggler-Guide", "Smuggler Guide", "🏴‍☠️"),
-    CATALOG("Katalog", "Catalog", "📖"),
+    TOP_MARGIN("Arbitrage & Marge", "Trade Margin", "🔥"),
+    STATION_FLIPPING("Station Flipping", "Station Flipping", "🛒"),
+    REFINING_MATRIX("Veredelung (RRR)", "Refining Matrix", "🧱"),
     CRAFTING("Handwerks-Guide", "Crafting Guide", "⚒️"),
-    ISLAND("Insel-Guide", "Island Guide", "🏝️"),
-    EVENTS("Event & Boss Loot", "Event & Boss Loot", "⚔️"),
+    LABORER_JOURNALS("Tagebücher & Arbeiter", "Laborer Journals", "📚"),
+    FACTION_WARFARE("Fraktions-Handel", "Faction Warfare", "🚩"),
+    SMUGGLER_GUIDE("Schmuggler-Radar", "Smuggler Radar", "🏴‍☠️"),
+    ISLAND("Insel-Imperium", "Island Empire", "🏝️"),
+    CATALOG("Markt-Katalog", "Catalog", "📖"),
     GOLD_MARKET("Goldmarkt", "Gold Market", "🪙"),
-    BUILDS("KI Ausrüstung", "AI Equipment", "⚔️"),
+    EVENTS("Event & Boss Loot", "Event & Boss Loot", "⚔️"),
+    BUILDS("Unfaire KI Ausrüstung", "AI Equipment", "⚔️"),
     SETTINGS("Einstellungen", "Settings", "⚙️");
 
     fun getTitle(lang: String): String = if (lang == "DE") titleDe else if (lang == "EN") titleEn else LanguageManager.translateUI(titleDe, lang)

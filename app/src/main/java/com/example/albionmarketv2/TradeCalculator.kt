@@ -748,6 +748,230 @@ object TradeCalculator {
         return 0L
     }
 
+    // Megabau Feature 1.2: Station Trading & Flipping Engine (Buy Order -> Sell Order in Same City)
+    fun calculateStationTradingFlippingOpportunities(
+        resources: List<AlbionResource>,
+        pricesByItem: Map<String, List<MarketPrice>>,
+        silverBudget: Long = 10_000_000L,
+        marketTaxPercent: Double = 4.0
+    ): List<TradeOpportunity> {
+        val list = mutableListOf<TradeOpportunity>()
+        val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
+        for (res in resources) {
+            val prices = pricesByItem[res.fullId] ?: pricesByItem[res.id] ?: continue
+            for (cityName in cities) {
+                val cityPrice = prices.find { citiesMatch(it.city, cityName) } ?: continue
+                val buyOrderPrice = cityPrice.buyPriceMax
+                val sellOrderPrice = cityPrice.sellPriceMin
+                if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) continue
+
+                val setupFee = (sellOrderPrice * 0.025).toLong()
+                val tax = (sellOrderPrice * (marketTaxPercent / 100.0)).toLong()
+                val netSell = sellOrderPrice - setupFee - tax
+                val unitNetProfit = netSell - buyOrderPrice
+                if (unitNetProfit <= 0) continue
+
+                val marginPercent = (unitNetProfit.toDouble() / buyOrderPrice) * 100.0
+                if (marginPercent < 8.0) continue
+
+                val tradeUnits = maxOf(1, (silverBudget / buyOrderPrice).toInt())
+                val totalInvestment = tradeUnits.toLong() * buyOrderPrice
+                val totalNetProfit = tradeUnits.toLong() * unitNetProfit
+
+                list.add(
+                    TradeOpportunity(
+                        resource = res,
+                        enchantment = res.enchantment,
+                        quality = cityPrice.quality,
+                        buyCity = cityName,
+                        buyPrice = buyOrderPrice,
+                        sellCity = cityName,
+                        sellPrice = sellOrderPrice,
+                        unitNetProfit = unitNetProfit.toInt(),
+                        unitWeightKg = getItemWeightKg(res),
+                        maxUnitsBySilver = tradeUnits,
+                        maxUnitsByWeight = tradeUnits,
+                        tradeUnits = tradeUnits,
+                        totalInvestment = totalInvestment,
+                        totalGrossRevenue = tradeUnits.toLong() * sellOrderPrice,
+                        totalNetRevenue = tradeUnits.toLong() * netSell,
+                        totalNetProfit = totalNetProfit,
+                        totalWeightKg = tradeUnits * getItemWeightKg(res),
+                        roiPercent = marginPercent,
+                        priorityScore = (marginPercent * 10).toInt(),
+                        zonesWalkedCount = 0,
+                        updatedTimestamp = System.currentTimeMillis(),
+                        updatedDateFormatted = "Echtzeit",
+                        recommendedBuyOrderPrice = buyOrderPrice + 1,
+                        recommendedSellOrderPrice = sellOrderPrice - 1,
+                        aiOrderStrategy = "🛒 Station Trading in $cityName: Setze Buy Order für $buyOrderPrice S. & Sell Order für $sellOrderPrice S."
+                    )
+                )
+            }
+        }
+        return list.sortedByDescending { it.totalNetProfit }.take(30)
+    }
+
+    // Megabau Feature 1.3: High-End Refining Matrix Engine (Resource Return Rate)
+    fun calculateRefiningOpportunities(
+        priceMap: Map<String, List<MarketPrice>>,
+        useFocus: Boolean = true,
+        hasPremium: Boolean = true
+    ): List<CraftingOpportunityDetails> {
+        val list = mutableListOf<CraftingOpportunityDetails>()
+        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+
+        val rrr = when {
+            useFocus && hasPremium -> 0.539 // 53.9% RRR with Focus + City Bonus
+            hasPremium -> 0.367              // 36.7% RRR with City Bonus
+            else -> 0.152                    // 15.2% Standard RRR
+        }
+
+        val rawTypes = listOf(
+            Triple("T5_PLANKS", "T5_LOGS", "T4_PLANKS"),
+            Triple("T6_PLANKS", "T6_LOGS", "T5_PLANKS"),
+            Triple("T7_PLANKS", "T7_LOGS", "T6_PLANKS"),
+            Triple("T8_PLANKS", "T8_LOGS", "T7_PLANKS"),
+            Triple("T5_METALBAR", "T5_ORE", "T4_METALBAR"),
+            Triple("T6_METALBAR", "T6_ORE", "T5_METALBAR"),
+            Triple("T7_METALBAR", "T7_ORE", "T6_METALBAR"),
+            Triple("T8_METALBAR", "T8_ORE", "T7_METALBAR"),
+            Triple("T5_LEATHER", "T5_HIDE", "T4_LEATHER"),
+            Triple("T6_LEATHER", "T6_HIDE", "T5_LEATHER"),
+            Triple("T7_LEATHER", "T7_HIDE", "T6_LEATHER"),
+            Triple("T8_LEATHER", "T8_HIDE", "T7_LEATHER")
+        )
+
+        for ((refinedId, rawId, prevRefinedId) in rawTypes) {
+            val res = AlbionResourceRepository.resources.find { it.fullId == refinedId || it.id == refinedId } ?: continue
+            val rawPrice = CraftingRepository.getPriceInCity(rawId, "Bridgewatch", priceMap)
+            val prevRefinedPrice = CraftingRepository.getPriceInCity(prevRefinedId, "Bridgewatch", priceMap)
+            val finishedPrice = CraftingRepository.getPriceInCity(refinedId, "Bridgewatch", priceMap)
+
+            val rawAmount = res.tier - 1
+            val grossMatCost = (rawPrice.toLong() * rawAmount) + prevRefinedPrice
+            val effectiveMatCost = (grossMatCost * (1.0 - rrr)).toLong()
+            val netSell = (finishedPrice * (if (hasPremium) 0.935 else 0.895)).toLong()
+            val netProfit = netSell - effectiveMatCost
+            if (netProfit <= 0) continue
+
+            val roi = if (effectiveMatCost > 0) (netProfit.toDouble() / effectiveMatCost) * 100.0 else 0.0
+
+            list.add(
+                CraftingOpportunityDetails(
+                    resource = res,
+                    roiPercent = roi,
+                    cheapestBuyCity = "Königsstädte",
+                    totalIngredientCost = effectiveMatCost,
+                    highestSellCity = "Königsstädte",
+                    finishedItemSellPrice = finishedPrice,
+                    netProfit = netProfit,
+                    recBuyOrderCost = (effectiveMatCost * 0.9).toLong(),
+                    recSellOrderPrice = finishedPrice - 1,
+                    ingredientSummary = "$rawAmount x $rawId + 1x $prevRefinedId (RRR: ${String.format(Locale.GERMANY, "%.1f", rrr * 100)}%)",
+                    maxOrderProfit = netProfit * 100,
+                    estimatedRoiPercent = roi,
+                    resourceReturnRate = rrr,
+                    targetMarket = "Veredelung (Refining)"
+                )
+            )
+        }
+        return list.sortedByDescending { it.netProfit }.take(30)
+    }
+
+    // Megabau Feature 1.6: Laborer Journals Profit Engine (Filling Empty Journals)
+    fun calculateLaborerJournalOpportunities(
+        priceMap: Map<String, List<MarketPrice>>
+    ): List<CraftingOpportunityDetails> {
+        val list = mutableListOf<CraftingOpportunityDetails>()
+        val journals = listOf(
+            LaborerJournal("JOURNAL_MERCENARY_T5", "T5 Söldner-Tagebuch", 5, "Mercenary", 1200, 8500),
+            LaborerJournal("JOURNAL_MERCENARY_T8", "T8 Söldner-Tagebuch", 8, "Mercenary", 12000, 95000),
+            LaborerJournal("JOURNAL_WARRIOR_T8", "T8 Schmied-Tagebuch", 8, "Crafting", 15000, 125000),
+            LaborerJournal("JOURNAL_MAGE_T8", "T8 Magier-Tagebuch", 8, "Crafting", 15000, 130000),
+            LaborerJournal("JOURNAL_WOOD_T8", "T8 Holzfäller-Tagebuch", 8, "Gathering", 14000, 110000),
+            LaborerJournal("JOURNAL_ORE_T8", "T8 Erzsammler-Tagebuch", 8, "Gathering", 14000, 115000)
+        )
+
+        for (j in journals) {
+            val emptyPrice = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_EMPTY", "Caerleon", priceMap).toLong().coerceAtLeast(j.emptyPriceSilver)
+            val fullPrice = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_FULL", "Caerleon", priceMap).toLong().coerceAtLeast(j.fullPriceSilver)
+            val profit = fullPrice - emptyPrice
+            if (profit <= 0) continue
+
+            val roi = (profit.toDouble() / emptyPrice) * 100.0
+            val mockRes = AlbionResource("T${j.tier}_JOURNAL_${j.jobType.uppercase()}", j.nameDe, j.nameDe, j.tier, ResourceCategory.REFINED)
+
+            list.add(
+                CraftingOpportunityDetails(
+                    resource = mockRes,
+                    roiPercent = roi,
+                    cheapestBuyCity = "Alle Städte",
+                    totalIngredientCost = emptyPrice,
+                    highestSellCity = "Caerleon",
+                    finishedItemSellPrice = fullPrice.toInt(),
+                    netProfit = profit,
+                    recBuyOrderCost = (emptyPrice * 0.9).toLong(),
+                    recSellOrderPrice = (fullPrice - 1).toInt(),
+                    ingredientSummary = "Kaufe leeres Buch für ${emptyPrice} S. ➔ Befülle es beim Spielen ➔ Verkaufe für ${fullPrice} S.",
+                    maxOrderProfit = profit * 20,
+                    estimatedRoiPercent = roi,
+                    targetMarket = "Tagebücher (Laborer Journals)"
+                )
+            )
+        }
+        return list.sortedByDescending { it.netProfit }
+    }
+
+    // Megabau Feature 1.7: Faction Warfare Trade Engine
+    fun calculateFactionWarfareOpportunities(
+        priceMap: Map<String, List<MarketPrice>>
+    ): List<CraftingOpportunityDetails> {
+        val list = mutableListOf<CraftingOpportunityDetails>()
+        val factionCapes = listOf(
+            Triple("T4_CAPEITEM_FW_BRIDGEWATCH", "Bridgewatch Fraktionsumhang (T4)", "Bridgewatch"),
+            Triple("T4_CAPEITEM_FW_LYMHURST", "Lymhurst Fraktionsumhang (T4)", "Lymhurst"),
+            Triple("T4_CAPEITEM_FW_FORTSTERLING", "Fort Sterling Fraktionsumhang (T4)", "FortSterling"),
+            Triple("T4_CAPEITEM_FW_MARTLOCK", "Martlock Fraktionsumhang (T4)", "Martlock"),
+            Triple("T4_CAPEITEM_FW_THETFORD", "Thetford Fraktionsumhang (T4)", "Thetford"),
+            Triple("T4_CAPEITEM_FW_CAERLEON", "Caerleon Fraktionsumhang (T4)", "Caerleon")
+        )
+
+        for ((capeId, capeName, city) in factionCapes) {
+            val capePrice = CraftingRepository.getPriceInCity(capeId, city, priceMap)
+            val baseCapePrice = CraftingRepository.getPriceInCity("T4_CAPE", city, priceMap)
+            val heartPrice = CraftingRepository.getPriceInCity("T4_HEART_$city", city, priceMap)
+
+            val ingredientCost = baseCapePrice.toLong() + heartPrice.toLong()
+            val netSell = (capePrice * 0.935).toLong()
+            val profit = netSell - ingredientCost
+            if (profit <= 0) continue
+
+            val roi = (profit.toDouble() / ingredientCost) * 100.0
+            val mockRes = AlbionResource(capeId, capeName, capeName, 4, ResourceCategory.CAPE)
+
+            list.add(
+                CraftingOpportunityDetails(
+                    resource = mockRes,
+                    roiPercent = roi,
+                    cheapestBuyCity = city,
+                    totalIngredientCost = ingredientCost,
+                    highestSellCity = city,
+                    finishedItemSellPrice = capePrice,
+                    netProfit = profit,
+                    recBuyOrderCost = (ingredientCost * 0.9).toLong(),
+                    recSellOrderPrice = capePrice - 1,
+                    ingredientSummary = "1x T4 Umhang (${baseCapePrice} S.) + 1x $city Herz (${heartPrice} S.)",
+                    maxOrderProfit = profit * 50,
+                    estimatedRoiPercent = roi,
+                    targetMarket = "Fraktions-Handel ($city)"
+                )
+            )
+        }
+        return list.sortedByDescending { it.netProfit }
+    }
+
     fun formatEpochToIso(epochMs: Long): String {
         if (epochMs <= 0L) return ""
         val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
