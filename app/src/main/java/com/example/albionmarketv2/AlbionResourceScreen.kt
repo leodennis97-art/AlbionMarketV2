@@ -5123,16 +5123,32 @@ fun IslandTabContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
+                    val cityNameText = if (selectedCity == "ALLE") "Allen Städten" else selectedCity
                     Text(
-                        text = "🏆 Top 3 Einnahme-Gebäude auf Inseln mit Marge",
+                        text = "🏆 Top 3 Marge-Gebäude in $cityNameText",
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                         color = Color(0xFF10B981)
                     )
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    val top3Income = remember { buildings.asSequence().sortedByDescending { it.estimatedDailyIncomeSilver }.take(3).toList() }
-                    top3Income.forEachIndexed { idx, bldg ->
+                    val top3ForCity = remember(selectedCity, buildings) {
+                        if (selectedCity == "ALLE") {
+                            buildings.sortedByDescending { it.estimatedRoiPercent }.take(3)
+                        } else {
+                            val cityMatched = buildings.filter { it.cityBonusCity.contains(selectedCity, ignoreCase = true) }
+                            if (cityMatched.size >= 3) {
+                                cityMatched.sortedByDescending { it.estimatedRoiPercent }.take(3)
+                            } else {
+                                (cityMatched + buildings.filter { !it.cityBonusCity.contains(selectedCity, ignoreCase = true) })
+                                    .distinctBy { it.id }
+                                    .sortedByDescending { it.estimatedRoiPercent }
+                                    .take(3)
+                            }
+                        }
+                    }
+
+                    top3ForCity.forEachIndexed { idx, bldg ->
                         Row(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically,
