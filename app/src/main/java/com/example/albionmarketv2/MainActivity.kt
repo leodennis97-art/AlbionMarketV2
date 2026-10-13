@@ -769,7 +769,7 @@ class MainActivity : ComponentActivity() {
                                                                 Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
 
                                                                 if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
-                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "3.6.26"
+                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "3.6.31"
                                                                     Toast.makeText(context, "🚀 App aktualisieren: Installiere neueste Version v$targetV...", Toast.LENGTH_LONG).show()
                                                                     lifecycleScope.launch(Dispatchers.IO) {
                                                                         OtaUpdateManager.downloadAndInstallUpdate(context, force = true)

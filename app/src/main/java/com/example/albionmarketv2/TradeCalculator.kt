@@ -499,15 +499,7 @@ object TradeCalculator {
                 val buyDateMs = if (parsedBuyMs > 0) parsedBuyMs else currentNowMs
                 val sellDateMs = if (parsedSellMs > 0) parsedSellMs else currentNowMs
 
-                // Toleranter Alterungs-Filter (bis zu 72 Std.), um stets valide Marktchancen anzuzeigen
-                val maxAgeMs = 72 * 60 * 60 * 1000L
-                val buyAgeMs = currentNowMs - buyDateMs
-                val sellAgeMs = currentNowMs - sellDateMs
-
-                if (buyAgeMs > maxAgeMs || sellAgeMs > maxAgeMs) {
-                    continue
-                }
-
+                // Toleranter Alterungs-Filter, entfernt maxAge check komplett
                 val effectiveTimestamp = maxOf(buyDateMs, sellDateMs)
                 val ageStr = "Kauf: ${formatPriceAge(buyDateMs)} | Verkauf: ${formatPriceAge(sellDateMs)}"
                 val goldProfit = if (currentGoldPrice > 0) totalNetProfit / currentGoldPrice else 0L

@@ -130,7 +130,11 @@ data class CraftingOpportunityDetails(
     val recSellOrderPrice: Int = 0,
     val ingredientSummary: String = "",
     val maxOrderProfit: Long = 0L,
-    val estimatedRoiPercent: Double = 0.0
+    val estimatedRoiPercent: Double = 0.0,
+    // Add additional metrics for 1.3 High-End Veredelung and 1.4 Meister-Handwerk:
+    val resourceReturnRate: Double = 0.152,
+    val dailyVolume: Int = 0,
+    val targetMarket: String = "" // "Königsstädte", "Black Market" or "Station Trading"
 )
 
 data class CraftingBuilding(
@@ -679,6 +683,26 @@ object AlbionMonsterRepository {
             MonsterSortMode.FASTEST_RESPAWN -> filtered.sortedBy { it.respawnTimeDe }
         }
     }
+}
+
+data class FactionItem(
+    val id: String,
+    val nameDe: String,
+    val nameEn: String,
+    val factionCity: String,
+    val pointsCost: Int,
+    val estimatedMarketPriceSilver: Long = 0L
+)
+
+data class LaborerJournal(
+    val id: String,
+    val nameDe: String,
+    val tier: Int,
+    val jobType: String, // e.g. "Gathering", "Crafting", "Mercenary"
+    val emptyPriceSilver: Long = 0L,
+    val fullPriceSilver: Long = 0L
+) {
+    val estimatedProfit: Long get() = fullPriceSilver - emptyPriceSilver
 }
 
 enum class BuildCategory(val icon: String = "⚔️", val displayName: String = "Build") {
