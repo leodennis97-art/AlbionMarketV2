@@ -172,11 +172,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Automatischer Reconnect mit der Cloud bei App-Start
+                // Automatischer Reconnect mit der Cloud bei App-Start (nur wenn explizit eingeloggt geblieben)
                 LaunchedEffect(Unit) {
                     val savedUser = prefs.savedUsername
                     val savedPass = prefs.savedPassword
-                    if (!savedUser.isNullOrBlank() && !savedPass.isNullOrBlank()) {
+                    if (prefs.isUserLoggedIn && !savedUser.isNullOrBlank() && !savedPass.isNullOrBlank()) {
                         withContext(Dispatchers.IO) {
                             val success = ServerSyncManager.loginWithServer(context, savedUser, savedPass)
                             if (success) {
@@ -185,8 +185,18 @@ class MainActivity : ComponentActivity() {
                                     isUnlockedForSession = true
                                     prefs.isUserLoggedIn = true
                                 }
+                            } else {
+                                withContext(Dispatchers.Main) {
+                                    isUserLoggedInState = false
+                                    isUnlockedForSession = false
+                                    prefs.isUserLoggedIn = false
+                                }
                             }
                         }
+                    } else {
+                        isUserLoggedInState = false
+                        isUnlockedForSession = false
+                        prefs.isUserLoggedIn = false
                     }
                 }
 
@@ -872,17 +882,21 @@ class MainActivity : ComponentActivity() {
                         ) {
                             try {
                                 prefs.isUserLoggedIn = false
+                                prefs.savedUsername = ""
+                                prefs.savedPassword = ""
                                 isUserLoggedInState = false
                                 isUnlockedForSession = false
                                 try {
-                                    FloatingBubbleService.stopService(this@MainActivity)
+                                    FloatingBubbleService.stopService(applicationContext)
                                 } catch (_: Exception) {}
                                 try {
-                                    PersistentServerSyncService.stopService(this@MainActivity)
+                                    PersistentServerSyncService.stopService(applicationContext)
                                 } catch (_: Exception) {}
-                                Toast.makeText(this@MainActivity, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(applicationContext, "👋 Erfolgreich abgemeldet!", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {
                                 e.printStackTrace()
+                                isUserLoggedInState = false
+                                isUnlockedForSession = false
                             }
                         }
 
@@ -891,7 +905,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "4.0.3"})!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "4.0.4"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {

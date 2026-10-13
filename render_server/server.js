@@ -41,8 +41,14 @@ app.get('/logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'logo.png'));
 });
 
-// Security Middleware: Allow all connections (removed IP block on 74.220.*)
+// Security Middleware: Allow CORS & all connections
 app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Admin-Key, x-admin-key');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
     next();
 });
 
@@ -184,10 +190,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "4.0.3";
+    return "4.0.4";
 }
 
-let CURRENT_SERVER_VERSION = "4.0.3";
+let CURRENT_SERVER_VERSION = "4.0.4";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
