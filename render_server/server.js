@@ -184,10 +184,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.6.29";
+    return "3.6.30";
 }
 
-let CURRENT_SERVER_VERSION = "3.6.29";
+let CURRENT_SERVER_VERSION = "3.6.30";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -3559,7 +3559,7 @@ app.get(['/admin'], (req, res) => {
                             <td><span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">${l.tier.toUpperCase()}</span></td>
                             <td style="color:var(--success); font-weight:bold; font-size:15px;">${l.price}</td>
                             <td>${l.customerNote || '<em style="color:#64748b;">Keine Notiz</em>'}</td>
-                            <td>${new Date(l.createdAt).toLocaleDateString('de-DE')}</td>
+                            <td>${(l.createdAt && !isNaN(new Date(l.createdAt).getTime())) ? new Date(l.createdAt).toLocaleDateString('de-DE') : (l.createdAt || 'Heute')}</td>
                             <td>
                                 <button class="btn btn-sm" onclick="copyDeliveryMessage('${l.key}', '${l.tier}', '${l.customerNote}')">📋 Kunden-Text Kopieren</button>
                                 <button class="btn btn-danger btn-sm" onclick="deleteLicense('${l.key}')">🗑️ Löschen</button>
@@ -3942,7 +3942,7 @@ app.get(['/admin'], (req, res) => {
                             <td><span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">\${l.tier.toUpperCase()}</span></td>
                             <td style="color:var(--success); font-weight:bold; font-size:15px;">\${l.price}</td>
                             <td>\${l.customerNote || '<em style="color:#64748b;">Keine Notiz</em>'}</td>
-                            <td>\${new Date(l.createdAt).toLocaleDateString('de-DE')}</td>
+                            <td>\${(l.createdAt && !isNaN(new Date(l.createdAt).getTime())) ? new Date(l.createdAt).toLocaleDateString('de-DE') : (l.createdAt || 'Heute')}</td>
                             <td>
                                 <button class="btn btn-sm" onclick="copyDeliveryMessage('\${l.key}', '\${l.tier}', '\${l.customerNote}')">📋 Kunden-Text Kopieren</button>
                                 <button class="btn btn-danger btn-sm" onclick="deleteLicense('\${l.key}')">🗑️ Löschen</button>
