@@ -184,10 +184,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "3.6.25";
+    return "3.6.26";
 }
 
-let CURRENT_SERVER_VERSION = "3.6.25";
+let CURRENT_SERVER_VERSION = "3.6.26";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -3594,15 +3594,18 @@ app.get(['/admin'], (req, res) => {
                             const devicesStr = userDevices.length > 0
                                 ? userDevices.map(d => `<code style="color:var(--primary);">${d.hwId.substring(0, 8)}...</code> (${d.deviceName})`).join(', ')
                                 : '<em style="color:#64748b;">Kein Gerät verbunden</em>';
-                            const isExpired = u.licenseExpiresAt && new Date(u.licenseExpiresAt) < new Date() && !u.isAdmin;
+                            const parsedExpDate = u.licenseExpiresAt ? new Date(u.licenseExpiresAt) : null;
+                            const isValidExpDate = parsedExpDate && !isNaN(parsedExpDate.getTime());
+                            const isExpired = isValidExpDate && parsedExpDate < new Date() && !u.isAdmin;
                             const licBadge = u.isAdmin
                                 ? '<span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">👑 Admin</span>'
                                 : (isExpired ? '<span style="background:rgba(239, 68, 68, 0.2); color:#fca5a5; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🔴 Abgelaufen</span>' : '<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Aktiv</span>');
+                            const expDateFormatted = isValidExpDate ? parsedExpDate.toLocaleDateString('de-DE') : (u.licenseExpiresAt || 'Unbegrenzt');
                             return `<tr>
                                 <td><strong>${u.username}</strong></td>
                                 <td>${licBadge}</td>
                                 <td>${devicesStr}</td>
-                                <td>${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString('de-DE')}</td>
+                                <td>${expDateFormatted}</td>
                                 <td>
                                     ${!u.isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteUser('${u.username}')">🗑️ Löschen</button>` : '<em style="color:#64748b;">Geschützt</em>'}
                                 </td>
@@ -3956,15 +3959,18 @@ app.get(['/admin'], (req, res) => {
                         const devicesStr = userDevices.length > 0
                             ? userDevices.map(d => \`<code style="color:var(--primary);">\${d.hwId.substring(0, 8)}...</code> (\${d.deviceName})\`).join(', ')
                             : '<em style="color:#64748b;">Kein Gerät verbunden</em>';
-                        const isExpired = u.licenseExpiresAt && new Date(u.licenseExpiresAt) < new Date() && !u.isAdmin;
+                        const parsedExpDate = u.licenseExpiresAt ? new Date(u.licenseExpiresAt) : null;
+                        const isValidExpDate = parsedExpDate && !isNaN(parsedExpDate.getTime());
+                        const isExpired = isValidExpDate && parsedExpDate < new Date() && !u.isAdmin;
                         const licBadge = u.isAdmin
                             ? '<span style="background:rgba(168, 85, 247, 0.2); color:#c084fc; border:1px solid #a855f7; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">👑 Admin</span>'
                             : (isExpired ? '<span style="background:rgba(239, 68, 68, 0.2); color:#fca5a5; border:1px solid #ef4444; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🔴 Abgelaufen</span>' : '<span style="background:rgba(16, 185, 129, 0.2); color:#6ee7b7; border:1px solid #10b981; padding:4px 10px; border-radius:8px; font-weight:bold; font-size:12px;">🟢 Aktiv</span>');
+                        const expDateFormatted = isValidExpDate ? parsedExpDate.toLocaleDateString('de-DE') : (u.licenseExpiresAt || 'Unbegrenzt');
                         return \`<tr>
                             <td><strong>\${u.username}</strong></td>
                             <td>\${licBadge}</td>
                             <td>\${devicesStr}</td>
-                            <td>\${new Date(u.licenseExpiresAt || Date.now()).toLocaleDateString('de-DE')}</td>
+                            <td>\${expDateFormatted}</td>
                             <td>
                                 \${!u.isAdmin ? \`<button class="btn btn-danger btn-sm" onclick="deleteUser('\${u.username}')">🗑️ Löschen</button>\` : '<em style="color:#64748b;">Geschützt</em>'}
                             </td>
