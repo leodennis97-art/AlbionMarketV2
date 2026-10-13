@@ -150,15 +150,17 @@ class MainActivity : ComponentActivity() {
                     return@AlbionMarketV2Theme
                 }
 
-                var isUserLoggedInState by remember { mutableStateOf(value = false) }
-                var isUnlockedForSession by remember { mutableStateOf(value = false) }
-                var showWelcomeDialog by remember { mutableStateOf(value = false) }
+                val hasValidSession = remember { prefs.isUserLoggedIn && LicenseManager.isLicenseValid(context) }
+                var isUserLoggedInState by remember { mutableStateOf(hasValidSession) }
+                var isUnlockedForSession by remember { mutableStateOf(hasValidSession) }
+                var showWelcomeDialog by remember { mutableStateOf(false) }
 
                 val lifecycleOwner = LocalLifecycleOwner.current
                 DisposableEffect(lifecycleOwner) {
                     val observer = LifecycleEventObserver { _, event ->
                         if (event == Lifecycle.Event.ON_RESUME) {
-                            if (!prefs.isUserLoggedIn || !LicenseManager.isLicenseValid(context)) {
+                            val isValid = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(context)
+                            if (!isValid) {
                                 isUserLoggedInState = false
                                 isUnlockedForSession = false
                             }
@@ -170,11 +172,22 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Kein automatischer Login beim Start: Jeder Start erfordert manuelle Anmeldung mit Cloud- und Lizenzprüfung
+                // Automatischer Reconnect mit der Cloud bei App-Start
                 LaunchedEffect(Unit) {
-                    prefs.isUserLoggedIn = false
-                    isUserLoggedInState = false
-                    isUnlockedForSession = false
+                    val savedUser = prefs.savedUsername
+                    val savedPass = prefs.savedPassword
+                    if (!savedUser.isNullOrBlank() && !savedPass.isNullOrBlank()) {
+                        withContext(Dispatchers.IO) {
+                            val success = ServerSyncManager.loginWithServer(context, savedUser, savedPass)
+                            if (success) {
+                                withContext(Dispatchers.Main) {
+                                    isUserLoggedInState = true
+                                    isUnlockedForSession = true
+                                    prefs.isUserLoggedIn = true
+                                }
+                            }
+                        }
+                    }
                 }
 
                 // Live Popup Alert Handling for Admin Messages & Screen Alarm
@@ -878,7 +891,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.6.24"})!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "3.6.25"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {
