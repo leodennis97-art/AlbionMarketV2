@@ -499,10 +499,7 @@ object IslandTimerManager {
 
     private fun ensureInit() {
         if (!isInitialized) {
-            val now = System.currentTimeMillis()
-            inMemoryTimers.add(IslandTimer("1", "Möhrenfeld T3", "Möhrenfeld T3", TimerCategory.CROP, harvestTimeMs = now - 1000))
-            inMemoryTimers.add(IslandTimer("2", "Kletten-Garten T5", "Kletten-Garten T5", TimerCategory.HERB, harvestTimeMs = now + (4 * 3600 * 1000)))
-            inMemoryTimers.add(IslandTimer("3", "Ochsen-Zucht T6", "Ochsen-Zucht T6", TimerCategory.ANIMAL, harvestTimeMs = now + (18 * 3600 * 1000)))
+            // Dummy-Einträge entfernt, Start ohne automatische Timer
             isInitialized = true
         }
     }

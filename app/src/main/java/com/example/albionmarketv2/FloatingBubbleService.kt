@@ -2610,15 +2610,52 @@ fun BubbleRefiningMatrixTab(
     maxHeight: Dp,
 ) {
     val lang = LocalAppLanguage.current
+    val context = LocalContext.current
+    val prefsObj = remember { AppPreferences(context) }
+    var selectedCity by remember { mutableStateOf(prefsObj.bubbleStandpunktCity) }
+    val cities = listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
-    val refiningOpps = remember(priceMap) {
+    val allRefiningOpps = remember(priceMap) {
         TradeCalculator.calculateRefiningOpportunities(priceMap, useFocus = true, hasPremium = true)
     }
 
+    val refiningOpps = remember(allRefiningOpps, selectedCity) {
+        if (selectedCity == "ALLE") {
+            allRefiningOpps
+        } else {
+            allRefiningOpps.filter { TradeCalculator.citiesMatch(it.highestSellCity, selectedCity) || TradeCalculator.citiesMatch(it.cheapestBuyCity, selectedCity) }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
-        Text(LanguageManager.translateUI("🧱 Veredelung Matrix (RRR: 53.9% Fokus / 36.7% Stadt-Bonus)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFFFB74D), modifier = Modifier.padding(bottom = 6.dp))
+        Text(LanguageManager.translateUI("🧱 Veredelung Matrix (RRR: 53.9% Fokus / 36.7% Stadt-Bonus)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFFFB74D), modifier = Modifier.padding(bottom = 4.dp))
+        
+        Text(LanguageManager.translateUI("🏙️ Nach Stadt filtern:", lang), color = Color(0xFFFFB74D), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            items(items = cities) { c ->
+                val isSelected = selectedCity == c
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFFFFB74D) else Color(0xFF332200),
+                    modifier = Modifier.clickable {
+                        selectedCity = c
+                        prefsObj.bubbleStandpunktCity = c
+                    }
+                ) {
+                    Text(
+                        text = if (c == "ALLE") "Alle Städte" else c,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
         if (refiningOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Veredelungs-Chancen berechenbar.", lang), color = Color.Gray, fontSize = 10.sp)
@@ -2666,15 +2703,52 @@ fun BubbleLaborerJournalsTab(
     maxHeight: Dp,
 ) {
     val lang = LocalAppLanguage.current
+    val context = LocalContext.current
+    val prefsObj = remember { AppPreferences(context) }
+    var selectedCity by remember { mutableStateOf(prefsObj.bubbleStandpunktCity) }
+    val cities = listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
-    val journalOpps = remember(priceMap) {
+    val allJournalOpps = remember(priceMap) {
         TradeCalculator.calculateLaborerJournalOpportunities(priceMap)
     }
 
+    val journalOpps = remember(allJournalOpps, selectedCity) {
+        if (selectedCity == "ALLE") {
+            allJournalOpps
+        } else {
+            allJournalOpps.filter { TradeCalculator.citiesMatch(it.highestSellCity, selectedCity) || TradeCalculator.citiesMatch(it.cheapestBuyCity, selectedCity) }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
-        Text(LanguageManager.translateUI("📚 Tagebücher & Arbeiter (Mitnahme-Profit)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFC084FC), modifier = Modifier.padding(bottom = 6.dp))
+        Text(LanguageManager.translateUI("📚 Tagebücher & Arbeiter (Mitnahme-Profit)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFC084FC), modifier = Modifier.padding(bottom = 4.dp))
+        
+        Text(LanguageManager.translateUI("🏙️ Nach Stadt filtern:", lang), color = Color(0xFFC084FC), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            items(items = cities) { c ->
+                val isSelected = selectedCity == c
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFFC084FC) else Color(0xFF2A1B3D),
+                    modifier = Modifier.clickable {
+                        selectedCity = c
+                        prefsObj.bubbleStandpunktCity = c
+                    }
+                ) {
+                    Text(
+                        text = if (c == "ALLE") "Alle Städte" else c,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
         if (journalOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Tagebuch-Deals verfügbar.", lang), color = Color.Gray, fontSize = 10.sp)
@@ -2701,6 +2775,24 @@ fun BubbleLaborerJournalsTab(
                                 Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
                                     Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                 }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.acceptCustomOrder(
+                                            resourceId = opp.resource.id,
+                                            resourceNameDe = opp.resource.nameDe,
+                                            tier = opp.resource.tier,
+                                            buyCity = opp.cheapestBuyCity,
+                                            buyPrice = opp.totalIngredientCost.toInt(),
+                                            sellCity = opp.highestSellCity,
+                                            sellPrice = opp.finishedItemSellPrice,
+                                            plannedUnits = 1,
+                                            targetProfit = opp.netProfit
+                                        )
+                                    },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Buchen", tint = Color(0xFF10B981))
+                                }
                             }
                             Spacer(modifier = Modifier.height(3.dp))
                             Text(opp.ingredientSummary, color = Color(0xFFCBD5E1), fontSize = 9.sp)
@@ -2720,15 +2812,52 @@ fun BubbleFactionWarfareTab(
     maxHeight: Dp,
 ) {
     val lang = LocalAppLanguage.current
+    val context = LocalContext.current
+    val prefsObj = remember { AppPreferences(context) }
+    var selectedCity by remember { mutableStateOf(prefsObj.bubbleStandpunktCity) }
+    val cities = listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
-    val factionOpps = remember(priceMap) {
+    val allFactionOpps = remember(priceMap) {
         TradeCalculator.calculateFactionWarfareOpportunities(priceMap)
     }
 
+    val factionOpps = remember(allFactionOpps, selectedCity) {
+        if (selectedCity == "ALLE") {
+            allFactionOpps
+        } else {
+            allFactionOpps.filter { TradeCalculator.citiesMatch(it.cheapestBuyCity, selectedCity) || TradeCalculator.citiesMatch(it.highestSellCity, selectedCity) }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
-        Text(LanguageManager.translateUI("🚩 Fraktions-Handel & Umhänge", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFF43F5E), modifier = Modifier.padding(bottom = 6.dp))
+        Text(LanguageManager.translateUI("🚩 Fraktions-Handel & Umhänge", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFF43F5E), modifier = Modifier.padding(bottom = 4.dp))
+        
+        Text(LanguageManager.translateUI("🏙️ Nach Stadt filtern:", lang), color = Color(0xFFF43F5E), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            items(items = cities) { c ->
+                val isSelected = selectedCity == c
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFFF43F5E) else Color(0xFF3B151F),
+                    modifier = Modifier.clickable {
+                        selectedCity = c
+                        prefsObj.bubbleStandpunktCity = c
+                    }
+                ) {
+                    Text(
+                        text = if (c == "ALLE") "Alle Städte" else c,
+                        color = if (isSelected) Color.White else Color(0xFFF43F5E),
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
         if (factionOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Fraktions-Handelschancen berechenbar.", lang), color = Color.Gray, fontSize = 10.sp)
@@ -2754,6 +2883,24 @@ fun BubbleFactionWarfareTab(
                                 }
                                 Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
                                     Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.acceptCustomOrder(
+                                            resourceId = opp.resource.id,
+                                            resourceNameDe = opp.resource.nameDe,
+                                            tier = opp.resource.tier,
+                                            buyCity = opp.cheapestBuyCity,
+                                            buyPrice = opp.totalIngredientCost.toInt(),
+                                            sellCity = opp.highestSellCity,
+                                            sellPrice = opp.finishedItemSellPrice,
+                                            plannedUnits = 1,
+                                            targetProfit = opp.netProfit
+                                        )
+                                    },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Buchen", tint = Color(0xFF10B981))
                                 }
                             }
                             Spacer(modifier = Modifier.height(3.dp))
