@@ -2582,6 +2582,15 @@ fun BubbleStationFlippingTab(
                                 Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
                                     Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                 }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.acceptTradeOpportunity(opp)
+                                        Toast.makeText(viewModel.getApplication(), "Station Flipping Auftrag für ${opp.resource.nameDe} gebucht!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Buchen", tint = Color(0xFF10B981))
+                                }
                             }
                             Spacer(modifier = Modifier.height(3.dp))
                             Text("🏙️ Markt: ${opp.buyCity} | Buy Order: ${fmt.format(opp.buyPrice)} S. ➔ Sell Order: ${fmt.format(opp.sellPrice)} S.", color = Color(0xFFE2E8F0), fontSize = 9.sp)
