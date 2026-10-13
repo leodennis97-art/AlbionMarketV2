@@ -2504,10 +2504,15 @@ fun BubbleStationFlippingTab(
     maxHeight: Dp,
 ) {
     val lang = LocalAppLanguage.current
+    val context = LocalContext.current
+    val prefsObj = remember { AppPreferences(context) }
+    var selectedFlippingCity by remember { mutableStateOf(prefsObj.bubbleStandpunktCity) }
+    val cities = listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
-    val flippingOpps = remember(priceMap, uiState.silverBudget) {
+    val allFlippingOpps = remember(priceMap, uiState.silverBudget) {
         TradeCalculator.calculateStationTradingFlippingOpportunities(
             resources = AlbionResourceRepository.resources,
             pricesByItem = priceMap,
@@ -2515,8 +2520,40 @@ fun BubbleStationFlippingTab(
         )
     }
 
+    val flippingOpps = remember(allFlippingOpps, selectedFlippingCity) {
+        if (selectedFlippingCity == "ALLE") {
+            allFlippingOpps
+        } else {
+            allFlippingOpps.filter { TradeCalculator.citiesMatch(it.buyCity, selectedFlippingCity) }
+        }
+    }
+
     Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
-        Text(LanguageManager.translateUI("🛒 Station Flipping (Kauforder ➔ Verkauforder)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF38BDF8), modifier = Modifier.padding(bottom = 6.dp))
+        Text(LanguageManager.translateUI("🛒 Station Flipping (Kauforder ➔ Verkauforder)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF38BDF8), modifier = Modifier.padding(bottom = 4.dp))
+
+        Text(LanguageManager.translateUI("🏙️ Deinen Standpunkt wählen:", lang), color = Color(0xFF38BDF8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            items(items = cities) { c ->
+                val isSelected = selectedFlippingCity == c
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable {
+                        selectedFlippingCity = c
+                        prefsObj.bubbleStandpunktCity = c
+                    }
+                ) {
+                    Text(
+                        text = if (c == "ALLE") "Alle Städte" else c,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
 
         if (flippingOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Station-Flipping Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp)
