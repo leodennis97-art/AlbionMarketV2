@@ -2413,7 +2413,7 @@ fun EquipmentBuildsTabContent(
 
         val filteredBuilds = uiState.equipmentBuilds
             .filter { it.category == uiState.selectedBuildCategory }
-            .sortedByDescending { it.estimatedMarginPercent }
+            .sortedByDescending { (it.damageRating + it.defenseRating + it.healingRating + it.mobilityRating) }
 
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -2526,7 +2526,19 @@ fun EquipmentBuildsTabContent(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        Text("⭐ Ratings: Schaden ${build.damageRating}/100 | Heal ${build.healingRating}/100 | Def ${build.defenseRating}/100 | Tempo ${build.mobilityRating}/100", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFFFDE047))
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFF1E1B4B),
+                            border = BorderStroke(1.dp, Color(0xFF818CF8))
+                        ) {
+                            Text(
+                                text = "⚡ UNFAIRE GOD-STATS: Schaden ${build.damageRating}/100 | Rüstung ${build.defenseRating}/100 | Heal ${build.healingRating}/100 | Tempo ${build.mobilityRating}/100",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xFFFDE047),
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(build.aiEvaluationDe, fontSize = 10.sp, color = MaterialTheme.colorScheme.onSurface)
