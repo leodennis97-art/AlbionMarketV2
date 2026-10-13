@@ -478,15 +478,13 @@ object TradeCalculator {
                 val maxUnitsSilver = if (buyPrice > 0) (silverBudget / buyPrice).toInt() else 0
                 val maxUnitsWeight = if (unitWeight > 0) (carryCapacityKg / unitWeight).toInt() else 0
                 
-                var tradeUnits = min(maxUnitsSilver, maxUnitsWeight)
+                var tradeUnits = maxOf(1, min(maxUnitsSilver, maxUnitsWeight))
                 
-                // Limit by stock available if > 0 and stock logic is requested
+                // Limit by stock available if > 0
                 val availableStock = bestBuy.sellPriceMinAmount
                 if (availableStock > 0) {
-                    tradeUnits = min(tradeUnits, availableStock)
+                    tradeUnits = maxOf(1, min(tradeUnits, availableStock))
                 }
-                
-                if (tradeUnits <= 0) continue
 
                 val totalInvestment = tradeUnits.toLong() * buyPrice
                 val totalGrossRevenue = tradeUnits.toLong() * sellPrice
@@ -501,8 +499,8 @@ object TradeCalculator {
                 val buyDateMs = if (parsedBuyMs > 0) parsedBuyMs else currentNowMs
                 val sellDateMs = if (parsedSellMs > 0) parsedSellMs else currentNowMs
 
-                // Strikter Filter: Max. 10 Minuten alte Marktpreise (ausblenden wenn älter als 10 Min)
-                val maxAgeMs = 10 * 60 * 1000L
+                // Toleranter Alterungs-Filter (bis zu 72 Std.), um stets valide Marktchancen anzuzeigen
+                val maxAgeMs = 72 * 60 * 60 * 1000L
                 val buyAgeMs = currentNowMs - buyDateMs
                 val sellAgeMs = currentNowMs - sellDateMs
 
