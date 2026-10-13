@@ -2411,6 +2411,10 @@ fun BubbleOverlayContent(
                         ) {
                             when (selectedTab) {
                                 BubbleTab.SMUGGLER_GUIDE -> BubbleSmugglerRadarTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.STATION_FLIPPING -> BubbleStationFlippingTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.REFINING_MATRIX -> BubbleRefiningMatrixTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.LABORER_JOURNALS -> BubbleLaborerJournalsTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
+                                BubbleTab.FACTION_WARFARE -> BubbleFactionWarfareTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.COMPLETED_ORDERS -> BubbleCompletedOrdersTab(context = context, onRefresh = onRefresh, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.CATALOG -> BubbleCatalogTab(
                                     uiState = uiState,
@@ -2485,6 +2489,230 @@ fun BubbleSmugglerRadarTab(
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text("📊 Reingewinn: +${fmt.format(opp.totalNetProfit)} S. (${fmt.format(opp.tradeUnits)} Stk.)", color = Color(0xFF10B981), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleStationFlippingTab(
+    @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
+    uiState: ResourceUiState,
+    maxHeight: Dp,
+) {
+    val lang = LocalAppLanguage.current
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    val flippingOpps = remember(priceMap, uiState.silverBudget) {
+        TradeCalculator.calculateStationTradingFlippingOpportunities(
+            resources = AlbionResourceRepository.resources,
+            pricesByItem = priceMap,
+            silverBudget = uiState.silverBudget
+        )
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+        Text(LanguageManager.translateUI("🛒 Station Flipping (Kauforder ➔ Verkauforder)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFF38BDF8), modifier = Modifier.padding(bottom = 6.dp))
+
+        if (flippingOpps.isEmpty()) {
+            Text(LanguageManager.translateUI("Keine Station-Flipping Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                itemsIndexed(items = flippingOpps) { idx: Int, opp: TradeOpportunity ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, if (idx < 3) Color(0xFFFFD700) else Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    if (idx < 3) {
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFD700)) {
+                                            Text("🔥 TOP #${idx+1}", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    AsyncImage(model = opp.resource.imageUrl, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("${opp.resource.nameDe} (${opp.resource.tierText})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                    Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text("🏙️ Markt: ${opp.buyCity} | Buy Order: ${fmt.format(opp.buyPrice)} S. ➔ Sell Order: ${fmt.format(opp.sellPrice)} S.", color = Color(0xFFE2E8F0), fontSize = 9.sp)
+                            Text("📊 Netto-Gewinn: +${fmt.format(opp.totalNetProfit)} S. (${fmt.format(opp.tradeUnits)} Stk.)", color = Color(0xFF4ADE80), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleRefiningMatrixTab(
+    @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
+    uiState: ResourceUiState,
+    maxHeight: Dp,
+) {
+    val lang = LocalAppLanguage.current
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    val refiningOpps = remember(priceMap) {
+        TradeCalculator.calculateRefiningOpportunities(priceMap, useFocus = true, hasPremium = true)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+        Text(LanguageManager.translateUI("🧱 Veredelung Matrix (RRR: 53.9% Fokus / 36.7% Stadt-Bonus)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFFFB74D), modifier = Modifier.padding(bottom = 6.dp))
+
+        if (refiningOpps.isEmpty()) {
+            Text(LanguageManager.translateUI("Keine Veredelungs-Chancen berechenbar.", lang), color = Color.Gray, fontSize = 10.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                itemsIndexed(items = refiningOpps) { idx: Int, opp: CraftingOpportunityDetails ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, if (idx < 3) Color(0xFFFFD700) else Color(0xFFFFB74D).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    if (idx < 3) {
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFD700)) {
+                                            Text("🔥 TOP #${idx+1}", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    AsyncImage(model = opp.resource.imageUrl, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("${opp.resource.nameDe} (${opp.resource.tierText})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                    Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text("📦 Zutat: ${opp.ingredientSummary}", color = Color(0xFFCBD5E1), fontSize = 9.sp)
+                            Text("📊 Veredelungs-Profit: +${fmt.format(opp.netProfit)} S. pro Stück", color = Color(0xFF4ADE80), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleLaborerJournalsTab(
+    @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
+    uiState: ResourceUiState,
+    maxHeight: Dp,
+) {
+    val lang = LocalAppLanguage.current
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    val journalOpps = remember(priceMap) {
+        TradeCalculator.calculateLaborerJournalOpportunities(priceMap)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+        Text(LanguageManager.translateUI("📚 Tagebücher & Arbeiter (Mitnahme-Profit)", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFC084FC), modifier = Modifier.padding(bottom = 6.dp))
+
+        if (journalOpps.isEmpty()) {
+            Text(LanguageManager.translateUI("Keine Tagebuch-Deals verfügbar.", lang), color = Color.Gray, fontSize = 10.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                itemsIndexed(items = journalOpps) { idx: Int, opp: CraftingOpportunityDetails ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, if (idx < 3) Color(0xFFFFD700) else Color(0xFFC084FC).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    if (idx < 3) {
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFD700)) {
+                                            Text("🔥 TOP #${idx+1}", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    Text(opp.resource.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                    Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(opp.ingredientSummary, color = Color(0xFFCBD5E1), fontSize = 9.sp)
+                            Text("📊 Reingewinn/Buch: +${fmt.format(opp.netProfit)} Silber", color = Color(0xFF4ADE80), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun BubbleFactionWarfareTab(
+    @Suppress("UNUSED_PARAMETER") viewModel: AlbionResourceViewModel,
+    uiState: ResourceUiState,
+    maxHeight: Dp,
+) {
+    val lang = LocalAppLanguage.current
+    val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+    val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+
+    val factionOpps = remember(priceMap) {
+        TradeCalculator.calculateFactionWarfareOpportunities(priceMap)
+    }
+
+    Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
+        Text(LanguageManager.translateUI("🚩 Fraktions-Handel & Umhänge", lang), fontWeight = FontWeight.ExtraBold, fontSize = 12.sp, color = Color(0xFFF43F5E), modifier = Modifier.padding(bottom = 6.dp))
+
+        if (factionOpps.isEmpty()) {
+            Text(LanguageManager.translateUI("Keine Fraktions-Handelschancen berechenbar.", lang), color = Color.Gray, fontSize = 10.sp)
+        } else {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                itemsIndexed(items = factionOpps) { idx: Int, opp: CraftingOpportunityDetails ->
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFF1E293B),
+                        border = BorderStroke(1.dp, if (idx < 3) Color(0xFFFFD700) else Color(0xFFF43F5E).copy(alpha = 0.5f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    if (idx < 3) {
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFD700)) {
+                                            Text("🔥 TOP #${idx+1}", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                                        }
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                    }
+                                    Text(opp.resource.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                }
+                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
+                                    Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text("🏙️ Stadt: ${opp.cheapestBuyCity} | Zutaten: ${opp.ingredientSummary}", color = Color(0xFFCBD5E1), fontSize = 9.sp)
+                            Text("📊 Netto-Profit/Umhang: +${fmt.format(opp.netProfit)} Silber", color = Color(0xFF4ADE80), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                         }
                     }
                 }
