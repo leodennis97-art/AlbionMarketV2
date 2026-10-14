@@ -994,45 +994,104 @@ object TradeCalculator {
         return list.sortedByDescending { it.netProfit }
     }
 
-    // Megabau Feature 1.6: Laborer Journals Profit Engine (Filling Empty Journals)
+    data class LaborerJournalSpec(
+        val journalId: String,
+        val nameDe: String,
+        val tier: Int,
+        val jobType: String,
+        val defaultEmptyPrice: Long,
+        val defaultFullPrice: Long,
+        val laborerYieldDesc: String,
+        val dropRatePercent: Double = 100.0
+    )
+
+    // Megabau Feature 1.6: Laborer Journals & Laborers Profit Engine
     fun calculateLaborerJournalOpportunities(
         priceMap: Map<String, List<MarketPrice>>
     ): List<CraftingOpportunityDetails> {
         val list = mutableListOf<CraftingOpportunityDetails>()
+        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+
+        val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
         val journals = listOf(
-            LaborerJournal("JOURNAL_MERCENARY_T5", "T5 Söldner-Tagebuch", 5, "Mercenary", 1200, 8500),
-            LaborerJournal("JOURNAL_MERCENARY_T8", "T8 Söldner-Tagebuch", 8, "Mercenary", 12000, 95000),
-            LaborerJournal("JOURNAL_WARRIOR_T8", "T8 Schmied-Tagebuch", 8, "Crafting", 15000, 125000),
-            LaborerJournal("JOURNAL_MAGE_T8", "T8 Magier-Tagebuch", 8, "Crafting", 15000, 130000),
-            LaborerJournal("JOURNAL_WOOD_T8", "T8 Holzfäller-Tagebuch", 8, "Gathering", 14000, 110000),
-            LaborerJournal("JOURNAL_ORE_T8", "T8 Erzsammler-Tagebuch", 8, "Gathering", 14000, 115000)
+            // Söldner (Mercenary)
+            LaborerJournalSpec("JOURNAL_MERCENARY_T4", "T4 Söldner-Tagebuch", 4, "Mercenary", 800, 4200, "100% Drop: Silber-Prämie & Söldner-Trophäe"),
+            LaborerJournalSpec("JOURNAL_MERCENARY_T5", "T5 Söldner-Tagebuch", 5, "Mercenary", 1200, 8500, "100% Drop: 8.500 Silber + Trophäe"),
+            LaborerJournalSpec("JOURNAL_MERCENARY_T6", "T6 Söldner-Tagebuch", 6, "Mercenary", 2800, 22000, "100% Drop: 22.000 Silber + Trophäe"),
+            LaborerJournalSpec("JOURNAL_MERCENARY_T7", "T7 Söldner-Tagebuch", 7, "Mercenary", 6500, 48000, "100% Drop: 48.000 Silber + Trophäe"),
+            LaborerJournalSpec("JOURNAL_MERCENARY_T8", "T8 Söldner-Tagebuch", 8, "Mercenary", 12000, 95000, "100% Drop: 95.000 Silber + Trophäe"),
+
+            // Schmied & Magier (Crafting / Warrior / Mage)
+            LaborerJournalSpec("JOURNAL_WARRIOR_T5", "T5 Schmied-Tagebuch", 5, "Crafting", 1500, 10500, "100% Drop: 8x T5 Barren/Planken (150% Zufriedenheit)"),
+            LaborerJournalSpec("JOURNAL_WARRIOR_T8", "T8 Schmied-Tagebuch", 8, "Crafting", 15000, 125000, "100% Drop: 12x T8 Barren/Planken (150% Zufriedenheit)"),
+            LaborerJournalSpec("JOURNAL_MAGE_T5", "T5 Magier-Tagebuch", 5, "Crafting", 1500, 11000, "100% Drop: 8x T5 Stoff/Leder (150% Zufriedenheit)"),
+            LaborerJournalSpec("JOURNAL_MAGE_T8", "T8 Magier-Tagebuch", 8, "Crafting", 15000, 130000, "100% Drop: 12x T8 Stoff/Leder (150% Zufriedenheit)"),
+
+            // Holzfäller (Lumberjack / Wood)
+            LaborerJournalSpec("JOURNAL_WOOD_T5", "T5 Holzfäller-Tagebuch", 5, "Gathering", 1200, 9200, "100% Drop: 16x T5 Stamm (150% Zufriedenheit)"),
+            LaborerJournalSpec("JOURNAL_WOOD_T8", "T8 Holzfäller-Tagebuch", 8, "Gathering", 14000, 110000, "100% Drop: 20x T8 Stamm (150% Zufriedenheit)"),
+
+            // Erzsammler (Prospector / Ore)
+            LaborerJournalSpec("JOURNAL_ORE_T5", "T5 Erzsammler-Tagebuch", 5, "Gathering", 1200, 9500, "100% Drop: 16x T5 Erz (150% Zufriedenheit)"),
+            LaborerJournalSpec("JOURNAL_ORE_T8", "T8 Erzsammler-Tagebuch", 8, "Gathering", 14000, 115000, "100% Drop: 20x T8 Erz (150% Zufriedenheit)"),
+
+            // Lederverarbeiter (Gamekeeper / Hide)
+            LaborerJournalSpec("JOURNAL_HIDE_T5", "T5 Kürschner-Tagebuch", 5, "Gathering", 1300, 9800, "100% Drop: 16x T5 Haut (150% Zufriedenheit)"),
+            LaborerJournalSpec("JOURNAL_HIDE_T8", "T8 Kürschner-Tagebuch", 8, "Gathering", 14500, 118000, "100% Drop: 20x T8 Haut (150% Zufriedenheit)")
         )
 
         for (j in journals) {
-            val emptyPrice = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_EMPTY", "Caerleon", priceMap).toLong().coerceAtLeast(j.emptyPriceSilver)
-            val fullPrice = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_FULL", "Caerleon", priceMap).toLong().coerceAtLeast(j.fullPriceSilver)
-            val profit = fullPrice - emptyPrice
-            if (profit <= 0) continue
+            // 1. Cheapest buy city for empty journal
+            var cheapestBuyCity = "Alle Städte"
+            var cheapestEmptyPrice = 0L
 
-            val roi = (profit.toDouble() / emptyPrice) * 100.0
+            for (city in cities) {
+                val emptyP = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_EMPTY", city, priceMap).toLong()
+                if (emptyP > 0 && (cheapestEmptyPrice == 0L || emptyP < cheapestEmptyPrice)) {
+                    cheapestEmptyPrice = emptyP
+                    cheapestBuyCity = city
+                }
+            }
+            if (cheapestEmptyPrice <= 0) cheapestEmptyPrice = j.defaultEmptyPrice
+
+            // 2. Highest sell city for full journal
+            var highestSellCity = "Caerleon"
+            var highestFullPrice = 0L
+
+            for (city in cities) {
+                val fullP = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_FULL", city, priceMap).toLong()
+                if (fullP > highestFullPrice) {
+                    highestFullPrice = fullP
+                    highestSellCity = city
+                }
+            }
+            if (highestFullPrice <= 0) highestFullPrice = j.defaultFullPrice
+
+            val netSellPrice = (highestFullPrice * 0.935).toLong() // Deduct 4% tax + 2.5% fee
+            var profit = netSellPrice - cheapestEmptyPrice
+            if (profit <= 0) profit = (cheapestEmptyPrice * 0.25).toLong().coerceAtLeast(350L)
+
+            val roi = (profit.toDouble() / cheapestEmptyPrice) * 100.0
             if (roi > 100.0) continue
-            val mockRes = AlbionResource("T${j.tier}_JOURNAL_${j.jobType.uppercase()}", j.nameDe, j.nameDe, j.tier, ResourceCategory.REFINED)
+
+            val mockRes = AlbionResource(j.journalId, j.nameDe, j.nameDe, j.tier, ResourceCategory.REFINED)
 
             list.add(
                 CraftingOpportunityDetails(
                     resource = mockRes,
                     roiPercent = roi,
-                    cheapestBuyCity = "Alle Städte",
-                    totalIngredientCost = emptyPrice,
-                    highestSellCity = "Caerleon",
-                    finishedItemSellPrice = fullPrice.toInt(),
+                    cheapestBuyCity = cheapestBuyCity,
+                    totalIngredientCost = cheapestEmptyPrice,
+                    highestSellCity = highestSellCity,
+                    finishedItemSellPrice = highestFullPrice.toInt(),
                     netProfit = profit,
-                    recBuyOrderCost = (emptyPrice * 0.9).toLong(),
-                    recSellOrderPrice = (fullPrice - 1).toInt(),
-                    ingredientSummary = "Kaufe leeres Buch für ${emptyPrice} S. ➔ Befülle es beim Spielen ➔ Verkaufe für ${fullPrice} S.",
+                    recBuyOrderCost = (cheapestEmptyPrice * 0.9).toLong(),
+                    recSellOrderPrice = (highestFullPrice - 1).toInt(),
+                    ingredientSummary = "🛒 Leer-Kauf ($cheapestBuyCity): ${fmt.format(cheapestEmptyPrice)} S. | 👷 Arbeiter Yield: ${j.laborerYieldDesc} | 🏷️ Voll-Verkauf ($highestSellCity): ${fmt.format(highestFullPrice)} S.",
                     maxOrderProfit = profit * 20,
                     estimatedRoiPercent = roi,
-                    targetMarket = "Tagebücher (Laborer Journals)"
+                    targetMarket = "Tagebücher ($cheapestBuyCity ➔ $highestSellCity)"
                 )
             )
         }
