@@ -763,7 +763,7 @@ object TradeCalculator {
         return 0L
     }
 
-    // Megabau Feature 1.2: Station Trading & Flipping Engine (Buy Order -> Sell Order in Same City)
+    // Megabau Feature 1.2: Station Trading & Flipping Engine (Verified Fresh Scan Orders Only <= 15 Mins)
     fun calculateStationTradingFlippingOpportunities(
         resources: List<AlbionResource>,
         pricesByItem: Map<String, List<MarketPrice>>,
@@ -772,41 +772,20 @@ object TradeCalculator {
     ): List<TradeOpportunity> {
         val list = mutableListOf<TradeOpportunity>()
         val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
-        val fallbackMap = if (pricesByItem.isEmpty()) AlbionMarketApi.getFallbackMarketPrices() else pricesByItem
 
         for (res in resources) {
-            val prices = pricesByItem[res.fullId] ?: pricesByItem[res.id] ?: fallbackMap[res.fullId] ?: fallbackMap[res.id] ?: continue
-            for (cityName in cities) {
-                val cityPrice = prices.find { citiesMatch(it.city, cityName) }
-                var buyOrderPrice = cityPrice?.buyPriceMax ?: 0
-                var sellOrderPrice = cityPrice?.sellPriceMin ?: 0
+            val idAt = res.fullId.replace("_", "@")
+            val idUnderscore = res.fullId.replace("@", "_")
+            val prices = pricesByItem[res.fullId] ?: pricesByItem[idAt] ?: pricesByItem[idUnderscore] ?: pricesByItem[res.id] ?: continue
 
-                if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) {
-                    val baseP = when (res.tier) {
-                        2 -> 120
-                        3 -> 380
-                        4 -> 1250
-                        5 -> 3900
-                        6 -> 12800
-                        7 -> 43000
-                        8 -> 138000
-                        else -> 1500
-                    }
-                    val cityMult = when (cityName) {
-                        "Caerleon" -> 1.15
-                        "Brecilien" -> 1.08
-                        "Lymhurst" -> 0.98
-                        "Bridgewatch" -> 0.95
-                        "Fort Sterling" -> 0.96
-                        "Martlock" -> 0.94
-                        "Thetford" -> 0.93
-                        else -> 1.0
-                    }
-                    val estSell = (baseP * cityMult).toInt().coerceAtLeast(15)
-                    val estBuy = (estSell * 0.85).toInt().coerceAtLeast(10)
-                    if (sellOrderPrice <= 0) sellOrderPrice = estSell
-                    if (buyOrderPrice <= 0) buyOrderPrice = estBuy
-                }
+            for (cityName in cities) {
+                // Nur verifizierte, echte Marktpreise für diese Stadt auslesen (<= 15 Minuten alt)
+                val cityPrices = prices.filter { citiesMatch(it.city, cityName) && it.sellPriceMin > 0 && it.buyPriceMax > 0 && isPriceFreshWithin15Mins(it) }
+                if (cityPrices.isEmpty()) continue
+
+                val cityPrice = cityPrices.minByOrNull { it.sellPriceMin } ?: continue
+                val buyOrderPrice = cityPrice.buyPriceMax
+                val sellOrderPrice = cityPrice.sellPriceMin
 
                 if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) continue
                 if (sellOrderPrice > buyOrderPrice * 3.0) continue // Exaggerated gap check
@@ -824,11 +803,14 @@ object TradeCalculator {
                 val totalInvestment = tradeUnits.toLong() * buyOrderPrice
                 val totalNetProfit = tradeUnits.toLong() * unitNetProfit
 
+                val parsedMs = parseIsoToEpochMs(cityPrice.sellPriceMinDate)
+                val ageText = if (parsedMs > 0) formatPriceAge(parsedMs) else "Gerade eben"
+
                 list.add(
                     TradeOpportunity(
                         resource = res,
                         enchantment = res.enchantment,
-                        quality = cityPrice?.quality ?: 1,
+                        quality = cityPrice.quality,
                         buyCity = cityName,
                         buyPrice = buyOrderPrice,
                         sellCity = cityName,
@@ -846,16 +828,21 @@ object TradeCalculator {
                         roiPercent = marginPercent,
                         priorityScore = (marginPercent * 10).toInt(),
                         zonesWalkedCount = 0,
-                        updatedTimestamp = System.currentTimeMillis(),
-                        updatedDateFormatted = "Echtzeit",
+                        updatedTimestamp = if (parsedMs > 0) parsedMs else System.currentTimeMillis(),
+                        updatedDateFormatted = "✓ Frisch gescannt ($ageText)",
                         recommendedBuyOrderPrice = buyOrderPrice + 1,
                         recommendedSellOrderPrice = sellOrderPrice - 1,
-                        aiOrderStrategy = "🛒 Station Trading in $cityName: Setze Buy Order für $buyOrderPrice S. & Sell Order für $sellOrderPrice S."
+                        buyOrderRecommendation = "✓ Verifiziertes Kaufgebot in $cityName",
+                        sellOrderRecommendation = "✓ Verifizierter Verkaufspreis in $cityName",
+                        aiOrderStrategy = "🛒 Station Flipping in $cityName: Buy Order $buyOrderPrice S. ➔ Sell Order $sellOrderPrice S. (Netto-Gewinn: +${unitNetProfit} S.)"
                     )
                 )
             }
         }
-        return list.sortedByDescending { it.totalNetProfit }.take(30)
+        return list.sortedWith(
+            compareByDescending<TradeOpportunity> { it.updatedTimestamp }
+                .thenByDescending { it.totalNetProfit }
+        )
     }
 
     data class RefiningSpec(

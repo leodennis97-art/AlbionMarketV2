@@ -36,10 +36,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
 import java.util.Locale
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -285,10 +281,11 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                             onFocusModeChanged = { needsFocus ->
                                 setFocusableMode(needsFocus)
                             },
-                        ) {
-                            setFocusableMode(enableFocus = false)
-                            loadData(forceRefreshPrices = false)
-                        }
+                            onOrderBooked = {
+                                setFocusableMode(enableFocus = false)
+                                loadData(forceRefreshPrices = false)
+                            }
+                        )
                     }
                 }
             }
@@ -958,9 +955,6 @@ fun BubbleOverlayContent(
                             }
                         }
                         Spacer(modifier = Modifier.height(2.dp))
-                    }
-
-
 
                     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
@@ -1653,10 +1647,8 @@ fun BubbleOverlayContent(
 
                                     Text("⭐ Tier & Stufe Filter:", color = Color(0xFFFDD835), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     Spacer(modifier = Modifier.height(2.dp))
-                                    var currentBubbleTier by remember { mutableIntStateOf(prefsForCity.bubbleTier) }
-                                    var currentBubbleEnchantment by remember { mutableIntStateOf(prefsForCity.bubbleEnchantment) }
 
-                                    val combinedOptions = remember {
+                                    val combinedOptions: List<Triple<String, Int, Int>> = remember {
                                         listOf(
                                             Triple("Alle", 0, -1),
                                             Triple("T4", 4, -1),
@@ -1676,7 +1668,8 @@ fun BubbleOverlayContent(
                                     }
 
                                     LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
-                                        items(items = combinedOptions) { (label, tVal, eVal) ->
+                                        items(items = combinedOptions) { option: Triple<String, Int, Int> ->
+                                            val (label, tVal, eVal) = option
                                             val isSelected = (currentBubbleTier == tVal && currentBubbleEnchantment == eVal) || (tVal == 0 && currentBubbleTier == 0)
                                             Surface(
                                                 shape = RoundedCornerShape(4.dp),
@@ -2360,6 +2353,7 @@ fun BubbleOverlayContent(
             }
         }
     }
+}
 }
 
 @Composable
