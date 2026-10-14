@@ -434,7 +434,7 @@ object TradeCalculator {
                     }
 
                     if (candSellPrice <= buyPrice) continue
-                    val maxMultiplier = if (buyPrice < 1000) 15.0 else 8.0
+                    val maxMultiplier = if (buyPrice < 1000) 3.5 else 2.5
                     if (candSellPrice > buyPrice * maxMultiplier) continue // Realistic Anomaly check
 
                     // Für Schwarzmarkt keine Einstellungsgebühr (0%), da Direktverkauf an Kauforder
@@ -473,7 +473,7 @@ object TradeCalculator {
                 if (unitProfit <= 0) continue
 
                 val marginPercent = (unitProfit.toDouble() / buyPrice) * 100.0
-                if (marginPercent < targetMarginPercent) continue
+                if (marginPercent < targetMarginPercent || marginPercent > 100.0) continue
 
                 val unitWeight = getItemWeightKg(resource)
 
@@ -778,6 +778,7 @@ object TradeCalculator {
                 val buyOrderPrice = cityPrice.buyPriceMax
                 val sellOrderPrice = cityPrice.sellPriceMin
                 if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) continue
+                if (sellOrderPrice > buyOrderPrice * 3.0) continue // Exaggerated gap check
 
                 val setupFee = (sellOrderPrice * 0.025).toLong()
                 val tax = (sellOrderPrice * (marketTaxPercent / 100.0)).toLong()
@@ -786,7 +787,7 @@ object TradeCalculator {
                 if (unitNetProfit <= 0) continue
 
                 val marginPercent = (unitNetProfit.toDouble() / buyOrderPrice) * 100.0
-                if (marginPercent < 2.5) continue
+                if (marginPercent < 2.5 || marginPercent > 100.0) continue
 
                 val tradeUnits = maxOf(1, (silverBudget / buyOrderPrice).toInt())
                 val totalInvestment = tradeUnits.toLong() * buyOrderPrice
@@ -870,6 +871,7 @@ object TradeCalculator {
             if (netProfit <= 0) continue
 
             val roi = if (effectiveMatCost > 0) (netProfit.toDouble() / effectiveMatCost) * 100.0 else 0.0
+            if (roi > 100.0) continue
 
             list.add(
                 CraftingOpportunityDetails(
@@ -914,6 +916,7 @@ object TradeCalculator {
             if (profit <= 0) continue
 
             val roi = (profit.toDouble() / emptyPrice) * 100.0
+            if (roi > 100.0) continue
             val mockRes = AlbionResource("T${j.tier}_JOURNAL_${j.jobType.uppercase()}", j.nameDe, j.nameDe, j.tier, ResourceCategory.REFINED)
 
             list.add(
@@ -966,6 +969,7 @@ object TradeCalculator {
             if (profit <= 0) continue
 
             val roi = (profit.toDouble() / ingredientCost) * 100.0
+            if (roi > 100.0) continue
             val mockRes = AlbionResource(capeId, capeName, capeName, 4, ResourceCategory.CAPE)
 
             list.add(
