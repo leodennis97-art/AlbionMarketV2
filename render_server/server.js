@@ -190,10 +190,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "4.1.1";
+    return "4.1.2";
 }
 
-let CURRENT_SERVER_VERSION = "4.1.1";
+let CURRENT_SERVER_VERSION = "4.1.2";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 

@@ -4097,13 +4097,59 @@ fun BubbleCompletedOrdersTab(
         }
 
         if (completedOrders.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp), contentAlignment = Alignment.Center) {
-                Text(
-                    text = if (lang == "DE") "Keine abgeschlossenen Aufträge vorhanden." else "No completed orders found.",
-                    color = Color.LightGray,
-                    fontSize = 10.sp,
-                    textAlign = TextAlign.Center
-                )
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color(0xFF1E293B),
+                border = BorderStroke(1.dp, Color(0xFF38BDF8).copy(alpha = 0.5f)),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+            ) {
+                Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("💡 1-Klick Silber-Generator (Empfohlene Vorlagen)", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Text("Noch keine Aufträge abgeschlossen. Wähle eine Vorlage, um sofort mit Steuer- & Gebührenkalkulation Silber zu erwirtschaften:", color = Color.LightGray, fontSize = 8.5.sp)
+
+                    val presetOrders = listOf(
+                        Triple("T6_PLANKS", "T6 Planken Flipping (Fort Sterling)", 12500 to 14800),
+                        Triple("T5_LEATHER", "T5 Leder Veredelung (Martlock)", 3900 to 4950),
+                        Triple("T4_CAPEITEM_FW_BRIDGEWATCH", "T4 Bridgewatch Umhang (Caerleon)", 60500 to 82500)
+                    )
+
+                    presetOrders.forEach { (resId, title, prices) ->
+                        val buyP = prices.first
+                        val sellP = prices.second
+                        val taxAndFee = (sellP * 0.065).toLong()
+                        val netProfitUnit = sellP - taxAndFee - buyP
+                        Button(
+                            onClick = {
+                                val viewModel = SharedViewModelProvider.get(context.applicationContext as Application)
+                                viewModel.acceptCustomOrder(
+                                    resourceId = resId,
+                                    resourceNameDe = title,
+                                    tier = 6,
+                                    buyCity = "Fort Sterling",
+                                    buyPrice = buyP,
+                                    sellCity = "Lymhurst",
+                                    sellPrice = sellP,
+                                    plannedUnits = 10,
+                                    targetProfit = netProfitUnit * 10
+                                )
+                                Toast.makeText(context, "✅ Vorlage gebucht: $title", Toast.LENGTH_SHORT).show()
+                                onRefresh()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F172A)),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("➕ $title", color = Color.White, fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                                Text("+${fmt.format(netProfitUnit * 10)} S.", color = Color(0xFF4ADE80), fontSize = 9.sp, fontWeight = FontWeight.Black)
+                            }
+                        }
+                    }
+                }
             }
         } else {
             completedOrders.forEach { order ->
