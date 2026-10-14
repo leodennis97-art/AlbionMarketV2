@@ -385,8 +385,10 @@ object TradeCalculator {
                 val cheapestPricesAcrossQualities = mutableListOf<MarketPrice>()
                 for ((city, cityPrices) in pricesByCity) {
                     val validSells = cityPrices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }
-                    if (validSells.isNotEmpty()) {
-                        val cheapest = validSells.minByOrNull { it.sellPriceMin }
+                    val freshSells = validSells.filter { isPriceFreshWithin10Mins(it) }
+                    val sellsToUse = if (freshSells.isNotEmpty()) freshSells else validSells
+                    if (sellsToUse.isNotEmpty()) {
+                        val cheapest = sellsToUse.minByOrNull { it.sellPriceMin }
                         if (cheapest != null) cheapestPricesAcrossQualities.add(cheapest)
                     } else {
                         // Falls wir keinen Sell-Preis haben, nehmen wir den mit der höchsten Buy-Order (wichtig für Schwarzmarkt)
@@ -721,6 +723,17 @@ object TradeCalculator {
         }
 
         return routes.sortedByDescending { it.totalNetProfit }
+    }
+
+    fun isPriceFreshWithin10Mins(price: MarketPrice): Boolean {
+        val dateStr = price.sellPriceMinDate
+        if (dateStr.isBlank() || dateStr.contains("Echtzeit", ignoreCase = true) || dateStr.contains("Gerade", ignoreCase = true)) {
+            return true
+        }
+        val dateMs = parseIsoToEpochMs(dateStr)
+        if (dateMs <= 0) return true
+        val tenMinsAgo = System.currentTimeMillis() - (10 * 60 * 1000L)
+        return dateMs >= tenMinsAgo
     }
 
     fun parseIsoToEpochMs(dateStr: String): Long {
