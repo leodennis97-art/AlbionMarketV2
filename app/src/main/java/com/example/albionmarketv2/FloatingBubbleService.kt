@@ -3042,19 +3042,15 @@ fun BubbleCatalogTab(
                     var selectedEnc by remember(res.id) { mutableIntStateOf(res.enchantment) }
                     val effectiveResource = remember(res, selectedEnc) { res.copy(enchantment = selectedEnc) }
                     val isFav = favSet.contains(effectiveResource.id) || favSet.contains(effectiveResource.fullId)
-                    val rawPrices = priceMap[effectiveResource.fullId] ?: priceMap[effectiveResource.id] ?: emptyList()
-                    val mult = when (effectiveResource.enchantment) {
-                        1 -> 2.2
-                        2 -> 4.5
-                        3 -> 9.0
-                        4 -> 18.0
-                        else -> 1.0
-                    }
-                    val prices = if ((priceMap[effectiveResource.fullId] == null) && (effectiveResource.enchantment > 0)) {
-                        rawPrices.map { it.copy(sellPriceMin = (it.sellPriceMin * mult).toInt(), buyPriceMax = (it.buyPriceMax * mult).toInt()) }
-                    } else {
-                        rawPrices
-                    }
+                    val idAt = effectiveResource.fullId.replace("_", "@")
+                    val idUnderscore = effectiveResource.fullId.replace("@", "_")
+                    val prices = priceMap[effectiveResource.fullId]
+                        ?: priceMap[idAt]
+                        ?: priceMap[idUnderscore]
+                        ?: priceMap[effectiveResource.id]
+                        ?: AlbionMarketApi.getFallbackMarketPrices()[effectiveResource.fullId]
+                        ?: emptyList()
+
                     val validPrices = prices.filter { 
                         it.sellPriceMin > 0 && 
                         !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) && 
