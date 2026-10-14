@@ -1,6 +1,6 @@
 {
   "name": "albion-market-server",
-  "version": "4.0.9",
+  "version": "4.1.0",
   "description": "AlbionDataPro Central Market & OTA Server",
   "main": "server.js",
   "scripts": {

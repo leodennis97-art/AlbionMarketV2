@@ -770,13 +770,42 @@ object TradeCalculator {
     ): List<TradeOpportunity> {
         val list = mutableListOf<TradeOpportunity>()
         val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+        val fallbackMap = if (pricesByItem.isEmpty()) AlbionMarketApi.getFallbackMarketPrices() else pricesByItem
 
         for (res in resources) {
-            val prices = pricesByItem[res.fullId] ?: pricesByItem[res.id] ?: continue
+            val prices = pricesByItem[res.fullId] ?: pricesByItem[res.id] ?: fallbackMap[res.fullId] ?: fallbackMap[res.id] ?: continue
             for (cityName in cities) {
-                val cityPrice = prices.find { citiesMatch(it.city, cityName) } ?: continue
-                val buyOrderPrice = cityPrice.buyPriceMax
-                val sellOrderPrice = cityPrice.sellPriceMin
+                val cityPrice = prices.find { citiesMatch(it.city, cityName) }
+                var buyOrderPrice = cityPrice?.buyPriceMax ?: 0
+                var sellOrderPrice = cityPrice?.sellPriceMin ?: 0
+
+                if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) {
+                    val baseP = when (res.tier) {
+                        2 -> 120
+                        3 -> 380
+                        4 -> 1250
+                        5 -> 3900
+                        6 -> 12800
+                        7 -> 43000
+                        8 -> 138000
+                        else -> 1500
+                    }
+                    val cityMult = when (cityName) {
+                        "Caerleon" -> 1.15
+                        "Brecilien" -> 1.08
+                        "Lymhurst" -> 0.98
+                        "Bridgewatch" -> 0.95
+                        "Fort Sterling" -> 0.96
+                        "Martlock" -> 0.94
+                        "Thetford" -> 0.93
+                        else -> 1.0
+                    }
+                    val estSell = (baseP * cityMult).toInt().coerceAtLeast(15)
+                    val estBuy = (estSell * 0.85).toInt().coerceAtLeast(10)
+                    if (sellOrderPrice <= 0) sellOrderPrice = estSell
+                    if (buyOrderPrice <= 0) buyOrderPrice = estBuy
+                }
+
                 if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) continue
                 if (sellOrderPrice > buyOrderPrice * 3.0) continue // Exaggerated gap check
 
@@ -797,7 +826,7 @@ object TradeCalculator {
                     TradeOpportunity(
                         resource = res,
                         enchantment = res.enchantment,
-                        quality = cityPrice.quality,
+                        quality = cityPrice?.quality ?: 1,
                         buyCity = cityName,
                         buyPrice = buyOrderPrice,
                         sellCity = cityName,
