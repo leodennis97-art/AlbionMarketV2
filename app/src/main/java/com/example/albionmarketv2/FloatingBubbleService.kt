@@ -3242,14 +3242,27 @@ fun BubbleCraftingTab(
     uiState: ResourceUiState,
     maxHeight: Dp,
 ) {
+    val context = LocalContext.current
+    val prefsObj = remember { AppPreferences(context) }
+    var selectedCity by remember { mutableStateOf(prefsObj.bubbleStandpunktCity) }
+    val cities = listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val fmtDec = remember { DecimalFormat("0.0", DecimalFormatSymbols(Locale.GERMANY)) }
     var hideCaerleonInCrafting by remember { mutableStateOf(value = false) }
     var useFocusInCrafting by remember { mutableStateOf(value = true) }
 
-    val craftingOpps = remember(priceMap, hideCaerleonInCrafting, useFocusInCrafting) {
-        CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true, hideCaerleon = hideCaerleonInCrafting).take(25)
+    val allCraftingOpps = remember(priceMap, hideCaerleonInCrafting, useFocusInCrafting) {
+        CraftingRepository.calculateCraftingOpportunities(priceMap, hasPremium = true, hideCaerleon = hideCaerleonInCrafting)
+    }
+
+    val craftingOpps = remember(allCraftingOpps, selectedCity) {
+        if (selectedCity == "ALLE") {
+            allCraftingOpps.take(25)
+        } else {
+            allCraftingOpps.filter { TradeCalculator.citiesMatch(it.cheapestBuyCity, selectedCity) || TradeCalculator.citiesMatch(it.highestSellCity, selectedCity) }.take(25)
+        }
     }
 
     Column(
@@ -3272,6 +3285,30 @@ fun BubbleCraftingTab(
                     colors = SwitchDefaults.colors(checkedThumbColor = Color(0xFFFACC15)),
                     modifier = Modifier.scale(0.65f)
                 )
+            }
+        }
+
+        Text("🏙️ Nach Stadt filtern:", color = Color(0xFF38BDF8), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            items(items = cities) { c ->
+                val isSelected = selectedCity == c
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFF38BDF8) else Color(0xFF1E293B),
+                    modifier = Modifier.clickable {
+                        selectedCity = c
+                        prefsObj.bubbleStandpunktCity = c
+                    }
+                ) {
+                    Text(
+                        text = if (c == "ALLE") "Alle Städte" else c,
+                        color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
 
