@@ -1041,59 +1041,51 @@ object TradeCalculator {
             LaborerJournalSpec("JOURNAL_HIDE_T8", "T8 Kürschner-Tagebuch", 8, "Gathering", 14500, 118000, "100% Drop: 20x T8 Haut (150% Zufriedenheit)")
         )
 
-        for (j in journals) {
-            // 1. Cheapest buy city for empty journal
-            var cheapestBuyCity = "Alle Städte"
-            var cheapestEmptyPrice = 0L
+        for (city in cities) {
+            for (j in journals) {
+                var emptyPrice = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_EMPTY", city, priceMap).toLong()
+                if (emptyPrice <= 0) emptyPrice = j.defaultEmptyPrice
 
-            for (city in cities) {
-                val emptyP = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_EMPTY", city, priceMap).toLong()
-                if (emptyP > 0 && (cheapestEmptyPrice == 0L || emptyP < cheapestEmptyPrice)) {
-                    cheapestEmptyPrice = emptyP
-                    cheapestBuyCity = city
+                // Find highest sell city for full journal
+                var highestSellCity = "Caerleon"
+                var highestFullPrice = 0L
+
+                for (sCity in cities) {
+                    val fullP = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_FULL", sCity, priceMap).toLong()
+                    if (fullP > highestFullPrice) {
+                        highestFullPrice = fullP
+                        highestSellCity = sCity
+                    }
                 }
-            }
-            if (cheapestEmptyPrice <= 0) cheapestEmptyPrice = j.defaultEmptyPrice
+                if (highestFullPrice <= 0) highestFullPrice = j.defaultFullPrice
 
-            // 2. Highest sell city for full journal
-            var highestSellCity = "Caerleon"
-            var highestFullPrice = 0L
+                val netSellPrice = (highestFullPrice * 0.935).toLong() // Deduct 4% tax + 2.5% fee
+                var profit = netSellPrice - emptyPrice
+                if (profit <= 0) profit = (emptyPrice * 0.25).toLong().coerceAtLeast(350L)
 
-            for (city in cities) {
-                val fullP = CraftingRepository.getPriceInCity("T${j.tier}_JOURNAL_${j.jobType.uppercase()}_FULL", city, priceMap).toLong()
-                if (fullP > highestFullPrice) {
-                    highestFullPrice = fullP
-                    highestSellCity = city
-                }
-            }
-            if (highestFullPrice <= 0) highestFullPrice = j.defaultFullPrice
+                val roi = (profit.toDouble() / emptyPrice) * 100.0
+                if (roi > 100.0) continue
 
-            val netSellPrice = (highestFullPrice * 0.935).toLong() // Deduct 4% tax + 2.5% fee
-            var profit = netSellPrice - cheapestEmptyPrice
-            if (profit <= 0) profit = (cheapestEmptyPrice * 0.25).toLong().coerceAtLeast(350L)
+                val mockRes = AlbionResource("${j.journalId}_$city", j.nameDe, j.nameDe, j.tier, ResourceCategory.REFINED)
 
-            val roi = (profit.toDouble() / cheapestEmptyPrice) * 100.0
-            if (roi > 100.0) continue
-
-            val mockRes = AlbionResource(j.journalId, j.nameDe, j.nameDe, j.tier, ResourceCategory.REFINED)
-
-            list.add(
-                CraftingOpportunityDetails(
-                    resource = mockRes,
-                    roiPercent = roi,
-                    cheapestBuyCity = cheapestBuyCity,
-                    totalIngredientCost = cheapestEmptyPrice,
-                    highestSellCity = highestSellCity,
-                    finishedItemSellPrice = highestFullPrice.toInt(),
-                    netProfit = profit,
-                    recBuyOrderCost = (cheapestEmptyPrice * 0.9).toLong(),
-                    recSellOrderPrice = (highestFullPrice - 1).toInt(),
-                    ingredientSummary = "🛒 Leer-Kauf ($cheapestBuyCity): ${fmt.format(cheapestEmptyPrice)} S. | 👷 Arbeiter Yield: ${j.laborerYieldDesc} | 🏷️ Voll-Verkauf ($highestSellCity): ${fmt.format(highestFullPrice)} S.",
-                    maxOrderProfit = profit * 20,
-                    estimatedRoiPercent = roi,
-                    targetMarket = "Tagebücher ($cheapestBuyCity ➔ $highestSellCity)"
+                list.add(
+                    CraftingOpportunityDetails(
+                        resource = mockRes,
+                        roiPercent = roi,
+                        cheapestBuyCity = city,
+                        totalIngredientCost = emptyPrice,
+                        highestSellCity = highestSellCity,
+                        finishedItemSellPrice = highestFullPrice.toInt(),
+                        netProfit = profit,
+                        recBuyOrderCost = (emptyPrice * 0.9).toLong(),
+                        recSellOrderPrice = (highestFullPrice - 1).toInt(),
+                        ingredientSummary = "🛒 Leer-Kauf ($city): ${fmt.format(emptyPrice)} S. | 👷 Yield: ${j.laborerYieldDesc} | 🏷️ Voll-Verkauf ($highestSellCity): ${fmt.format(highestFullPrice)} S. (Netto-Marge: +${fmt.format(profit)} S.)",
+                        maxOrderProfit = profit * 20,
+                        estimatedRoiPercent = roi,
+                        targetMarket = "Tagebücher ($city ➔ $highestSellCity)"
+                    )
                 )
-            )
+            }
         }
         return list.sortedByDescending { it.netProfit }
     }
