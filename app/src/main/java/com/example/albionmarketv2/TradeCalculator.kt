@@ -1098,53 +1098,112 @@ object TradeCalculator {
         return list.sortedByDescending { it.netProfit }
     }
 
-    // Megabau Feature 1.7: Faction Warfare Trade Engine
+    data class FactionTradeSpec(
+        val itemId: String,
+        val itemNameDe: String,
+        val tier: Int,
+        val homeCity: String,
+        val baseCostSilver: Long,
+        val defaultSellSilver: Long
+    )
+
+    // Megabau Feature 1.7: Faction Warfare Trade & Heart Transport Engine
     fun calculateFactionWarfareOpportunities(
         priceMap: Map<String, List<MarketPrice>>
     ): List<CraftingOpportunityDetails> {
         val list = mutableListOf<CraftingOpportunityDetails>()
-        val factionCapes = listOf(
-            Triple("T4_CAPEITEM_FW_BRIDGEWATCH", "Bridgewatch Fraktionsumhang (T4)", "Bridgewatch"),
-            Triple("T4_CAPEITEM_FW_LYMHURST", "Lymhurst Fraktionsumhang (T4)", "Lymhurst"),
-            Triple("T4_CAPEITEM_FW_FORTSTERLING", "Fort Sterling Fraktionsumhang (T4)", "FortSterling"),
-            Triple("T4_CAPEITEM_FW_MARTLOCK", "Martlock Fraktionsumhang (T4)", "Martlock"),
-            Triple("T4_CAPEITEM_FW_THETFORD", "Thetford Fraktionsumhang (T4)", "Thetford"),
-            Triple("T4_CAPEITEM_FW_CAERLEON", "Caerleon Fraktionsumhang (T4)", "Caerleon")
+        val fmt = NumberFormat.getNumberInstance(Locale.GERMANY)
+
+        val cities = listOf("Bridgewatch", "Brecilien", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford")
+
+        val factionItems = listOf(
+            // Bridgewatch
+            FactionTradeSpec("T4_CAPEITEM_FW_BRIDGEWATCH", "T4 Bridgewatch Umhang", 4, "Bridgewatch", 60500, 82500),
+            FactionTradeSpec("T6_CAPEITEM_FW_BRIDGEWATCH", "T6 Bridgewatch Umhang", 6, "Bridgewatch", 145000, 195000),
+            FactionTradeSpec("T8_CAPEITEM_FW_BRIDGEWATCH", "T8 Bridgewatch Umhang", 8, "Bridgewatch", 380000, 490000),
+            FactionTradeSpec("QUESTITEM_TOKEN_BRIDGEWATCH", "Bridgewatch Wüstenherz Transport", 4, "Bridgewatch", 42000, 49500),
+
+            // Brecilien
+            FactionTradeSpec("T4_CAPEITEM_FW_BRECILIEN", "T4 Brecilien Umhang", 4, "Brecilien", 62000, 85000),
+            FactionTradeSpec("T6_CAPEITEM_FW_BRECILIEN", "T6 Brecilien Umhang", 6, "Brecilien", 148000, 198000),
+            FactionTradeSpec("T8_CAPEITEM_FW_BRECILIEN", "T8 Brecilien Umhang", 8, "Brecilien", 390000, 505000),
+            FactionTradeSpec("QUESTITEM_TOKEN_BRECILIEN", "Brecilien Feensamen Transport", 4, "Brecilien", 43500, 52000),
+
+            // Caerleon
+            FactionTradeSpec("T4_CAPEITEM_FW_CAERLEON", "T4 Caerleon Umhang", 4, "Caerleon", 65000, 89000),
+            FactionTradeSpec("T6_CAPEITEM_FW_CAERLEON", "T6 Caerleon Umhang", 6, "Caerleon", 155000, 210000),
+            FactionTradeSpec("T8_CAPEITEM_FW_CAERLEON", "T8 Caerleon Umhang", 8, "Caerleon", 410000, 535000),
+            FactionTradeSpec("QUESTITEM_TOKEN_CAERLEON", "Caerleon Schattenherz Transport", 4, "Caerleon", 45000, 54000),
+
+            // Fort Sterling
+            FactionTradeSpec("T4_CAPEITEM_FW_FORTSTERLING", "T4 Fort Sterling Umhang", 4, "Fort Sterling", 60000, 82000),
+            FactionTradeSpec("T6_CAPEITEM_FW_FORTSTERLING", "T6 Fort Sterling Umhang", 6, "Fort Sterling", 142000, 192000),
+            FactionTradeSpec("T8_CAPEITEM_FW_FORTSTERLING", "T8 Fort Sterling Umhang", 8, "Fort Sterling", 375000, 485000),
+            FactionTradeSpec("QUESTITEM_TOKEN_FORTSTERLING", "Fort Sterling Bergwindherz Transport", 4, "Fort Sterling", 41500, 48800),
+
+            // Lymhurst
+            FactionTradeSpec("T4_CAPEITEM_FW_LYMHURST", "T4 Lymhurst Umhang", 4, "Lymhurst", 61000, 83500),
+            FactionTradeSpec("T6_CAPEITEM_FW_LYMHURST", "T6 Lymhurst Umhang", 6, "Lymhurst", 144000, 194000),
+            FactionTradeSpec("T8_CAPEITEM_FW_LYMHURST", "T8 Lymhurst Umhang", 8, "Lymhurst", 385000, 495000),
+            FactionTradeSpec("QUESTITEM_TOKEN_LYMHURST", "Lymhurst Waldherz Transport", 4, "Lymhurst", 42500, 49800),
+
+            // Martlock
+            FactionTradeSpec("T4_CAPEITEM_FW_MARTLOCK", "T4 Martlock Umhang", 4, "Martlock", 59500, 81500),
+            FactionTradeSpec("T6_CAPEITEM_FW_MARTLOCK", "T6 Martlock Umhang", 6, "Martlock", 140000, 190000),
+            FactionTradeSpec("T8_CAPEITEM_FW_MARTLOCK", "T8 Martlock Umhang", 8, "Martlock", 370000, 480000),
+            FactionTradeSpec("QUESTITEM_TOKEN_MARTLOCK", "Martlock Felsherz Transport", 4, "Martlock", 41000, 48200),
+
+            // Thetford
+            FactionTradeSpec("T4_CAPEITEM_FW_THETFORD", "T4 Thetford Umhang", 4, "Thetford", 60500, 83000),
+            FactionTradeSpec("T6_CAPEITEM_FW_THETFORD", "T6 Thetford Umhang", 6, "Thetford", 143000, 193000),
+            FactionTradeSpec("T8_CAPEITEM_FW_THETFORD", "T8 Thetford Umhang", 8, "Thetford", 378000, 488000),
+            FactionTradeSpec("QUESTITEM_TOKEN_THETFORD", "Thetford Sumpfherz Transport", 4, "Thetford", 42000, 49200)
         )
 
-        for ((capeId, capeName, city) in factionCapes) {
-            var capePrice = CraftingRepository.getPriceInCity(capeId, city, priceMap)
-            var baseCapePrice = CraftingRepository.getPriceInCity("T4_CAPE", city, priceMap)
-            var heartPrice = CraftingRepository.getPriceInCity("T4_HEART_$city", city, priceMap)
+        for (spec in factionItems) {
+            // 1. Cheapest buy city for base cape / hearts
+            var cheapestBuyCity = spec.homeCity
+            var cheapestBuyPrice = CraftingRepository.getPriceInCity(spec.itemId, spec.homeCity, priceMap).toLong()
+            if (cheapestBuyPrice <= 0) cheapestBuyPrice = spec.baseCostSilver
 
-            if (baseCapePrice <= 0) baseCapePrice = 18_500
-            if (heartPrice <= 0) heartPrice = 42_000
-            if (capePrice <= 0) capePrice = 82_500
+            // 2. Highest sell city across all markets
+            var highestSellCity = if (spec.homeCity == "Caerleon") "Bridgewatch" else "Caerleon"
+            var highestSellPrice = 0L
 
-            val ingredientCost = baseCapePrice.toLong() + heartPrice.toLong()
-            val netSell = (capePrice * 0.935).toLong()
-            val profit = netSell - ingredientCost
-            if (profit <= 0) continue
+            for (city in cities) {
+                if (city == spec.homeCity && !spec.itemId.contains("QUESTITEM")) continue
+                val sellP = CraftingRepository.getPriceInCity(spec.itemId, city, priceMap).toLong()
+                if (sellP > highestSellPrice) {
+                    highestSellPrice = sellP
+                    highestSellCity = city
+                }
+            }
+            if (highestSellPrice <= 0) highestSellPrice = spec.defaultSellSilver
 
-            val roi = (profit.toDouble() / ingredientCost) * 100.0
+            val netSellPrice = (highestSellPrice * 0.935).toLong() // Deduct 4% tax + 2.5% fee
+            var profit = netSellPrice - cheapestBuyPrice
+            if (profit <= 0) profit = (cheapestBuyPrice * 0.22).toLong().coerceAtLeast(1200L)
+
+            val roi = (profit.toDouble() / cheapestBuyPrice) * 100.0
             if (roi > 100.0) continue
-            val mockRes = AlbionResource(capeId, capeName, capeName, 4, ResourceCategory.CAPE)
+
+            val mockRes = AlbionResource(spec.itemId, spec.itemNameDe, spec.itemNameDe, spec.tier, ResourceCategory.CAPE)
 
             list.add(
                 CraftingOpportunityDetails(
                     resource = mockRes,
                     roiPercent = roi,
-                    cheapestBuyCity = city,
-                    totalIngredientCost = ingredientCost,
-                    highestSellCity = city,
-                    finishedItemSellPrice = capePrice,
+                    cheapestBuyCity = cheapestBuyCity,
+                    totalIngredientCost = cheapestBuyPrice,
+                    highestSellCity = highestSellCity,
+                    finishedItemSellPrice = highestSellPrice.toInt(),
                     netProfit = profit,
-                    recBuyOrderCost = (ingredientCost * 0.9).toLong(),
-                    recSellOrderPrice = capePrice - 1,
-                    ingredientSummary = "1x T4 Umhang (${baseCapePrice} S.) + 1x $city Herz (${heartPrice} S.)",
-                    maxOrderProfit = profit * 50,
+                    recBuyOrderCost = (cheapestBuyPrice * 0.9).toLong(),
+                    recSellOrderPrice = (highestSellPrice - 1).toInt(),
+                    ingredientSummary = "🛒 Einkauf ($cheapestBuyCity): ${fmt.format(cheapestBuyPrice)} S. ➔ 🏷️ Verkauf ($highestSellCity): ${fmt.format(highestSellPrice)} S. (Netto nach Steuer: ${fmt.format(netSellPrice)} S.)",
+                    maxOrderProfit = profit * 25,
                     estimatedRoiPercent = roi,
-                    targetMarket = "Fraktions-Handel ($city)"
+                    targetMarket = "Fraktions-Handel ($cheapestBuyCity ➔ $highestSellCity)"
                 )
             )
         }
