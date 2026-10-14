@@ -260,9 +260,15 @@ object CraftingRepository {
     }
 
     fun getPriceInCity(resourceId: String, cityName: String, priceMap: Map<String, List<MarketPrice>>): Int {
-        val prices = priceMap[resourceId] ?: emptyList()
+        val idAt = resourceId.replace("_", "@")
+        val idUnderscore = resourceId.replace("@", "_")
+        val prices = priceMap[resourceId] ?: priceMap[idAt] ?: priceMap[idUnderscore] ?: emptyList()
+
         val cityPrice = prices.find { TradeCalculator.citiesMatch(it.city, cityName) }?.sellPriceMin
         if (cityPrice != null && cityPrice > 0) return cityPrice
+
+        val cityBuyOrder = prices.find { TradeCalculator.citiesMatch(it.city, cityName) }?.buyPriceMax
+        if (cityBuyOrder != null && cityBuyOrder > 0) return cityBuyOrder
 
         val minPrice = prices.filter { it.sellPriceMin > 0 }.minByOrNull { it.sellPriceMin }?.sellPriceMin
         if (minPrice != null && minPrice > 0) return minPrice

@@ -102,6 +102,7 @@ object TradeCalculator {
     fun normalizeCityName(city: String): String {
         val c = city.lowercase()
             .replace(" ", "")
+            .replace("%20", "")
             .replace("'", "")
             .replace("`", "")
             .replace("-", "")
