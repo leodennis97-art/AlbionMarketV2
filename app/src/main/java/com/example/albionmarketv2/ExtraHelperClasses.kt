@@ -264,14 +264,15 @@ object CraftingRepository {
         val idUnderscore = resourceId.replace("@", "_")
         val prices = priceMap[resourceId] ?: priceMap[idAt] ?: priceMap[idUnderscore] ?: emptyList()
 
-        val cityPrice = prices.find { TradeCalculator.citiesMatch(it.city, cityName) }?.sellPriceMin
-        if (cityPrice != null && cityPrice > 0) return cityPrice
+        val cityPrices = prices.filter { TradeCalculator.citiesMatch(it.city, cityName) && it.sellPriceMin > 0 }
+        val lowestCityPrice = cityPrices.minByOrNull { it.sellPriceMin }?.sellPriceMin
+        if (lowestCityPrice != null && lowestCityPrice > 0) return lowestCityPrice
 
         val cityBuyOrder = prices.find { TradeCalculator.citiesMatch(it.city, cityName) }?.buyPriceMax
         if (cityBuyOrder != null && cityBuyOrder > 0) return cityBuyOrder
 
-        val minPrice = prices.filter { it.sellPriceMin > 0 }.minByOrNull { it.sellPriceMin }?.sellPriceMin
-        if (minPrice != null && minPrice > 0) return minPrice
+        val globalLowestSell = prices.filter { it.sellPriceMin > 0 }.minByOrNull { it.sellPriceMin }?.sellPriceMin
+        if (globalLowestSell != null && globalLowestSell > 0) return globalLowestSell
 
         val res = AlbionResourceRepository.resources.find { it.fullId == resourceId || it.id == resourceId }
         val tier = res?.tier ?: 4
