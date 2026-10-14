@@ -2607,6 +2607,25 @@ fun BubbleRefiningMatrixTab(
                                 Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
                                     Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
                                 }
+                                IconButton(
+                                    onClick = {
+                                        viewModel.acceptCustomOrder(
+                                            resourceId = opp.resource.id,
+                                            resourceNameDe = opp.resource.nameDe,
+                                            tier = opp.resource.tier,
+                                            buyCity = opp.cheapestBuyCity,
+                                            buyPrice = opp.totalIngredientCost.toInt(),
+                                            sellCity = opp.highestSellCity,
+                                            sellPrice = opp.finishedItemSellPrice,
+                                            plannedUnits = 1,
+                                            targetProfit = opp.netProfit
+                                        )
+                                        Toast.makeText(viewModel.getApplication(), "🧱 Veredelungs-Auftrag gebucht!", Toast.LENGTH_SHORT).show()
+                                    },
+                                    modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(Icons.Default.Add, contentDescription = "Buchen", tint = Color(0xFF10B981))
+                                }
                             }
                             Spacer(modifier = Modifier.height(3.dp))
                             Text("📦 Zutat: ${opp.ingredientSummary}", color = Color(0xFFCBD5E1), fontSize = 9.sp)
