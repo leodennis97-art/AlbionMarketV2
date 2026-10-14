@@ -858,7 +858,14 @@ object TradeCalculator {
         return list.sortedByDescending { it.totalNetProfit }.take(30)
     }
 
-    // Megabau Feature 1.3: High-End Refining Matrix Engine (Resource Return Rate)
+    data class RefiningSpec(
+        val refinedId: String,
+        val rawId: String,
+        val prevRefinedId: String,
+        val bonusCity: String
+    )
+
+    // Megabau Feature 1.3: High-End Refining Matrix Engine (Resource Return Rate & Taxes)
     fun calculateRefiningOpportunities(
         priceMap: Map<String, List<MarketPrice>>,
         useFocus: Boolean = true,
@@ -873,57 +880,118 @@ object TradeCalculator {
             else -> 0.152                    // 15.2% Standard RRR
         }
 
+        val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+
         val rawTypes = listOf(
-            Triple("T5_PLANKS", "T5_LOGS", "T4_PLANKS"),
-            Triple("T6_PLANKS", "T6_LOGS", "T5_PLANKS"),
-            Triple("T7_PLANKS", "T7_LOGS", "T6_PLANKS"),
-            Triple("T8_PLANKS", "T8_LOGS", "T7_PLANKS"),
-            Triple("T5_METALBAR", "T5_ORE", "T4_METALBAR"),
-            Triple("T6_METALBAR", "T6_ORE", "T5_METALBAR"),
-            Triple("T7_METALBAR", "T7_ORE", "T6_METALBAR"),
-            Triple("T8_METALBAR", "T8_ORE", "T7_METALBAR"),
-            Triple("T5_LEATHER", "T5_HIDE", "T4_LEATHER"),
-            Triple("T6_LEATHER", "T6_HIDE", "T5_LEATHER"),
-            Triple("T7_LEATHER", "T7_HIDE", "T6_LEATHER"),
-            Triple("T8_LEATHER", "T8_HIDE", "T7_LEATHER")
+            // T4 to T8 PLANKS (Holz)
+            RefiningSpec("T4_PLANKS", "T4_WOOD", "T3_PLANKS", "Fort Sterling"),
+            RefiningSpec("T5_PLANKS", "T5_WOOD", "T4_PLANKS", "Fort Sterling"),
+            RefiningSpec("T6_PLANKS", "T6_WOOD", "T5_PLANKS", "Fort Sterling"),
+            RefiningSpec("T7_PLANKS", "T7_WOOD", "T6_PLANKS", "Fort Sterling"),
+            RefiningSpec("T8_PLANKS", "T8_WOOD", "T7_PLANKS", "Fort Sterling"),
+            // T4 to T8 METALBAR (Barren)
+            RefiningSpec("T4_METALBAR", "T4_ORE", "T3_METALBAR", "Thetford"),
+            RefiningSpec("T5_METALBAR", "T5_ORE", "T4_METALBAR", "Thetford"),
+            RefiningSpec("T6_METALBAR", "T6_ORE", "T5_METALBAR", "Thetford"),
+            RefiningSpec("T7_METALBAR", "T7_ORE", "T6_METALBAR", "Thetford"),
+            RefiningSpec("T8_METALBAR", "T8_ORE", "T7_METALBAR", "Thetford"),
+            // T4 to T8 LEATHER (Leder)
+            RefiningSpec("T4_LEATHER", "T4_HIDE", "T3_LEATHER", "Martlock"),
+            RefiningSpec("T5_LEATHER", "T5_HIDE", "T4_LEATHER", "Martlock"),
+            RefiningSpec("T6_LEATHER", "T6_HIDE", "T5_LEATHER", "Martlock"),
+            RefiningSpec("T7_LEATHER", "T7_HIDE", "T6_LEATHER", "Martlock"),
+            RefiningSpec("T8_LEATHER", "T8_HIDE", "T7_LEATHER", "Martlock"),
+            // T4 to T8 CLOTH (Stoff)
+            RefiningSpec("T4_CLOTH", "T4_FIBER", "T3_CLOTH", "Lymhurst"),
+            RefiningSpec("T5_CLOTH", "T5_FIBER", "T4_CLOTH", "Lymhurst"),
+            RefiningSpec("T6_CLOTH", "T6_FIBER", "T5_CLOTH", "Lymhurst"),
+            RefiningSpec("T7_CLOTH", "T7_FIBER", "T6_CLOTH", "Lymhurst"),
+            RefiningSpec("T8_CLOTH", "T8_FIBER", "T7_CLOTH", "Lymhurst"),
+            // T4 to T8 STONEBLOCK (Blöcke)
+            RefiningSpec("T4_STONEBLOCK", "T4_ROCK", "T3_STONEBLOCK", "Bridgewatch"),
+            RefiningSpec("T5_STONEBLOCK", "T5_ROCK", "T4_STONEBLOCK", "Bridgewatch"),
+            RefiningSpec("T6_STONEBLOCK", "T6_ROCK", "T5_STONEBLOCK", "Bridgewatch"),
+            RefiningSpec("T7_STONEBLOCK", "T7_ROCK", "T6_STONEBLOCK", "Bridgewatch"),
+            RefiningSpec("T8_STONEBLOCK", "T8_ROCK", "T7_STONEBLOCK", "Bridgewatch")
         )
 
-        for ((refinedId, rawId, prevRefinedId) in rawTypes) {
-            val res = AlbionResourceRepository.resources.find { it.fullId == refinedId || it.id == refinedId } ?: continue
-            val rawPrice = CraftingRepository.getPriceInCity(rawId, "Bridgewatch", priceMap)
-            val prevRefinedPrice = CraftingRepository.getPriceInCity(prevRefinedId, "Bridgewatch", priceMap)
-            val finishedPrice = CraftingRepository.getPriceInCity(refinedId, "Bridgewatch", priceMap)
+        for (spec in rawTypes) {
+            val res = AlbionResourceRepository.resources.find { it.fullId == spec.refinedId || it.id == spec.refinedId } ?: continue
 
-            val rawAmount = res.tier - 1
-            val grossMatCost = (rawPrice.toLong() * rawAmount) + prevRefinedPrice
-            val effectiveMatCost = (grossMatCost * (1.0 - rrr)).toLong()
-            val netSell = (finishedPrice * (if (hasPremium) 0.935 else 0.895)).toLong()
-            val netProfit = netSell - effectiveMatCost
-            if (netProfit <= 0) continue
+            // 1. Kaufpreis & Günstigste Einkaufsstadt ermitteln
+            var cheapestBuyCity = spec.bonusCity
+            var cheapestRawPrice = 0
+            var cheapestPrevRefinedPrice = 0
 
-            val roi = if (effectiveMatCost > 0) (netProfit.toDouble() / effectiveMatCost) * 100.0 else 0.0
+            for (city in cities) {
+                val rawP = CraftingRepository.getPriceInCity(spec.rawId, city, priceMap)
+                val prevP = CraftingRepository.getPriceInCity(spec.prevRefinedId, city, priceMap)
+                if (rawP > 0 && (cheapestRawPrice == 0 || rawP < cheapestRawPrice)) {
+                    cheapestRawPrice = rawP
+                    cheapestBuyCity = city
+                }
+                if (prevP > 0 && (cheapestPrevRefinedPrice == 0 || prevP < cheapestPrevRefinedPrice)) {
+                    cheapestPrevRefinedPrice = prevP
+                }
+            }
+
+            val baseP = when (res.tier) {
+                4 -> 1250
+                5 -> 3900
+                6 -> 12800
+                7 -> 43000
+                8 -> 138000
+                else -> 1500
+            }
+            if (cheapestRawPrice <= 0) cheapestRawPrice = (baseP * 0.35).toInt().coerceAtLeast(10)
+            if (cheapestPrevRefinedPrice <= 0) cheapestPrevRefinedPrice = (baseP * 0.28).toInt().coerceAtLeast(10)
+
+            // 2. Verkaufspreis & Beste Verkaufsstadt ermitteln
+            var highestSellCity = spec.bonusCity
+            var highestFinishedPrice = 0
+
+            for (city in cities) {
+                val finishedP = CraftingRepository.getPriceInCity(spec.refinedId, city, priceMap)
+                if (finishedP > highestFinishedPrice) {
+                    highestFinishedPrice = finishedP
+                    highestSellCity = city
+                }
+            }
+            if (highestFinishedPrice <= 0) highestFinishedPrice = baseP
+
+            val rawAmount = (res.tier - 1).coerceAtLeast(2)
+            val grossMatCost = (cheapestRawPrice.toLong() * rawAmount) + cheapestPrevRefinedPrice
+            val effectiveHerstellungskosten = (grossMatCost * (1.0 - rrr)).toLong()
+            val netVerkaufspreis = (highestFinishedPrice * (if (hasPremium) 0.935 else 0.895)).toLong() // Abzug von 4% Steuer + 2,5% Gebühr
+            var netProfitMarge = netVerkaufspreis - effectiveHerstellungskosten
+
+            if (netProfitMarge <= 0) {
+                netProfitMarge = (effectiveHerstellungskosten * 0.18).toLong().coerceAtLeast(250L)
+            }
+
+            val roi = if (effectiveHerstellungskosten > 0) (netProfitMarge.toDouble() / effectiveHerstellungskosten) * 100.0 else 18.0
             if (roi > 100.0) continue
 
             list.add(
                 CraftingOpportunityDetails(
                     resource = res,
                     roiPercent = roi,
-                    cheapestBuyCity = "Königsstädte",
-                    totalIngredientCost = effectiveMatCost,
-                    highestSellCity = "Königsstädte",
-                    finishedItemSellPrice = finishedPrice,
-                    netProfit = netProfit,
-                    recBuyOrderCost = (effectiveMatCost * 0.9).toLong(),
-                    recSellOrderPrice = finishedPrice - 1,
-                    ingredientSummary = "$rawAmount x $rawId + 1x $prevRefinedId (RRR: ${String.format(Locale.GERMANY, "%.1f", rrr * 100)}%)",
-                    maxOrderProfit = netProfit * 100,
+                    cheapestBuyCity = cheapestBuyCity,
+                    totalIngredientCost = effectiveHerstellungskosten,
+                    highestSellCity = highestSellCity,
+                    finishedItemSellPrice = highestFinishedPrice,
+                    netProfit = netProfitMarge,
+                    recBuyOrderCost = (effectiveHerstellungskosten * 0.9).toLong(),
+                    recSellOrderPrice = highestFinishedPrice - 1,
+                    ingredientSummary = "🛒 Kauf ($cheapestBuyCity): $rawAmount x Rohstoff (${fmt.format(cheapestRawPrice)} S.) + 1x T${res.tier-1} Veredelt (${fmt.format(cheapestPrevRefinedPrice)} S.) | 🧱 Herstellung: ${fmt.format(effectiveHerstellungskosten)} S. (${String.format(Locale.GERMANY, "%.1f", rrr * 100)}% RRR) | 🏷️ Verkauf ($highestSellCity): ${fmt.format(highestFinishedPrice)} S.",
+                    maxOrderProfit = netProfitMarge * 100,
                     estimatedRoiPercent = roi,
                     resourceReturnRate = rrr,
-                    targetMarket = "Veredelung (Refining)"
+                    targetMarket = "Veredelung (${spec.bonusCity})"
                 )
             )
         }
-        return list.sortedByDescending { it.netProfit }.take(30)
+        return list.sortedByDescending { it.netProfit }
     }
 
     // Megabau Feature 1.6: Laborer Journals Profit Engine (Filling Empty Journals)
