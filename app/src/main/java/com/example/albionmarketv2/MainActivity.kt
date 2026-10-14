@@ -842,7 +842,7 @@ class MainActivity : ComponentActivity() {
                                                 color = Color(0xFF94A3B8),
                                                 modifier = Modifier.clickable {
                                                     try {
-                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
+                                                        val webIntent = Intent(Intent.ACTION_VIEW, "https://datapro-nmsx.onrender.com".toUri())
                                                         context.startActivity(webIntent)
                                                     } catch (_: Exception) {}
                                                 }
@@ -906,7 +906,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "4.1.6"})!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "4.1.7"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {

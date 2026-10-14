@@ -5622,7 +5622,7 @@ fun AppSettingsDialog(
                 Button(
                     onClick = {
                         try {
-                            val intent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com".toUri())
+                            val intent = Intent(Intent.ACTION_VIEW, "https://datapro-nmsx.onrender.com".toUri())
                             context.startActivity(intent)
                         } catch (_: Exception) {
                             Toast.makeText(context, "Webseite konnte nicht geöffnet werden", Toast.LENGTH_SHORT).show()
@@ -5634,7 +5634,7 @@ fun AppSettingsDialog(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp)
                 ) {
                     Text(
-                        text = "🌐 Offizielle Webseite:\nalbionmarketv2-1.onrender.com",
+                        text = "🌐 Offizielle Webseite:\ndatapro-nmsx.onrender.com",
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,

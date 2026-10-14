@@ -2,7 +2,7 @@
 
 **Stand:** Januar 2026
 
-Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten (nachfolgend „Daten“) innerhalb unserer Android-App **DataPro** (sowie der zugehörigen Webdienste und APIs unter `albionmarketv2-1.onrender.com` und `www.DataPro.com`) auf.
+Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten (nachfolgend „Daten“) innerhalb unserer Android-App **DataPro** (sowie der zugehörigen Webdienste und APIs unter `datapro-nmsx.onrender.com` und `www.DataPro.com`) auf.
 
 ---
 
@@ -34,7 +34,7 @@ Die Datenverarbeitung erfolgt zu folgenden Zwecken:
 
 ### 4. Einsatz von Drittanbietern und APIs
 Unsere App kommuniziert mit folgenden externen Diensten und APIs:
-* **Eigenes Backend (Render / Custom Server):** `https://albionmarketv2-1.onrender.com` & `https://www.DataPro.com` zur Daten- und Lizenzsynchronisation.
+* **Eigenes Backend (Render / Custom Server):** `https://datapro-nmsx.onrender.com` & `https://www.DataPro.com` zur Daten- und Lizenzsynchronisation.
 * **Firebase (Google):** Für Authentifizierung, Push-Benachrichtigungen und Crash-Reporting (gemäß den Datenschutzbestimmungen von Google).
 * **Albion Online Data Project APIs:** Zum Abrufen öffentlicher Spielmarktstatistiken (`*.albion-online-data.com`).
 * **PayPal:** Zur Abwicklung von Lizenzkäufen und Spenden.

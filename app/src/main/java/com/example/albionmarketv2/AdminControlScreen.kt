@@ -130,7 +130,7 @@ data class AdminLicense(
     val note: String,
 )
 
-const val CURRENT_APP_VERSION = "4.1.6"
+const val CURRENT_APP_VERSION = "4.1.7"
 
 data class AdminDevice(
     val hwId: String,
@@ -202,11 +202,11 @@ object AdminControlManager {
     private const val ADMIN_API_KEY = "AlbionDataPro_Military_Admin_SuperSecret_2026#Key"
 
     private fun getBaseUrl(context: Context): String {
-        return "https://albionmarketv2-1.onrender.com"
+        return "https://datapro-nmsx.onrender.com"
     }
 
     private suspend fun postJson(baseUrl: String, endpoint: String, json: JSONObject): JSONObject? = withContext(Dispatchers.IO) {
-        val urlsToTry = listOf("https://albionmarketv2-1.onrender.com", baseUrl).distinct()
+        val urlsToTry = listOf("https://datapro-nmsx.onrender.com", baseUrl).distinct()
         for (base in urlsToTry) {
             try {
                 val url = URL("$base$endpoint")
@@ -237,7 +237,7 @@ object AdminControlManager {
     }
 
     private suspend fun getJsonArray(baseUrl: String, endpoint: String, jsonKey: String = ""): JSONArray? = withContext(Dispatchers.IO) {
-        val urlsToTry = listOf("https://albionmarketv2-1.onrender.com", baseUrl).distinct()
+        val urlsToTry = listOf("https://datapro-nmsx.onrender.com", baseUrl).distinct()
         for (base in urlsToTry) {
             try {
                 val url = URL("$base$endpoint")
@@ -2039,7 +2039,7 @@ fun SendAlertDialog(
         "⚠️ Wichtiger Server-Wartungshinweis: Bitte App neustarten.",
         "🚀 Neues Update v$CURRENT_APP_VERSION verfügbar! Bitte jetzt aktualisieren.",
         "🚨 Sicherheits-Überprüfung gestartet.",
-        "🌐 Besuche unsere Webseite: https://albionmarketv2-1.onrender.com"
+        "🌐 Besuche unsere Webseite: https://datapro-nmsx.onrender.com"
     )
 
     AlertDialog(
@@ -2612,7 +2612,7 @@ fun AdminRemoteConfigTab(
     val coroutineScope = rememberCoroutineScope()
     var minMarginInput by remember { mutableStateOf("12.0") }
     var maintenanceMode by remember { mutableStateOf(false) }
-    var serverUrlInput by remember { mutableStateOf(ServerConfigManager.getCustomServerUrls(context).firstOrNull() ?: "https://albionmarketv2-1.onrender.com") }
+    var serverUrlInput by remember { mutableStateOf(ServerConfigManager.getCustomServerUrls(context).firstOrNull() ?: "https://datapro-nmsx.onrender.com") }
     var syncIntervalSeconds by remember { mutableStateOf("10") }
     var maxDevicesPerUser by remember { mutableStateOf("3") }
 

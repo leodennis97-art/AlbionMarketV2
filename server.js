@@ -190,10 +190,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "4.1.6";
+    return "4.1.7";
 }
 
-let CURRENT_SERVER_VERSION = "4.1.6";
+let CURRENT_SERVER_VERSION = "4.1.7";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -224,7 +224,7 @@ function triggerAutoOtaUpdateForAllDevices(reason = 'Neue Version bereitgestellt
         targetVersion: CURRENT_SERVER_VERSION,
         force: true,
         reason: reason,
-        downloadUrl: 'https://albionmarketv2-1.onrender.com/download/DataPro.apk',
+        downloadUrl: 'https://datapro-nmsx.onrender.com/download/DataPro.apk',
         timestamp: new Date().toISOString()
     });
 }
@@ -849,7 +849,7 @@ Allow: /
 Disallow: /api/admin/
 Disallow: /admin
 
-Sitemap: https://albionmarketv2-1.onrender.com/sitemap.xml`
+Sitemap: https://datapro-nmsx.onrender.com/sitemap.xml`
     );
 });
 
@@ -863,69 +863,69 @@ app.get(['/sitemap.xml', '/sitemap.xml.gz'], (req, res) => {
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:mobile="http://www.google.com/schemas/sitemap-mobile/1.0">
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/</loc>
+      <loc>https://datapro-nmsx.onrender.com/</loc>
       <lastmod>${today}</lastmod>
       <changefreq>always</changefreq>
       <priority>1.0</priority>
-      <xhtml:link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/"/>
-      <xhtml:link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/"/>
+      <xhtml:link rel="alternate" hreflang="de" href="https://datapro-nmsx.onrender.com/"/>
+      <xhtml:link rel="alternate" hreflang="en" href="https://datapro-nmsx.onrender.com/"/>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/hack</loc>
+      <loc>https://datapro-nmsx.onrender.com/hack</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/bot</loc>
+      <loc>https://datapro-nmsx.onrender.com/bot</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/arbitrage</loc>
+      <loc>https://datapro-nmsx.onrender.com/arbitrage</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/blackmarket</loc>
+      <loc>https://datapro-nmsx.onrender.com/blackmarket</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/calculator</loc>
+      <loc>https://datapro-nmsx.onrender.com/calculator</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/overlay</loc>
+      <loc>https://datapro-nmsx.onrender.com/overlay</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/mobile</loc>
+      <loc>https://datapro-nmsx.onrender.com/mobile</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/guide</loc>
+      <loc>https://datapro-nmsx.onrender.com/guide</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/app</loc>
+      <loc>https://datapro-nmsx.onrender.com/app</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.9</priority>
    </url>
    <url>
-      <loc>https://albionmarketv2-1.onrender.com/download/DataPro.apk</loc>
+      <loc>https://datapro-nmsx.onrender.com/download/DataPro.apk</loc>
       <lastmod>${today}</lastmod>
       <changefreq>daily</changefreq>
       <priority>0.8</priority>
@@ -962,7 +962,7 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
     <div class="card">
         <h1>Datenschutzerklärung für DataPro (AlbionMarketV2)</h1>
         <p><strong>Stand:</strong> Januar 2026</p>
-        <p>Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten innerhalb unserer Android-App <strong>DataPro</strong> (sowie der zugehörigen Webdienste und APIs unter <code>albionmarketv2-1.onrender.com</code> und <code>www.DataPro.com</code>) auf.</p>
+        <p>Diese Datenschutzerklärung klärt Sie über die Art, den Umfang und den Zweck der Verarbeitung von personenbezogenen Daten innerhalb unserer Android-App <strong>DataPro</strong> (sowie der zugehörigen Webdienste und APIs unter <code>datapro-nmsx.onrender.com</code> und <code>www.DataPro.com</code>) auf.</p>
 
         <h2>1. Verantwortlicher</h2>
         <p>Verantwortlicher im Sinne der Datenschutzgesetze ist:<br>
@@ -986,7 +986,7 @@ app.get(['/privacy', '/privacy-policy', '/datenschutz'], (req, res) => {
 
         <h2>4. Einsatz von Drittanbietern und APIs</h2>
         <ul>
-            <li><strong>Eigenes Backend (Render):</strong> <code>https://albionmarketv2-1.onrender.com</code> zur Daten- und Lizenzsynchronisation.</li>
+            <li><strong>Eigenes Backend (Render):</strong> <code>https://datapro-nmsx.onrender.com</code> zur Daten- und Lizenzsynchronisation.</li>
             <li><strong>Firebase (Google):</strong> Für Authentifizierung, Push-Benachrichtigungen und Crash-Reporting.</li>
             <li><strong>Royal MMO Data Project APIs:</strong> Zum Abrufen öffentlicher Spielmarktstatistiken.</li>
             <li><strong>PayPal:</strong> Zur Abwicklung von Lizenzkäufen und Spenden.</li>
@@ -1050,18 +1050,18 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
     <meta name="keywords" content="Royal MMO, Royal MMO Market, Royal MMO Prices, Royal MMO Gold Price, Royal MMO Calculator, Royal MMO Crafting, Royal MMO Black Market, Albion Market Pro, Albion Market Helper, Royal MMO Trade Assistant, Royal MMO Mobile Hack, Royal MMO Mod, Royal MMO Cheat, Royal MMO Market Hack, Royal MMO Silver Hack">
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
     <meta name="author" content="Royal MMO Market Pro Team" />
-    <link rel="canonical" href="https://albionmarketv2-1.onrender.com/" />
-    <link rel="alternate" hreflang="de" href="https://albionmarketv2-1.onrender.com/" />
-    <link rel="alternate" hreflang="en" href="https://albionmarketv2-1.onrender.com/" />
-    <link rel="alternate" hreflang="x-default" href="https://albionmarketv2-1.onrender.com/" />
+    <link rel="canonical" href="https://datapro-nmsx.onrender.com/" />
+    <link rel="alternate" hreflang="de" href="https://datapro-nmsx.onrender.com/" />
+    <link rel="alternate" hreflang="en" href="https://datapro-nmsx.onrender.com/" />
+    <link rel="alternate" hreflang="x-default" href="https://datapro-nmsx.onrender.com/" />
 
     <!-- OpenGraph SEO -->
     <meta property="og:site_name" content="Royal MMO Market Pro" />
     <meta property="og:title" content="Royal MMO - Official Market Assistant, Prices & Gold Calculator" />
     <meta property="og:description" content="Official #1 Royal MMO Market Assistant. Real-time prices for Europe, Americas, Asia, Gold Market rates, crafting calculator, and floating overlay app." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://albionmarketv2-1.onrender.com/" />
-    <meta property="og:image" content="https://albionmarketv2-1.onrender.com/download" />
+    <meta property="og:url" content="https://datapro-nmsx.onrender.com/" />
+    <meta property="og:image" content="https://datapro-nmsx.onrender.com/download" />
     <meta property="og:locale" content="de_DE" />
 
     <!-- Twitter Card -->
@@ -1094,7 +1094,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
             "availability": "https://schema.org/InStock"
           },
           "description": "Der #1 Royal MMO Hack & Markt-Mod für Mobile & PC. In-Game Bubble Overlay, Live-Preise, Arbitrage Radar & KI Trading Bot.",
-          "url": "https://albionmarketv2-1.onrender.com/",
+          "url": "https://datapro-nmsx.onrender.com/",
           "softwareVersion": "${CURRENT_SERVER_VERSION}"
         },
         {
@@ -1191,7 +1191,7 @@ app.get(['/', '/get', '/app', '/hack', '/bot', '/arbitrage', '/blackmarket', '/c
                     </select>
                 </div>
 
-                <a href="https://albionmarketv2-1.onrender.com/download/DataPro.apk" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
+                <a href="https://datapro-nmsx.onrender.com/download/DataPro.apk" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold px-5 py-2.5 rounded-xl text-sm transition shadow-lg flex items-center gap-2 border border-emerald-400/30">
                     <i class="fa-solid fa-download"></i> APK Download
                 </a>
             </div>
@@ -2218,8 +2218,8 @@ app.post('/api/paypal/ipn', express.urlencoded({ extended: true }), (req, res) =
                                 <div style="background-color: #1e293b; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; border: 1px solid #38bdf8;">
                                     <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
                                 </div>
-                                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
-                                <p>Besuche unsere <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> für Support.</p>
+                                <p>Lade dir die neueste APK-Version auf der <a href="https://datapro-nmsx.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
+                                <p>Besuche unsere <a href="https://datapro-nmsx.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> für Support.</p>
                                 <p style="font-size: 12px; color: #64748b; margin-top: 30px;">Dies ist eine automatisch generierte E-Mail.</p>
                             </div>
                         `
@@ -2281,7 +2281,7 @@ app.post('/api/test/paypal-purchase', async (req, res) => {
                 <div style="background-color: #1e293b; padding: 15px; border-radius: 5px; text-align: center; margin: 20px 0; border: 1px solid #38bdf8;">
                     <strong style="font-size: 24px; color: #10b981; letter-spacing: 2px;">${key}</strong>
                 </div>
-                <p>Lade dir die neueste APK-Version auf der <a href="https://albionmarketv2-1.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
+                <p>Lade dir die neueste APK-Version auf der <a href="https://datapro-nmsx.onrender.com" style="color: #38bdf8;">DataPro Webseite</a> herunter, erstelle in der App ein Konto und schalte es mit diesem Schlüssel frei.</p>
                 <p>Support via Telegram: <a href="https://t.me/DnnxDigitalCrator" style="color: #38bdf8;">@DnnxDigitalCrator</a></p>
             </div>
         `
@@ -2925,7 +2925,7 @@ app.post('/api/admin/trigger-ota', requireAdminAuth, (req, res) => {
                 targetVersion: CURRENT_SERVER_VERSION,
                 hwId: cleanHwId,
                 force: true,
-                downloadUrl: 'https://albionmarketv2-1.onrender.com/download/DataPro.apk',
+                downloadUrl: 'https://datapro-nmsx.onrender.com/download/DataPro.apk',
                 timestamp: new Date().toISOString()
             });
         }
@@ -3329,7 +3329,7 @@ app.get(['/admin'], (req, res) => {
     }
 
     try {
-        const tunnelUrl = getActiveTunnelUrl() || 'https://albionmarketv2-1.onrender.com';
+        const tunnelUrl = getActiveTunnelUrl() || 'https://datapro-nmsx.onrender.com';
         const nowTime = Date.now();
         const safeDevices = Array.isArray(registeredDevices) ? registeredDevices : [];
         const onlineDevicesCount = safeDevices.filter(d => d.lastSeen && (nowTime - new Date(d.lastSeen).getTime() < 120000)).length;

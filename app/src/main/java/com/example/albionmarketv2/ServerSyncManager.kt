@@ -60,7 +60,7 @@ object ServerSyncManager {
 
     fun getServerBaseUrls(context: Context? = null): List<String> {
         val urls = mutableListOf<String>()
-        urls.add("https://albionmarketv2-1.onrender.com")
+        urls.add("https://datapro-nmsx.onrender.com")
         urls.add("https://www.AlbionDataPro.com")
         if (context != null) {
             urls.addAll(ServerConfigManager.getCustomServerUrls(context))
@@ -83,7 +83,7 @@ object ServerSyncManager {
 
         // Quick fast warm-up for Render Pro / Free Tier (Extended timeout for Cold Start)
         try {
-            val warmUpUrl = URL("https://albionmarketv2-1.onrender.com/api/health")
+            val warmUpUrl = URL("https://datapro-nmsx.onrender.com/api/health")
             val warmConn = warmUpUrl.openConnection() as HttpURLConnection
             warmConn.requestMethod = "GET"
             warmConn.setRequestProperty("User-Agent", "AlbionDataPro/Pro")

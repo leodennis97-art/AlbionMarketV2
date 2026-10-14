@@ -7,7 +7,7 @@ import java.io.File
 
 object ServerConfigManager {
 
-    private const val RENDER_PRIMARY_URL = "https://albionmarketv2-1.onrender.com"
+    private const val RENDER_PRIMARY_URL = "https://datapro-nmsx.onrender.com"
     private const val CUSTOM_DOMAIN_PRIMARY_URL = "https://www.AlbionDataPro.com"
 
     fun initServerConfig(context: Context) {

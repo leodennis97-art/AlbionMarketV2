@@ -1079,7 +1079,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             try {
                 // Wipe cache and re-fetch from API
                 val langCode = _uiState.value.appLanguage
-                val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+                val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://datapro-nmsx.onrender.com"
                 val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds(langCode, cloudUrl) } catch (_: Exception) { emptyList() }
                 if (dynamicItems.isNotEmpty()) {
                     AlbionResourceRepository.addDynamicResources(dynamicItems)
@@ -1112,7 +1112,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
         withContext(Dispatchers.IO) {
             try {
                 val langCode = _uiState.value.appLanguage
-                val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://albionmarketv2-1.onrender.com"
+                val cloudUrl = ServerSyncManager.getServerBaseUrls().firstOrNull() ?: "https://datapro-nmsx.onrender.com"
                 val dynamicItems = try { AlbionMarketApi.fetchDynamicItemsFromAlbionBuilds(langCode, cloudUrl) } catch (_: Exception) { emptyList() }
                 if (dynamicItems.isNotEmpty()) {
                     AlbionResourceRepository.addDynamicResources(dynamicItems)

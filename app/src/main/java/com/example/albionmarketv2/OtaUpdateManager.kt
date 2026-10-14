@@ -111,14 +111,14 @@ object OtaUpdateManager {
         }
 
         val baseUrls = ServerSyncManager.getServerBaseUrls(context)
-        val mainBaseUrl = (baseUrls.firstOrNull() ?: "https://albionmarketv2-1.onrender.com").trimEnd('/')
+        val mainBaseUrl = (baseUrls.firstOrNull() ?: "https://datapro-nmsx.onrender.com").trimEnd('/')
         val timestamp = System.currentTimeMillis()
 
         val downloadUrls = if (!updateUrlInput.isNullOrBlank()) {
             val formattedInput = if (updateUrlInput.startsWith("/")) "$mainBaseUrl$updateUrlInput" else updateUrlInput
             listOf(
                 if (formattedInput.contains("?")) "$formattedInput&t=$timestamp" else "$formattedInput?t=$timestamp",
-                "https://albionmarketv2-1.onrender.com/download/DataPro.apk?v=$timestamp",
+                "https://datapro-nmsx.onrender.com/download/DataPro.apk?v=$timestamp",
                 "https://github.com/leodennis97-art/AlbionMarketV2/releases/latest/download/DataPro.apk?t=$timestamp"
             )
         } else {
@@ -240,7 +240,7 @@ object OtaUpdateManager {
         try {
             withContext(Dispatchers.Main) {
                 Toast.makeText(context, "🌐 Starte direkten APK-Download von Render...", Toast.LENGTH_LONG).show()
-                val apkDirectUrl = "https://albionmarketv2-1.onrender.com/download/DataPro.apk"
+                val apkDirectUrl = "https://datapro-nmsx.onrender.com/download/DataPro.apk"
                 val intent = Intent(Intent.ACTION_VIEW, apkDirectUrl.toUri()).apply {
                     addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
@@ -256,7 +256,7 @@ object OtaUpdateManager {
 
     fun installApk(context: Context, @Suppress("UNUSED_PARAMETER") apkFile: File) {
         try {
-            val browserIntent = Intent(Intent.ACTION_VIEW, "https://albionmarketv2-1.onrender.com/download/DataPro.apk".toUri()).apply {
+            val browserIntent = Intent(Intent.ACTION_VIEW, "https://datapro-nmsx.onrender.com/download/DataPro.apk".toUri()).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             context.startActivity(browserIntent)
