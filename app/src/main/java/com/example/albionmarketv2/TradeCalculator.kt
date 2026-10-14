@@ -386,7 +386,7 @@ object TradeCalculator {
                 val cheapestPricesAcrossQualities = mutableListOf<MarketPrice>()
                 for ((city, cityPrices) in pricesByCity) {
                     val validSells = cityPrices.filter { it.sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(it.itemId, it.sellPriceMin) }
-                    val freshSells = validSells.filter { isPriceFreshWithin10Mins(it) }
+                    val freshSells = validSells.filter { isPriceFreshWithin15Mins(it) }
                     val sellsToUse = if (freshSells.isNotEmpty()) freshSells else validSells
                     if (sellsToUse.isNotEmpty()) {
                         val cheapest = sellsToUse.minByOrNull { it.sellPriceMin }
@@ -623,7 +623,8 @@ object TradeCalculator {
         }
 
         return opportunities.sortedWith(
-            compareByDescending<TradeOpportunity> { it.totalNetProfit }
+            compareByDescending<TradeOpportunity> { it.updatedTimestamp }
+                .thenByDescending { it.totalNetProfit }
                 .thenByDescending { it.priorityScore }
         ).take(50)
     }
@@ -726,15 +727,15 @@ object TradeCalculator {
         return routes.sortedByDescending { it.totalNetProfit }
     }
 
-    fun isPriceFreshWithin10Mins(price: MarketPrice): Boolean {
+    fun isPriceFreshWithin15Mins(price: MarketPrice): Boolean {
         val dateStr = price.sellPriceMinDate
         if (dateStr.isBlank() || dateStr.contains("Echtzeit", ignoreCase = true) || dateStr.contains("Gerade", ignoreCase = true)) {
             return true
         }
         val dateMs = parseIsoToEpochMs(dateStr)
         if (dateMs <= 0) return true
-        val tenMinsAgo = System.currentTimeMillis() - (10 * 60 * 1000L)
-        return dateMs >= tenMinsAgo
+        val fifteenMinsAgo = System.currentTimeMillis() - (15 * 60 * 1000L)
+        return dateMs >= fifteenMinsAgo
     }
 
     fun parseIsoToEpochMs(dateStr: String): Long {
