@@ -75,7 +75,7 @@ object AlbionMarketApi {
         val chunks = itemIds.chunked(50)
 
         for (chunk in chunks) {
-            val urlString = "${server.baseUrl}${chunk.joinToString(",")}.json?locations=$CITIES"
+            val urlString = "${server.baseUrl}${chunk.joinToString(",")}.json?locations=$CITIES&qualities=1,2,3,4,5"
             var connection: HttpURLConnection? = null
             try {
                 val url = URL(urlString)

@@ -190,10 +190,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "4.1.2";
+    return "4.1.3";
 }
 
-let CURRENT_SERVER_VERSION = "4.1.2";
+let CURRENT_SERVER_VERSION = "4.1.3";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -612,7 +612,7 @@ async function aiMarketBotLoop() {
 
         for (const srv of DATA_PROJECT_SERVERS) {
             try {
-                const url = `${srv.baseUrl}${itemsToQuery.join(',')}.json?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,BlackMarket,Brecilien`;
+                const url = `${srv.baseUrl}${itemsToQuery.join(',')}.json?locations=Bridgewatch,Caerleon,Fort Sterling,Lymhurst,Martlock,Thetford,BlackMarket,Brecilien&qualities=1,2,3,4,5`;
                 const res = await axios.get(url, { timeout: 12000 });
                 if (res.data && Array.isArray(res.data)) {
                     cloudDataLastReceivedTimestamp = Date.now();
