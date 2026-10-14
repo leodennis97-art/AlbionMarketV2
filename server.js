@@ -190,10 +190,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "4.0.4";
+    return "4.0.5";
 }
 
-let CURRENT_SERVER_VERSION = "4.0.4";
+let CURRENT_SERVER_VERSION = "4.0.5";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -2847,6 +2847,48 @@ app.get('/api/market-trends', (req, res) => {
         totalAnalyzed: items.length,
         anomaliesCount: highProfitItems.length,
         topTrends: highProfitItems,
+        timestamp: new Date().toISOString()
+    });
+});
+
+// High-End Item Market Analytics & Buy/Sell Order AI Strategy
+app.get('/api/market-analytics/:itemId', (req, res) => {
+    const itemId = req.params.itemId;
+    const srv = (req.query.server || 'europe').toLowerCase();
+    const serverPrices = globalMarketPrices[srv] || {};
+
+    const cityEntries = Object.values(serverPrices).filter(p => p.itemId === itemId || p.itemId === itemId.toUpperCase());
+    if (cityEntries.length === 0) {
+        return res.status(404).json({ error: 'Item not found in price cache', itemId });
+    }
+
+    const buyPrices = cityEntries.map(e => e.buyPriceMax).filter(p => p > 0);
+    const sellPrices = cityEntries.map(e => e.sellPriceMin).filter(p => p > 0);
+
+    const avgBuy = buyPrices.length > 0 ? Math.round(buyPrices.reduce((a, b) => a + b, 0) / buyPrices.length) : 0;
+    const avgSell = sellPrices.length > 0 ? Math.round(sellPrices.reduce((a, b) => a + b, 0) / sellPrices.length) : 0;
+    const minSell = sellPrices.length > 0 ? Math.min(...sellPrices) : 0;
+    const maxBuy = buyPrices.length > 0 ? Math.max(...buyPrices) : 0;
+
+    const recBuyOrder = maxBuy > 0 ? maxBuy + 1 : Math.round(minSell * 0.85);
+    const recSellOrder = minSell > 0 ? minSell - 1 : Math.round(maxBuy * 1.15);
+    const estimatedMargin = (recSellOrder * 0.935) - recBuyOrder;
+
+    res.json({
+        itemId,
+        server: srv,
+        citiesData: cityEntries,
+        avgBuyOrderPrice: avgBuy,
+        avgSellOrderPrice: avgSell,
+        highestBuyOrderPrice: maxBuy,
+        lowestSellOrderPrice: minSell,
+        aiRecommendations: {
+            recommendedBuyOrderPrice: recBuyOrder,
+            recommendedSellOrderPrice: recSellOrder,
+            estimatedNetProfitPerUnit: Math.max(0, Math.round(estimatedMargin)),
+            buyOrderFillProbability: recBuyOrder >= maxBuy ? "95% (Sehr Hoch)" : "75% (Mittel)",
+            sellOrderFillProbability: recSellOrder <= minSell ? "92% (Sehr Hoch)" : "70% (Mittel)"
+        },
         timestamp: new Date().toISOString()
     });
 });

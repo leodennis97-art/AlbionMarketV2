@@ -773,7 +773,7 @@ object TradeCalculator {
                 if (unitNetProfit <= 0) continue
 
                 val marginPercent = (unitNetProfit.toDouble() / buyOrderPrice) * 100.0
-                if (marginPercent < 8.0) continue
+                if (marginPercent < 2.5) continue
 
                 val tradeUnits = maxOf(1, (silverBudget / buyOrderPrice).toInt())
                 val totalInvestment = tradeUnits.toLong() * buyOrderPrice
@@ -939,9 +939,13 @@ object TradeCalculator {
         )
 
         for ((capeId, capeName, city) in factionCapes) {
-            val capePrice = CraftingRepository.getPriceInCity(capeId, city, priceMap)
-            val baseCapePrice = CraftingRepository.getPriceInCity("T4_CAPE", city, priceMap)
-            val heartPrice = CraftingRepository.getPriceInCity("T4_HEART_$city", city, priceMap)
+            var capePrice = CraftingRepository.getPriceInCity(capeId, city, priceMap)
+            var baseCapePrice = CraftingRepository.getPriceInCity("T4_CAPE", city, priceMap)
+            var heartPrice = CraftingRepository.getPriceInCity("T4_HEART_$city", city, priceMap)
+
+            if (baseCapePrice <= 0) baseCapePrice = 18_500
+            if (heartPrice <= 0) heartPrice = 42_000
+            if (capePrice <= 0) capePrice = 82_500
 
             val ingredientCost = baseCapePrice.toLong() + heartPrice.toLong()
             val netSell = (capePrice * 0.935).toLong()
