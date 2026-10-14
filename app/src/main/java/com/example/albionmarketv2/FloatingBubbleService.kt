@@ -918,88 +918,11 @@ fun BubbleOverlayContent(
                                 )
                             }
                         }
-                        }
                     }
 
                     Spacer(modifier = Modifier.height(if (isCompactMode) 2.dp else 4.dp))
 
-                    // 🤖 KI SILBER-BOT BEST DEAL BANNER
-                    if (!isBookingMode && topOpportunities.isNotEmpty()) {
-                        val bestDeal = topOpportunities.maxByOrNull { it.totalNetProfit }
-                        if (bestDeal != null && bestDeal.totalNetProfit > 0) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF0369A1),
-                                border = BorderStroke(1.dp, Color(0xFF38BDF8)),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 2.dp)
-                                    .clickable {
-                                        onAcceptOpportunity(bestDeal)
-                                    }
-                            ) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = "🤖 KI Silber-Bot: Bester Deal!",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color(0xFF38BDF8)
-                                        )
-                                        Text(
-                                            text = "Kaufe ${bestDeal.resource.nameDe} (${bestDeal.buyCity}) ➔ Verkaufe in ${bestDeal.sellCity}",
-                                            fontSize = 9.sp,
-                                            fontWeight = FontWeight.Bold,
-                                            color = Color.White
-                                        )
-                                    }
-                                    Surface(
-                                        shape = RoundedCornerShape(6.dp),
-                                        color = Color(0xFF10B981)
-                                    ) {
-                                        Text(
-                                            text = "+${NumberFormat.getNumberInstance(Locale.GERMANY).format(bestDeal.totalNetProfit)} S.",
-                                            fontSize = 10.sp,
-                                            fontWeight = FontWeight.Black,
-                                            color = Color.Black,
-                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // 🎛️ Floating Mini-Controller (Quick Silver Budget Bar)
-                    if (!isBookingMode) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth().padding(horizontal = 2.dp, vertical = 1.dp)
-                        ) {
-                            Text("💰 Quick-Budget:", fontSize = 8.5.sp, color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold)
-                            Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                                val budgetOptions = listOf(1_000_000L to "1M", 5_000_000L to "5M", 10_000_000L to "10M", 50_000_000L to "50M")
-                                budgetOptions.forEach { (bVal, bLabel) ->
-                                    val isSel = prefs.silverBudget == bVal
-                                    Surface(
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (isSel) Color(0xFF10B981) else Color(0xFF0F172A),
-                                        border = BorderStroke(1.dp, if (isSel) Color(0xFF10B981) else Color(0xFF334155)),
-                                        modifier = Modifier.clickable {
-                                            prefs.silverBudget = bVal
-                                            onRefresh()
-                                        }
-                                    ) {
-                                        Text(bLabel, color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                                    }
-                                }
-                            }
-                        }
+                    // KI Silber-Bot & Quick-Budget Fenster entfernt
 
                         val availableTabs = remember(prefs.hideBlackMarket, prefs.bubbleHideBlackMarket) {
                             val hideBm = prefs.hideBlackMarket || prefs.bubbleHideBlackMarket

@@ -190,10 +190,10 @@ function getAppVersionFromGradle() {
             if (match) return match[1];
         }
     } catch (e) {}
-    return "4.0.7";
+    return "4.0.8";
 }
 
-let CURRENT_SERVER_VERSION = "4.0.7";
+let CURRENT_SERVER_VERSION = "4.0.8";
 let globalOtaTrigger = false;
 let lastApkMtime = 0;
 
@@ -761,6 +761,20 @@ app.get(['/api/download/token', '/download/token'], (req, res) => {
     });
 });
 
+function getApkFilePath() {
+    const candidates = [
+        path.join(DOWNLOADS_DIR, 'DataPro.apk'),
+        path.join(__dirname, 'downloads', 'DataPro.apk'),
+        path.join(__dirname, 'render_server', 'downloads', 'DataPro.apk'),
+        path.join(process.cwd(), 'downloads', 'DataPro.apk'),
+        path.join(process.cwd(), 'render_server', 'downloads', 'DataPro.apk')
+    ];
+    for (const p of candidates) {
+        if (fs.existsSync(p)) return p;
+    }
+    return candidates[0];
+}
+
 // Direct High-Performance Streaming APK Download with Rate-Limiting & Memory Overflow Protection
 app.get(['/download', '/download/', '/download/:filename'], (req, res, next) => {
     // Falls ein Filename übergeben wurde, aber es keine APK ist und auch keines der alten Aliase, ignorieren
@@ -780,7 +794,7 @@ app.get(['/download', '/download/', '/download/:filename'], (req, res, next) => 
         `);
     }
 
-    const apkFile = path.join(DOWNLOADS_DIR, 'DataPro.apk');
+    const apkFile = getApkFilePath();
     if (!fs.existsSync(apkFile)) {
         return res.status(404).send(`
             <html style="background:#0f172a;color:#fff;font-family:sans-serif;text-align:center;padding:50px;">

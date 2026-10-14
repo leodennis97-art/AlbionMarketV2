@@ -3,6 +3,7 @@ package com.example.albionmarketv2
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
@@ -779,7 +780,7 @@ class MainActivity : ComponentActivity() {
                                                                 Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
 
                                                                 if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
-                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "3.6.31"
+                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "4.0.8"
                                                                     Toast.makeText(context, "🚀 App aktualisieren: Installiere neueste Version v$targetV...", Toast.LENGTH_LONG).show()
                                                                     lifecycleScope.launch(Dispatchers.IO) {
                                                                         OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
@@ -905,7 +906,7 @@ class MainActivity : ComponentActivity() {
                                 onDismissRequest = { ServerSyncManager.dismissOtaUpdate() },
                                 title = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "4.0.7"})!", fontWeight = FontWeight.Bold)
+                                        Text("🚀 Neue Version verfügbar (${ServerSyncManager.latestTargetVersion ?: "4.0.8"})!", fontWeight = FontWeight.Bold)
                                     }
                                 },
                                 text = {
@@ -1008,6 +1009,7 @@ fun UnlockedLockscreenContent(
 ) {
     var isBubbleRunning by remember { mutableStateOf(FloatingBubbleService.isServiceRunning()) }
     var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+    var showAdminDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         while (isActive) {
@@ -1125,6 +1127,26 @@ fun UnlockedLockscreenContent(
                             color = Color(0xFF38BDF8)
                         )
                     }
+                }
+
+                val isAdminUser = prefs.savedUsername.equals("dnnx", ignoreCase = true)
+                if (isAdminUser) {
+                    Button(
+                        onClick = { showAdminDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp)
+                    ) {
+                        Text("🛡️ Executive Admin Portal (Kontrollzentrale)", fontWeight = FontWeight.ExtraBold, fontSize = 13.sp, color = Color.White)
+                    }
+                }
+
+                if (showAdminDialog) {
+                    val viewModel = remember { SharedViewModelProvider.get(context.applicationContext as Application) }
+                    AdminControlDialog(
+                        viewModel = viewModel,
+                        onDismiss = { showAdminDialog = false }
+                    )
                 }
 
                 Card(
