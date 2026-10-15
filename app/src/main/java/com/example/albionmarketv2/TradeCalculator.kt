@@ -1015,20 +1015,18 @@ object TradeCalculator {
                     highestSellCity = city
                 }
             }
-            if (highestFinishedPrice <= 0) highestFinishedPrice = baseP
 
             val rawAmount = (res.tier - 1).coerceAtLeast(2)
             val grossMatCost = (cheapestRawPrice.toLong() * rawAmount) + cheapestPrevRefinedPrice
             val effectiveHerstellungskosten = (grossMatCost * (1.0 - rrr)).toLong()
-            val netVerkaufspreis = (highestFinishedPrice * (if (hasPremium) 0.935 else 0.895)).toLong() // Abzug von 4% Steuer + 2,5% Gebühr
-            var netProfitMarge = netVerkaufspreis - effectiveHerstellungskosten
+            val taxRate = if (hasPremium) 0.04 else 0.08
+            val netVerkaufspreis = (highestFinishedPrice * (1.0 - taxRate - 0.025)).toLong() // 4%/8% Steuer + 2,5% Gebühr
+            val netProfitMarge = netVerkaufspreis - effectiveHerstellungskosten
 
-            if (netProfitMarge <= 0) {
-                netProfitMarge = (effectiveHerstellungskosten * 0.18).toLong().coerceAtLeast(250L)
-            }
+            if (netProfitMarge <= 0 || effectiveHerstellungskosten <= 0) continue
 
-            val roi = if (effectiveHerstellungskosten > 0) (netProfitMarge.toDouble() / effectiveHerstellungskosten) * 100.0 else 18.0
-            if (roi > 100.0) continue
+            val roi = (netProfitMarge.toDouble() / effectiveHerstellungskosten) * 100.0
+            if (roi > 200.0) continue
 
             list.add(
                 CraftingOpportunityDetails(
@@ -1039,8 +1037,8 @@ object TradeCalculator {
                     highestSellCity = highestSellCity,
                     finishedItemSellPrice = highestFinishedPrice,
                     netProfit = netProfitMarge,
-                    recBuyOrderCost = (effectiveHerstellungskosten * 0.9).toLong(),
-                    recSellOrderPrice = highestFinishedPrice - 1,
+                    recBuyOrderCost = (effectiveHerstellungskosten * 0.92).toLong(),
+                    recSellOrderPrice = (highestFinishedPrice - 1).coerceAtLeast(1),
                     ingredientSummary = "🛒 Kauf ($cheapestBuyCity): $rawAmount x Rohstoff (${fmt.format(cheapestRawPrice)} S.) + 1x T${res.tier-1} Veredelt (${fmt.format(cheapestPrevRefinedPrice)} S.) | 🧱 Herstellung: ${fmt.format(effectiveHerstellungskosten)} S. (${String.format(Locale.GERMANY, "%.1f", rrr * 100)}% RRR) | 🏷️ Verkauf ($highestSellCity): ${fmt.format(highestFinishedPrice)} S.",
                     maxOrderProfit = netProfitMarge * 100,
                     estimatedRoiPercent = roi,
