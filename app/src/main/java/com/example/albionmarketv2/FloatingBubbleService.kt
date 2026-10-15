@@ -2945,14 +2945,18 @@ fun BubbleCatalogTab(
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val favSet = uiState.favoriteItemIds
 
-    val filtered = remember(query, selectedCat, selectedTier, showFavoritesOnly, favSet, uiState.filteredResources) {
-        uiState.filteredResources.asSequence().filter { res ->
-            val matchesQuery = query.isBlank() || res.nameDe.contains(query, ignoreCase = true) || res.id.contains(query, ignoreCase = true)
-            val matchesCat = if (selectedCat != ResourceCategory.ALL) res.category == selectedCat else true
-            val matchesTier = if (selectedTier > 0) res.tier == selectedTier else true
-            val matchesFav = if (showFavoritesOnly) favSet.contains(res.id) || favSet.contains(res.fullId) else true
-            matchesQuery && matchesCat && matchesTier && matchesFav
-        }.take(20).toList()
+    val filtered = remember(query, selectedCat, selectedTier, showFavoritesOnly, favSet) {
+        val searchResults = AlbionResourceRepository.globalSearchResources(
+            query = query,
+            category = selectedCat,
+            tier = selectedTier,
+            limit = 30
+        )
+        if (showFavoritesOnly) {
+            searchResults.filter { favSet.contains(it.id) || favSet.contains(it.fullId) }
+        } else {
+            searchResults
+        }
     }
 
     Column(

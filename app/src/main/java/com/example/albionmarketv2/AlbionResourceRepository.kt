@@ -306,17 +306,88 @@ object AlbionResourceRepository {
         enchantment: Int = 0,
         query: String = ""
     ): List<AlbionResource> {
+        if (query.isNotBlank()) {
+            return globalSearchResources(query, category, tier, enchantment)
+        }
         return resources.filter { res ->
             val matchCategory = category == ResourceCategory.ALL || res.category == category
             val matchTier = tier == 0 || res.tier == tier
             val matchEnchantment = res.enchantment == enchantment
-            val matchQuery = query.isBlank() ||
-                    res.nameDe.contains(query, ignoreCase = true) ||
-                    res.nameEn.contains(query, ignoreCase = true) ||
-                    res.id.contains(query, ignoreCase = true)
 
-            matchCategory && matchTier && matchEnchantment && matchQuery
+            matchCategory && matchTier && matchEnchantment
         }
+    }
+
+    fun globalSearchResources(
+        query: String,
+        category: ResourceCategory = ResourceCategory.ALL,
+        tier: Int = 0,
+        enchantment: Int = -1,
+        limit: Int = 100
+    ): List<AlbionResource> {
+        if (query.isBlank()) {
+            return resources.filter { res ->
+                val matchCat = category == ResourceCategory.ALL || res.category == category
+                val matchT = tier == 0 || res.tier == tier
+                val matchE = enchantment < 0 || res.enchantment == enchantment
+                matchCat && matchT && matchE
+            }.take(limit)
+        }
+
+        val cleanQ = query.trim().lowercase()
+        val tokens = cleanQ.split(" ", "-", "_", ".").filter { it.isNotBlank() }
+
+        var detectedTier = tier
+        var detectedEnc = enchantment
+
+        for (token in tokens) {
+            if (token.length == 2 && token.startsWith("t") && token[1].isDigit()) {
+                detectedTier = token[1].digitToInt()
+            }
+            if ((token.startsWith(".") || token.startsWith("@") || token.startsWith("+")) && token.length >= 2 && token[1].isDigit()) {
+                detectedEnc = token[1].digitToInt()
+            }
+        }
+
+        val candidates = resources.mapNotNull { res ->
+            val matchCat = category == ResourceCategory.ALL || res.category == category
+            val matchT = detectedTier == 0 || res.tier == detectedTier
+            val matchE = detectedEnc < 0 || res.enchantment == detectedEnc
+
+            if (!matchCat || !matchT || !matchE) return@mapNotNull null
+
+            var score = 0
+            val nameDeLower = res.nameDe.lowercase()
+            val nameEnLower = res.nameEn.lowercase()
+            val idLower = res.fullId.lowercase()
+
+            if (idLower == cleanQ || res.id.lowercase() == cleanQ) {
+                score += 100
+            } else if (idLower.contains(cleanQ)) {
+                score += 60
+            }
+
+            if (nameDeLower.startsWith(cleanQ) || nameEnLower.startsWith(cleanQ)) {
+                score += 50
+            } else if (nameDeLower.contains(cleanQ) || nameEnLower.contains(cleanQ)) {
+                score += 30
+            }
+
+            for (token in tokens) {
+                if (token.length >= 2) {
+                    if (nameDeLower.contains(token) || nameEnLower.contains(token) || idLower.contains(token)) {
+                        score += 15
+                    }
+                    if (res.description.lowercase().contains(token)) {
+                        score += 5
+                    }
+                }
+            }
+
+            if (score > 0) Pair(res, score) else null
+        }
+
+        return candidates.sortedByDescending { it.second }.map { it.first }.take(limit)
     }
 
     fun addDynamicResources(newItems: List<AlbionResource>) {}
