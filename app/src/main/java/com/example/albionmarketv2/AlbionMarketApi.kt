@@ -8,57 +8,18 @@ import java.net.URL
 
 object AlbionMarketApi {
 
-    private const val CITIES = "Bridgewatch,Caerleon,Fort%20Sterling,Lymhurst,Martlock,Thetford,Brecilien,Black%20Market"
+    private const val CITIES = "Bridgewatch,Caerleon,Fort%20Sterling,Lymhurst,Martlock,Thetford,Brecilien,Black%20Market,3005,3003,4002,1000,3008,0007,5003"
 
     fun isUnrealisticPrice(itemId: String, price: Int): Boolean {
-        if (price <= 0 || price > 500_000_000) return true
-        return false
+        return price <= 0 || price > 500_000_000
     }
 
+    /**
+     * Fiktive Fallback-Preise deaktiviert, um verwirrende Ungenauigkeiten zu vermeiden.
+     * Wenn keine echten Live-Marktdaten vorliegen, wird eine leere Map zurückgegeben.
+     */
     fun getFallbackMarketPrices(): Map<String, List<MarketPrice>> {
-        val map = mutableMapOf<String, List<MarketPrice>>()
-        val cities = listOf("Bridgewatch", "Caerleon", "FortSterling", "Lymhurst", "Martlock", "Thetford", "Brecilien", "Black Market")
-
-        for (res in AlbionResourceRepository.resources) {
-            val tier = res.tier
-            val basePrice = when (tier) {
-                2 -> 120
-                3 -> 380
-                4 -> 1250
-                5 -> 3900
-                6 -> 12800
-                7 -> 43000
-                8 -> 138000
-                else -> 1500
-            }
-
-            val priceList = cities.mapIndexed { idx, city ->
-                val cityMultiplier = when (city) {
-                    "Caerleon" -> 1.15
-                    "Black Market" -> 1.35
-                    "Brecilien" -> 1.08
-                    else -> 0.92 + (idx * 0.03)
-                }
-                val sellPrice = (basePrice * cityMultiplier).toInt().coerceAtLeast(10)
-                val buyPrice = (sellPrice * 0.88).toInt().coerceAtLeast(8)
-
-                MarketPrice(
-                    itemId = res.fullId,
-                    city = city,
-                    quality = 1,
-                    sellPriceMin = sellPrice,
-                    sellPriceMinDate = "Echtzeit",
-                    buyPriceMax = buyPrice,
-                    buyPriceMaxDate = "Echtzeit",
-                    sellPriceMinAmount = 45
-                )
-            }
-
-            map[res.fullId] = priceList
-            map[res.id] = priceList
-        }
-
-        return map
+        return emptyMap()
     }
 
     fun fetchDynamicItemsFromAlbionBuilds(langCode: String = "DE", cloudUrl: String = ""): List<AlbionResource> {

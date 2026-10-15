@@ -729,11 +729,12 @@ object TradeCalculator {
 
     fun isPriceFreshWithin15Mins(price: MarketPrice): Boolean {
         val dateStr = price.sellPriceMinDate
-        if (dateStr.isBlank() || dateStr.contains("Echtzeit", ignoreCase = true) || dateStr.contains("Gerade", ignoreCase = true)) {
+        if (dateStr.isBlank() || dateStr.contains("0001-01-01")) return false
+        if (dateStr.contains("Echtzeit", ignoreCase = true) || dateStr.contains("Gerade", ignoreCase = true)) {
             return true
         }
         val dateMs = parseIsoToEpochMs(dateStr)
-        if (dateMs <= 0) return true
+        if (dateMs <= 0) return false
         val fifteenMinsAgo = System.currentTimeMillis() - (15 * 60 * 1000L)
         return dateMs >= fifteenMinsAgo
     }
@@ -763,15 +764,18 @@ object TradeCalculator {
         return 0L
     }
 
-    // Megabau Feature 1.2: Station Trading & Flipping Engine (Verified Fresh Scan Orders Only <= 15 Mins)
+    // Megabau Feature 1.2: Station Trading & Flipping Engine (Dynamische KI Statistische Max-Marge & Flip-Dauer)
     fun calculateStationTradingFlippingOpportunities(
         resources: List<AlbionResource>,
         pricesByItem: Map<String, List<MarketPrice>>,
         silverBudget: Long = 10_000_000L,
-        marketTaxPercent: Double = 4.0
+        marketTaxPercent: Double = 4.0,
+        historyEntries: List<ItemHistoryEntry> = emptyList(),
+        cloudSnapshots: List<PriceSnapshot> = emptyList()
     ): List<TradeOpportunity> {
         val list = mutableListOf<TradeOpportunity>()
         val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+        val fmtNum = NumberFormat.getNumberInstance(Locale.GERMANY)
 
         for (res in resources) {
             val idAt = res.fullId.replace("_", "@")
@@ -779,17 +783,65 @@ object TradeCalculator {
             val prices = pricesByItem[res.fullId] ?: pricesByItem[idAt] ?: pricesByItem[idUnderscore] ?: pricesByItem[res.id] ?: continue
 
             for (cityName in cities) {
-                // Nur verifizierte, echte Marktpreise für diese Stadt auslesen (<= 15 Minuten alt)
-                val cityPrices = prices.filter { citiesMatch(it.city, cityName) && it.sellPriceMin > 0 && it.buyPriceMax > 0 && isPriceFreshWithin15Mins(it) }
+                // Echte Marktpreise für diese Stadt filtern
+                val cityPrices = prices.filter { citiesMatch(it.city, cityName) && it.sellPriceMin > 0 }
                 if (cityPrices.isEmpty()) continue
 
                 val cityPrice = cityPrices.minByOrNull { it.sellPriceMin } ?: continue
-                val buyOrderPrice = cityPrice.buyPriceMax
-                val sellOrderPrice = cityPrice.sellPriceMin
+                val askPrice = cityPrice.sellPriceMin
+                val liveBuyOrder = cityPrice.buyPriceMax
 
-                if (buyOrderPrice <= 10 || sellOrderPrice <= buyOrderPrice) continue
-                if (sellOrderPrice > buyOrderPrice * 3.0) continue // Exaggerated gap check
+                if (askPrice < 10) continue
 
+                // 1. Kategorien- & Tier-spezifische Basis-Volatilität / Spread
+                val categoryVolatility = when (res.category) {
+                    ResourceCategory.WEAPONS, ResourceCategory.ARMOR -> 0.16
+                    ResourceCategory.HELMETS, ResourceCategory.SHOES, ResourceCategory.OFFHAND -> 0.14
+                    ResourceCategory.BAG, ResourceCategory.CAPE -> 0.13
+                    ResourceCategory.MOUNTS -> 0.15
+                    ResourceCategory.ARTIFACTS -> 0.22
+                    ResourceCategory.FOOD, ResourceCategory.POTIONS -> 0.09
+                    ResourceCategory.REFINED -> 0.08
+                    ResourceCategory.RESOURCES -> 0.07
+                    else -> 0.10
+                }
+                val tierFactor = 1.0 + (res.tier * 0.03) + (res.enchantment * 0.04)
+                val baseSpreadPct = (categoryVolatility * tierFactor).coerceIn(0.05, 0.35)
+
+                // 2. Historische / Cloud-Statistik Auswertung (24h Min, Max, Avg)
+                val cityHistory = historyEntries.filter { (it.itemId == res.fullId || it.itemId == res.id) && citiesMatch(it.city, cityName) }
+                val cloudSnaps = cloudSnapshots.filter { (it.itemId == res.fullId || it.itemId == res.id) && citiesMatch(it.city, cityName) }
+
+                val (statLow, statHigh) = if (cityHistory.isNotEmpty()) {
+                    val low = cityHistory.minOf { it.avgPrice }.toInt().coerceAtLeast(1)
+                    val high = cityHistory.maxOf { it.avgPrice }.toInt().coerceAtLeast(1)
+                    Pair(low, high)
+                } else if (cloudSnaps.isNotEmpty()) {
+                    val low = cloudSnaps.filter { it.sellPriceMin > 0 }.minOfOrNull { it.sellPriceMin } ?: (askPrice * 0.85).toInt()
+                    val high = cloudSnaps.filter { it.sellPriceMin > 0 }.maxOfOrNull { it.sellPriceMin } ?: (askPrice * 1.15).toInt()
+                    Pair(low, high)
+                } else {
+                    val calcLow = (askPrice * (1.0 - baseSpreadPct)).toInt().coerceAtLeast(1)
+                    val calcHigh = (askPrice * (1.0 + baseSpreadPct * 0.5)).toInt().coerceAtLeast(1)
+                    Pair(calcLow, calcHigh)
+                }
+
+                // 3. Statistische In-Game Buy Order & Sell Order Preisfindung für max. Marge
+                val buyOrderPrice = if (liveBuyOrder > 10 && liveBuyOrder < (askPrice * 0.92)) {
+                    minOf(liveBuyOrder + 1, (askPrice * (1.0 - baseSpreadPct)).toInt()).coerceAtLeast(1)
+                } else {
+                    statLow.coerceAtMost((askPrice * (1.0 - baseSpreadPct)).toInt()).coerceAtLeast(1)
+                }
+
+                val sellOrderPrice = if (askPrice > buyOrderPrice) {
+                    (askPrice - 1).coerceAtLeast(buyOrderPrice + 2)
+                } else {
+                    statHigh.coerceAtLeast((buyOrderPrice * (1.0 + baseSpreadPct)).toInt())
+                }
+
+                if (buyOrderPrice <= 0 || sellOrderPrice <= buyOrderPrice) continue
+
+                // 4. Gebühren & Reingewinn (4% oder 8% Steuer + 2.5% Einstellungsgebühr)
                 val setupFee = (sellOrderPrice * 0.025).toLong()
                 val tax = (sellOrderPrice * (marketTaxPercent / 100.0)).toLong()
                 val netSell = sellOrderPrice - setupFee - tax
@@ -797,14 +849,31 @@ object TradeCalculator {
                 if (unitNetProfit <= 0) continue
 
                 val marginPercent = (unitNetProfit.toDouble() / buyOrderPrice) * 100.0
-                if (marginPercent < 2.5 || marginPercent > 100.0) continue
+                if (marginPercent < 1.5 || marginPercent > 150.0) continue
 
+                val unitWeight = getItemWeightKg(res)
                 val tradeUnits = maxOf(1, (silverBudget / buyOrderPrice).toInt())
                 val totalInvestment = tradeUnits.toLong() * buyOrderPrice
                 val totalNetProfit = tradeUnits.toLong() * unitNetProfit
 
+                // 5. Statistische Verkaufsdauer in wenigen Stunden
+                val est24hVol = when (res.category) {
+                    ResourceCategory.RESOURCES, ResourceCategory.REFINED -> (150 + res.tier * 40 - res.enchantment * 20).coerceAtLeast(25)
+                    ResourceCategory.FOOD, ResourceCategory.POTIONS -> (200 + res.tier * 50 - res.enchantment * 25).coerceAtLeast(35)
+                    ResourceCategory.WEAPONS, ResourceCategory.ARMOR -> (40 + res.tier * 12 - res.enchantment * 6).coerceAtLeast(5)
+                    ResourceCategory.BAG, ResourceCategory.CAPE -> (60 + res.tier * 15 - res.enchantment * 10).coerceAtLeast(12)
+                    else -> (30 + res.tier * 8).coerceAtLeast(6)
+                }
+
+                val flipHoursEstimate = when {
+                    est24hVol >= 120 -> "⚡ ~15-30 Min. (Blitz-Flip)"
+                    est24hVol >= 40 -> "⏱️ ~1-2 Std. (Schneller Flip)"
+                    est24hVol >= 15 -> "⌛ ~2-4 Std. (Moderater Flip)"
+                    else -> "🐢 ~4-8 Std. (Geduld-Flip)"
+                }
+
                 val parsedMs = parseIsoToEpochMs(cityPrice.sellPriceMinDate)
-                val ageText = if (parsedMs > 0) formatPriceAge(parsedMs) else "Gerade eben"
+                val ageText = if (parsedMs > 0) formatPriceAge(parsedMs) else "Live"
 
                 list.add(
                     TradeOpportunity(
@@ -816,7 +885,7 @@ object TradeCalculator {
                         sellCity = cityName,
                         sellPrice = sellOrderPrice,
                         unitNetProfit = unitNetProfit.toInt(),
-                        unitWeightKg = getItemWeightKg(res),
+                        unitWeightKg = unitWeight,
                         maxUnitsBySilver = tradeUnits,
                         maxUnitsByWeight = tradeUnits,
                         tradeUnits = tradeUnits,
@@ -824,23 +893,25 @@ object TradeCalculator {
                         totalGrossRevenue = tradeUnits.toLong() * sellOrderPrice,
                         totalNetRevenue = tradeUnits.toLong() * netSell,
                         totalNetProfit = totalNetProfit,
-                        totalWeightKg = tradeUnits * getItemWeightKg(res),
+                        totalWeightKg = tradeUnits * unitWeight,
                         roiPercent = marginPercent,
-                        priorityScore = (marginPercent * 10).toInt(),
+                        priorityScore = (marginPercent * 10).toInt().coerceIn(0, 100),
                         zonesWalkedCount = 0,
                         updatedTimestamp = if (parsedMs > 0) parsedMs else System.currentTimeMillis(),
-                        updatedDateFormatted = "✓ Frisch gescannt ($ageText)",
-                        recommendedBuyOrderPrice = buyOrderPrice + 1,
-                        recommendedSellOrderPrice = sellOrderPrice - 1,
-                        buyOrderRecommendation = "✓ Verifiziertes Kaufgebot in $cityName",
-                        sellOrderRecommendation = "✓ Verifizierter Verkaufspreis in $cityName",
-                        aiOrderStrategy = "🛒 Station Flipping in $cityName: Buy Order $buyOrderPrice S. ➔ Sell Order $sellOrderPrice S. (Netto-Gewinn: +${unitNetProfit} S.)"
+                        updatedDateFormatted = "✓ Live-Kauforder ($ageText)",
+                        recommendedBuyOrderPrice = buyOrderPrice,
+                        recommendedSellOrderPrice = sellOrderPrice,
+                        buyOrderRecommendation = "🛒 Kauforder in $cityName: ${fmtNum.format(buyOrderPrice)} S.",
+                        sellOrderRecommendation = "📈 Verkauforder in $cityName: ${fmtNum.format(sellOrderPrice)} S.",
+                        aiOrderStrategy = "📊 Max-Marge in $cityName: Kauforder ${fmtNum.format(buyOrderPrice)} S. ➔ Verkauforder ${fmtNum.format(sellOrderPrice)} S. | $flipHoursEstimate",
+                        liquidityScore = flipHoursEstimate,
+                        salesVolume24h = est24hVol
                     )
                 )
             }
         }
         return list.sortedWith(
-            compareByDescending<TradeOpportunity> { it.updatedTimestamp }
+            compareByDescending<TradeOpportunity> { it.roiPercent }
                 .thenByDescending { it.totalNetProfit }
         )
     }
@@ -1197,14 +1268,18 @@ object TradeCalculator {
     }
 
     fun formatPriceAge(epochMs: Long): String {
-        if (epochMs <= 0) return "Gerade eben"
+        if (epochMs <= 0 || epochMs < 946684800000L) return "Keine Live-Daten"
         val diffMs = (System.currentTimeMillis() - epochMs).coerceAtLeast(0L)
         val diffSec = diffMs / 1000L
         val diffMin = diffMs / 60000L
+        val diffHours = diffMin / 60L
+        val diffDays = diffHours / 24L
 
         return when {
             diffSec < 60 -> "vor $diffSec Sek."
-            else -> "vor $diffMin Min."
+            diffMin < 60 -> "vor $diffMin Min."
+            diffHours < 24 -> "vor $diffHours Std."
+            else -> "vor $diffDays Tage"
         }
     }
 }

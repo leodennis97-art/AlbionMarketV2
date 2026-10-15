@@ -472,9 +472,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         }
 
         // Live prices take priority over local snapshots; deduplicate strictly by (itemId, city, quality)
-        val rawCombined = (fetchedPrices + localPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }.ifEmpty {
-            AlbionMarketApi.getFallbackMarketPrices().values.flatten()
-        }
+        val rawCombined = (fetchedPrices + localPrices).distinctBy { "${it.itemId}_${it.city}_${it.quality}" }
 
         // 🤖 KI-Preisschutz & Anomalie-Filterung (Echtzeit-Validierung)
         val aiVerifiedPrices = rawCombined.filter { p ->
@@ -514,7 +512,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             aiPriceStatus = "🤖 KI-Preisschutz: Aktiv • ${groupedMap.size} Items verifiziert ($timeStr)"
         }
 
-        return groupedMap.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() }
+        return groupedMap
     }
 
     private suspend fun calculateTopMarginOpportunities(context: Context, forceRefresh: Boolean = false): List<TradeOpportunity> {
@@ -1971,7 +1969,7 @@ fun BubbleOverlayContent(
                                                             )
                                                         }
                                                         Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
-                                                            Text("+${String.format(Locale.GERMANY, "%.0f", activeOpp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                                            Text("+${String.format(Locale.GERMANY, "%.1f", activeOpp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
                                                         }
                                                         Spacer(modifier = Modifier.width(3.dp))
                                                         Surface(
@@ -2428,12 +2426,15 @@ fun BubbleStationFlippingTab(
 
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
+    val cloudSnaps = remember { prefsObj.getPriceSnapshots(prefsObj.server) }
 
-    val allFlippingOpps = remember(priceMap, uiState.silverBudget) {
+    val allFlippingOpps = remember(priceMap, uiState.silverBudget, prefsObj.hasPremium) {
         TradeCalculator.calculateStationTradingFlippingOpportunities(
             resources = AlbionResourceRepository.resources,
             pricesByItem = priceMap,
-            silverBudget = uiState.silverBudget
+            silverBudget = uiState.silverBudget,
+            marketTaxPercent = if (prefsObj.hasPremium) 4.0 else 8.0,
+            cloudSnapshots = cloudSnaps
         )
     }
 
@@ -2511,7 +2512,14 @@ fun BubbleStationFlippingTab(
                             }
                             Spacer(modifier = Modifier.height(3.dp))
                             Text("🏙️ Markt: ${opp.buyCity} | Buy Order: ${fmt.format(opp.buyPrice)} S. ➔ Sell Order: ${fmt.format(opp.sellPrice)} S.", color = Color(0xFFE2E8F0), fontSize = 9.sp)
-                            Text("📊 Netto-Gewinn: +${fmt.format(opp.totalNetProfit)} S. (${fmt.format(opp.tradeUnits)} Stk.)", color = Color(0xFF4ADE80), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("📊 Netto-Gewinn: +${fmt.format(opp.totalNetProfit)} S. (${fmt.format(opp.tradeUnits)} Stk.)", color = Color(0xFF4ADE80), fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
+                                Text(opp.liquidityScore, color = Color(0xFF38BDF8), fontSize = 8.5.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
