@@ -2376,7 +2376,7 @@ fun BubbleSmugglerRadarTab(
         if (smugglerOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Schwarzmarkt-Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(items = smugglerOpps) { idx: Int, opp: TradeOpportunity ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -2587,7 +2587,7 @@ fun BubbleRefiningMatrixTab(
         if (refiningOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Veredelungs-Chancen berechenbar.", lang), color = Color.Gray, fontSize = 10.sp)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(items = refiningOpps) { idx: Int, opp: CraftingOpportunityDetails ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -2699,7 +2699,7 @@ fun BubbleLaborerJournalsTab(
         if (journalOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Tagebuch-Deals verfügbar.", lang), color = Color.Gray, fontSize = 10.sp)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(items = journalOpps) { idx: Int, opp: CraftingOpportunityDetails ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -2808,7 +2808,7 @@ fun BubbleFactionWarfareTab(
         if (factionOpps.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Fraktions-Handelschancen berechenbar.", lang), color = Color.Gray, fontSize = 10.sp)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(items = factionOpps) { idx: Int, opp: CraftingOpportunityDetails ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
@@ -2894,7 +2894,7 @@ fun BubbleInventoryRouterTab(
         if (routes.isEmpty()) {
             Text("Keine Routen gefunden. Prüfe Budget & Tragkraft.", color = Color.Gray, fontSize = 10.sp)
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(items = routes) { idx: Int, route: InventoryRoute ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
