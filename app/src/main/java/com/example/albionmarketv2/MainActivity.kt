@@ -279,11 +279,12 @@ class MainActivity : ComponentActivity() {
 
                 var currentAppLang by remember { mutableStateOf(prefs.appLanguage) }
 
-                CompositionLocalProvider(LocalAppLanguage provides currentAppLang) {
-                    Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background,
-                    ) {
+                DataProTheme {
+                    CompositionLocalProvider(LocalAppLanguage provides currentAppLang) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = MaterialTheme.colorScheme.background,
+                        ) {
                     // Show Lockscreen Login when NOT logged in or license invalid
                     if (!isUserLoggedInState || !LicenseManager.isLicenseValid(context)) {
                         var usernameInput by remember { mutableStateOf("") }
@@ -982,6 +983,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                     }
+                }
                 }
                 }
             }

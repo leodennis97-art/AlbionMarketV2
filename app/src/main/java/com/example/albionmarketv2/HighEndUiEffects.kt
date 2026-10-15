@@ -21,6 +21,8 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.window.Popup
@@ -40,6 +42,35 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
+
+val DataProDarkColorScheme = darkColorScheme(
+    primary = Color(0xFF38BDF8),
+    onPrimary = Color(0xFF001E2B),
+    primaryContainer = Color(0xFF0284C7),
+    onPrimaryContainer = Color.White,
+    secondary = Color(0xFF10B981),
+    onSecondary = Color(0xFF002114),
+    secondaryContainer = Color(0xFF047857),
+    onSecondaryContainer = Color.White,
+    tertiary = Color(0xFFF59E0B),
+    onTertiary = Color.Black,
+    background = Color(0xFF050B14),
+    onBackground = Color(0xFFF8FAFC),
+    surface = Color(0xFF0F172A),
+    onSurface = Color(0xFFF8FAFC),
+    surfaceVariant = Color(0xFF1E293B),
+    onSurfaceVariant = Color(0xFF94A3B8),
+    error = Color(0xFFEF4444),
+    onError = Color.White
+)
+
+@Composable
+fun DataProTheme(content: @Composable () -> Unit) {
+    MaterialTheme(
+        colorScheme = DataProDarkColorScheme,
+        content = content
+    )
+}
 
 fun Modifier.hapticClickable(
     enabled: Boolean = true,

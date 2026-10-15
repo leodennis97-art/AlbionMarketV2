@@ -754,7 +754,8 @@ fun BubbleOverlayContent(
     val lang = prefs.appLanguage
     val currentOnDrag by rememberUpdatedState(onDrag)
 
-    CompositionLocalProvider(LocalAppLanguage provides lang) {
+    DataProTheme {
+        CompositionLocalProvider(LocalAppLanguage provides lang) {
         val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     var isCompactMode by remember { mutableStateOf(value = true) }
@@ -2351,6 +2352,7 @@ fun BubbleOverlayContent(
             }
         }
     }
+}
 }
 }
 
