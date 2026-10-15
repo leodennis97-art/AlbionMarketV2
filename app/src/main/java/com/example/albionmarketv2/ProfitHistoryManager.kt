@@ -18,6 +18,17 @@ object ProfitHistoryManager {
 
     private const val PREFS_KEY = "profit_history_entries_json"
 
+    fun getRawProfitHistoryJson(context: Context): String {
+        val prefs = context.getSharedPreferences("albion_market_prefs", Context.MODE_PRIVATE)
+        return prefs.getString(PREFS_KEY, "[]") ?: "[]"
+    }
+
+    fun saveRawProfitHistoryJson(context: Context, jsonStr: String) {
+        if (jsonStr.isBlank()) return
+        val prefs = context.getSharedPreferences("albion_market_prefs", Context.MODE_PRIVATE)
+        prefs.edit().putString(PREFS_KEY, jsonStr).apply()
+    }
+
     fun getHistory(context: Context): List<ProfitEntry> {
         val prefs = context.getSharedPreferences("albion_market_prefs", Context.MODE_PRIVATE)
         val jsonStr = prefs.getString(PREFS_KEY, "[]") ?: "[]"

@@ -858,7 +858,14 @@ object ServerSyncManager {
                     put("bubbleCompactMode", prefs.bubbleCompactMode)
                     put("bubbleOpacity", prefs.bubbleOpacity.toDouble())
                     put("bubbleScale", prefs.bubbleScale.toDouble())
+                    put("bubbleWidthPortrait", prefs.bubbleWidthPortrait)
+                    put("bubbleHeightPortrait", prefs.bubbleHeightPortrait)
+                    put("bubbleWidthLandscape", prefs.bubbleWidthLandscape)
+                    put("bubbleHeightLandscape", prefs.bubbleHeightLandscape)
+                    put("bubbleLastTab", prefs.bubbleLastTab)
+                    put("favoriteItemIds", prefs.favoriteItemIds.joinToString(","))
                     put("tradeOrdersJson", prefs.rawTradeOrdersJson)
+                    put("profitHistoryJson", ProfitHistoryManager.getRawProfitHistoryJson(context))
                     put("activatedLicenseCode", LicenseManager.getActivatedCode(context))
                 })
             }.toString()
@@ -931,7 +938,29 @@ object ServerSyncManager {
                                 if (prefsData.has("bubbleCompactMode")) prefs.bubbleCompactMode = prefsData.getBoolean("bubbleCompactMode")
                                 if (prefsData.has("bubbleOpacity")) prefs.bubbleOpacity = prefsData.getDouble("bubbleOpacity").toFloat()
                                 if (prefsData.has("bubbleScale")) prefs.bubbleScale = prefsData.getDouble("bubbleScale").toFloat()
-                                if (prefsData.has("tradeOrdersJson")) prefs.rawTradeOrdersJson = prefsData.getString("tradeOrdersJson") ?: ""
+                                if (prefsData.has("bubbleWidthPortrait")) prefs.bubbleWidthPortrait = prefsData.getInt("bubbleWidthPortrait")
+                                if (prefsData.has("bubbleHeightPortrait")) prefs.bubbleHeightPortrait = prefsData.getInt("bubbleHeightPortrait")
+                                if (prefsData.has("bubbleWidthLandscape")) prefs.bubbleWidthLandscape = prefsData.getInt("bubbleWidthLandscape")
+                                if (prefsData.has("bubbleHeightLandscape")) prefs.bubbleHeightLandscape = prefsData.getInt("bubbleHeightLandscape")
+                                if (prefsData.has("bubbleLastTab")) prefs.bubbleLastTab = prefsData.getString("bubbleLastTab") ?: "TOP_MARGIN"
+                                if (prefsData.has("favoriteItemIds")) {
+                                    val favStr = prefsData.optString("favoriteItemIds", "")
+                                    if (favStr.isNotBlank()) {
+                                        prefs.favoriteItemIds = favStr.split(",").filter { it.isNotBlank() }.toSet()
+                                    }
+                                }
+                                if (prefsData.has("tradeOrdersJson")) {
+                                    val ordersStr = prefsData.optString("tradeOrdersJson", "")
+                                    if (ordersStr.isNotBlank()) {
+                                        prefs.rawTradeOrdersJson = ordersStr
+                                    }
+                                }
+                                if (prefsData.has("profitHistoryJson")) {
+                                    val profitStr = prefsData.optString("profitHistoryJson", "")
+                                    if (profitStr.isNotBlank()) {
+                                        ProfitHistoryManager.saveRawProfitHistoryJson(context, profitStr)
+                                    }
+                                }
                                 if (prefsData.has("activatedLicenseCode")) {
                                     val code = prefsData.getString("activatedLicenseCode")
                                     if (!code.isNullOrBlank()) {
