@@ -705,10 +705,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         composeView?.let { view ->
             try {
                 if (view.isAttachedToWindow) {
-                    windowManager.removeView(view)
+                    windowManager.removeViewImmediate(view)
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            } catch (_: Exception) {
+                try { windowManager.removeView(view) } catch (_: Exception) {}
             }
         }
         composeView = null
@@ -4719,23 +4719,25 @@ fun BubbleSettingsTab(
         Button(
             onClick = {
                 prefs.isUserLoggedIn = false
-                Toast.makeText(context, "🔒 Abgemeldet! Öffne Login-Seite...", Toast.LENGTH_SHORT).show()
+                prefs.savedUsername = ""
+                prefs.savedPassword = ""
+                Toast.makeText(context, "🔒 Abgemeldet! Kehre zum Startbildschirm zurück...", Toast.LENGTH_SHORT).show()
                 try {
                     val loginIntent = Intent(context, MainActivity::class.java).apply {
-                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
                     context.startActivity(loginIntent)
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
-                Handler(Looper.getMainLooper()).post {
+                Handler(Looper.getMainLooper()).postDelayed({
                     try {
                         FloatingBubbleService.stopService(context)
                     } catch (_: Exception) {}
                     try {
                         PersistentServerSyncService.stopService(context)
                     } catch (_: Exception) {}
-                }
+                }, 150)
             },
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF59E0B)),
             shape = RoundedCornerShape(8.dp),

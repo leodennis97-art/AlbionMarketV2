@@ -464,16 +464,18 @@ fun AlbionResourceScreen(
                     onLogout()
                 } else {
                     prefs.isUserLoggedIn = false
+                    prefs.savedUsername = ""
+                    prefs.savedPassword = ""
                     try {
                         val loginIntent = Intent(context, MainActivity::class.java).apply {
-                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                         }
                         context.startActivity(loginIntent)
                     } catch (_: Exception) {}
-                    Handler(Looper.getMainLooper()).post {
+                    Handler(Looper.getMainLooper()).postDelayed({
                         try { FloatingBubbleService.stopService(context) } catch (_: Exception) {}
                         try { PersistentServerSyncService.stopService(context) } catch (_: Exception) {}
-                    }
+                    }, 150)
                 }
             }
         }
