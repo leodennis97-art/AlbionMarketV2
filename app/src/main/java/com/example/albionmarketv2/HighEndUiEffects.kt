@@ -1,6 +1,7 @@
 package com.example.albionmarketv2
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -41,6 +42,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 val DataProDarkColorScheme = darkColorScheme(
@@ -485,6 +487,69 @@ fun GlowingLanguageSelectorButton(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun AnimatedAppearanceCard(
+    modifier: Modifier = Modifier,
+    delayMs: Int = 0,
+    content: @Composable () -> Unit
+) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (delayMs > 0) delay(delayMs.toLong())
+        visible = true
+    }
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(animationSpec = tween(350)) + scaleIn(initialScale = 0.92f, animationSpec = spring(stiffness = Spring.StiffnessLow)),
+        exit = fadeOut(animationSpec = tween(200)),
+        modifier = modifier
+    ) {
+        content()
+    }
+}
+
+@Composable
+fun DynamicGlowButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = Color(0xFF38BDF8),
+    contentColor: Color = Color.Black,
+    enabled: Boolean = true
+) {
+    val infiniteTransition = rememberInfiniteTransition(label = "ButtonGlow")
+    val alphaGlow by infiniteTransition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.85f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "AlphaGlow"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = if (enabled) containerColor else Color(0xFF334155),
+        border = BorderStroke(1.dp, containerColor.copy(alpha = if (enabled) alphaGlow else 0.2f)),
+        modifier = modifier.hapticClickable(enabled = enabled, onClick = onClick)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 10.dp, horizontal = 14.dp)
+        ) {
+            Text(
+                text = text,
+                fontWeight = FontWeight.ExtraBold,
+                fontSize = 12.sp,
+                color = if (enabled) contentColor else Color.Gray
+            )
         }
     }
 }

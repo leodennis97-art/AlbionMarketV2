@@ -706,49 +706,32 @@ class MainActivity : ComponentActivity() {
                                                                 }
                                                                 isUserLoggedInState = true
                                                                 isUnlockedForSession = true
-                                                                Toast.makeText(context, "🟢 Account & Lizenz erfolgreich registriert & freigeschaltet!", Toast.LENGTH_LONG).show()
                                                             } else {
                                                                 prefs.savedUsername = usernameInput.trim()
                                                                 isRegistrationMode = false
-                                                                Toast.makeText(
-                                                                    context,
-                                                                    "🟢 Account erfolgreich registriert!",
-                                                                    Toast.LENGTH_LONG
-                                                                ).show()
                                                             }
                                                         } else {
                                                             isAuthenticating = false
-                                                            Toast.makeText(context, "❌ Registrierungsfehler: $regMsg", Toast.LENGTH_LONG).show()
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                                modifier = Modifier.fillMaxWidth().height(44.dp),
                                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                                shape = RoundedCornerShape(12.dp),
-                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                                                shape = RoundedCornerShape(10.dp)
                                             ) {
-                                                Text("🚀 Account Erstellen", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                                Text("🚀 Account Erstellen", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                                             }
                                         } else {
                                             Button(
                                                 onClick = {
                                                     val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
-                                                    if (!canLogin) {
-                                                        Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
-                                                        return@Button
-                                                    }
+                                                    if (!canLogin) return@Button
 
                                                     val uValid = LoginSecurityManager.validateUsername(usernameInput)
-                                                    if (!uValid.first) {
-                                                        Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
-                                                        return@Button
-                                                    }
+                                                    if (!uValid.first) return@Button
 
                                                     val pValid = LoginSecurityManager.validatePassword(passwordInput)
-                                                    if (!pValid.first) {
-                                                        Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
-                                                        return@Button
-                                                    }
+                                                    if (!pValid.first) return@Button
 
                                                     isAuthenticating = true
                                                     lifecycleScope.launch {
@@ -768,35 +751,25 @@ class MainActivity : ComponentActivity() {
                                                             }
                                                             isUserLoggedInState = true
                                                             isUnlockedForSession = true
-                                                            Toast.makeText(context, "🟢 Login verifiziert & freigeschaltet!", Toast.LENGTH_SHORT).show()
                                                         } else {
-                                                            val lockout = LoginSecurityManager.recordFailedAttempt(context)
+                                                            LoginSecurityManager.recordFailedAttempt(context)
                                                             prefs.isUserLoggedIn = false
                                                             isUserLoggedInState = false
                                                             isUnlockedForSession = false
-                                                            if (lockout > 0) {
-                                                                Toast.makeText(context, "🔴 Login fehlgeschlagen! Für $lockout Sekunden gesperrt.", Toast.LENGTH_LONG).show()
-                                                            } else {
-                                                                val errStr = ServerSyncManager.lastLoginErrorMessage ?: "🔴 Login fehlgeschlagen! Kein Konto, ungültige Lizenz oder keine Cloud-Verbindung."
-                                                                Toast.makeText(context, errStr, Toast.LENGTH_LONG).show()
-
-                                                                if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
-                                                                    val targetV = ServerSyncManager.latestTargetVersion ?: "4.1.3"
-                                                                    Toast.makeText(context, "🚀 App aktualisieren: Installiere neueste Version v$targetV...", Toast.LENGTH_LONG).show()
-                                                                    lifecycleScope.launch(Dispatchers.IO) {
-                                                                        OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
-                                                                    }
+                                                            val errStr = ServerSyncManager.lastLoginErrorMessage ?: ""
+                                                            if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
+                                                                lifecycleScope.launch(Dispatchers.IO) {
+                                                                    OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
                                                                 }
                                                             }
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(50.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
-                                                shape = RoundedCornerShape(12.dp),
-                                                elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp)
+                                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                                shape = RoundedCornerShape(10.dp)
                                             ) {
-                                                Text("🔑 In Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 14.sp)
+                                                Text("🔑 In Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
                                             }
                                         }
 

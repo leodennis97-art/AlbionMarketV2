@@ -1062,6 +1062,8 @@ object ServerSyncManager {
                 val json = JSONObject().apply {
                     put("username", username.trim())
                     put("password", pass.trim())
+                    put("hwId", DeviceHardwareManager.getHardwareId(context))
+                    put("deviceName", Build.MODEL ?: "Android Device")
                     if (!licenseKey.isNullOrBlank()) {
                         put("licenseKey", licenseKey.trim())
                         put("activatedLicenseCode", licenseKey.trim())

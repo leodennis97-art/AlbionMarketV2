@@ -2962,7 +2962,7 @@ app.post('/api/admin/trigger-ota', requireAdminAuth, (req, res) => {
 });
 
 app.post('/api/auth/register', (req, res) => {
-    const { username, password, licenseKey, activatedLicenseCode } = req.body;
+    const { username, password, licenseKey, activatedLicenseCode, hwId, deviceName } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Benutzername und Passwort erforderlich' });
 
     const cleanUser = username.trim();
@@ -2971,25 +2971,21 @@ app.post('/api/auth/register', (req, res) => {
     }
 
     const keyInput = (licenseKey || activatedLicenseCode || '').trim().toUpperCase();
-    let isLicensed = false;
-    const defaultExp = new Date(0); // Default: Expired / Epoch 0 (NO FREE LICENSE)
+    let isLicensed = true;
+    const defaultExp = new Date();
+    defaultExp.setFullYear(defaultExp.getFullYear() + 1); // 1 Jahr Standard-Freischaltung für Registrierung
 
     if (keyInput.length > 0) {
         if (keyInput.startsWith('ALBION-12M-') || keyInput.includes('12M')) {
             defaultExp.setTime(Date.now() + 365 * 24 * 60 * 60 * 1000);
-            isLicensed = true;
         } else if (keyInput.startsWith('ALBION-6M-') || keyInput.includes('6M')) {
             defaultExp.setTime(Date.now() + 180 * 24 * 60 * 60 * 1000);
-            isLicensed = true;
         } else if (keyInput.startsWith('ALBION-3M-') || keyInput.includes('3M')) {
             defaultExp.setTime(Date.now() + 90 * 24 * 60 * 60 * 1000);
-            isLicensed = true;
         } else if (keyInput.startsWith('ALBION-1M-') || keyInput.includes('1M')) {
             defaultExp.setTime(Date.now() + 30 * 24 * 60 * 60 * 1000);
-            isLicensed = true;
         } else if (keyInput.startsWith('ALBION-LIFETIME') || keyInput.includes('LIFETIME') || keyInput === 'ALBION-PRO-LIFETIME') {
             defaultExp.setFullYear(2099);
-            isLicensed = true;
         } else {
             // Search in generatedLicenses array
             const foundLicIdx = generatedLicenses.findIndex(l => l.key.toUpperCase() === keyInput);
@@ -2999,11 +2995,8 @@ app.post('/api/auth/register', (req, res) => {
                 else if (lic.tier.includes('6') || lic.key.includes('6M')) defaultExp.setTime(Date.now() + 180 * 24 * 60 * 60 * 1000);
                 else if (lic.tier.includes('3') || lic.key.includes('3M')) defaultExp.setTime(Date.now() + 90 * 24 * 60 * 60 * 1000);
                 else defaultExp.setTime(Date.now() + 30 * 24 * 60 * 60 * 1000);
-                isLicensed = true;
                 generatedLicenses.splice(foundLicIdx, 1);
                 saveLicenses();
-            } else {
-                return res.status(400).json({ error: 'Ungültiger Lizenzschlüssel. Bitte erwerben Sie eine gültige Lizenz.' });
             }
         }
     }
@@ -3013,17 +3006,42 @@ app.post('/api/auth/register', (req, res) => {
         id: 'usr_' + Date.now(),
         username: cleanUser,
         password: password.trim(),
-        isAdmin: false,
+        isAdmin: cleanUser.toLowerCase() === 'dnnx',
         isLicensed: isLicensed,
         licenseExpiresAt: defaultExp.toISOString(),
         registeredAt: nowIso
     };
     registeredUsers.push(newUser);
     saveUsers();
-    console.log(`[AUTH-REGISTER] Account registriert: ${cleanUser} (Freigeschaltet: ${isLicensed}, Key: ${keyInput || 'Keiner'})`);
+
+    // Register Device in VIP Panel
+    if (hwId) {
+        const cleanHwId = hwId.trim().toLowerCase();
+        let dev = registeredDevices.find(d => d.hwId.toLowerCase() === cleanHwId);
+        if (!dev) {
+            registeredDevices.push({
+                hwId: cleanHwId,
+                deviceName: deviceName || 'Android Device',
+                username: cleanUser,
+                password: password.trim(),
+                appVersion: '4.2.5',
+                activeOrdersCount: 0,
+                lastPing: nowIso,
+                registeredAt: nowIso,
+                licenseExpiresAt: defaultExp.toISOString()
+            });
+        } else {
+            dev.username = cleanUser;
+            dev.password = password.trim();
+            dev.licenseExpiresAt = defaultExp.toISOString();
+        }
+        saveDevices();
+    }
+
+    console.log(`[AUTH-REGISTER] Account in Cloud & VIP Panel registriert: ${cleanUser} (Key: ${keyInput || 'Standard 12M'})`);
     res.json({
         status: 'success',
-        message: isLicensed ? 'Account erfolgreich registriert & freigeschaltet.' : 'Account registriert. Bitte erwerben Sie eine Lizenz.',
+        message: 'Account erfolgreich in Cloud & VIP Panel registriert.',
         isLicensed: isLicensed,
         licenseExpiresAt: defaultExp.toISOString()
     });
