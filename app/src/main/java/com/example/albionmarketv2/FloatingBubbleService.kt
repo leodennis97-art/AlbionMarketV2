@@ -559,6 +559,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
         val silverBudget = viewModel?.uiState?.value?.silverBudget ?: prefs.silverBudget
         val carryCapacity = viewModel?.uiState?.value?.carryCapacityKg ?: prefs.carryCapacityKg
+        val currentGoldPrice = viewModel?.uiState?.value?.currentGoldPrice ?: 4850
 
         var rawOpportunities = TradeCalculator.calculateOpportunities(
             resources = filteredResources,
@@ -568,7 +569,7 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
             marketTaxPercent = if (prefs.hasPremium) 4.0 else 8.0,
             targetMarginPercent = prefs.bubbleMinMarginPercent,
             avoidDangerousZones = avoidDangerous,
-            currentGoldPrice = 4250,
+            currentGoldPrice = currentGoldPrice,
             standpunktCity = standpunkt,
             maxCityDistance = maxZones,
             hideBrecilien = hideBrec,
@@ -2879,7 +2880,7 @@ fun BubbleInventoryRouterTab(
             marketTaxPercent = 4.0,
             targetMarginPercent = 5.0,
             avoidDangerousZones = false,
-            currentGoldPrice = 4250,
+            currentGoldPrice = uiState.currentGoldPrice.coerceAtLeast(100),
             standpunktCity = null,
             maxCityDistance = 99,
             hideBrecilien = false,

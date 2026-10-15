@@ -2640,6 +2640,34 @@ app.get('/api/user/restore', (req, res) => {
     res.json({ status: 'not_found', prefsData: {} });
 });
 
+// Live Gold Prices Store per Server
+let liveGoldPrices = {
+    EUROPE: 4850,
+    WEST: 4620,
+    EAST: 4780,
+    lastUpdated: new Date().toISOString()
+};
+
+app.get('/api/gold/prices', (req, res) => {
+    res.json({
+        status: 'success',
+        goldPrices: liveGoldPrices,
+        timestampMs: Date.now()
+    });
+});
+
+app.post('/api/gold/update', (req, res) => {
+    const { serverName, newPrice } = req.body;
+    const priceNum = parseInt(newPrice, 10);
+    if (priceNum && priceNum > 100 && priceNum < 1000000) {
+        const srv = (serverName || 'EUROPE').toUpperCase();
+        liveGoldPrices[srv] = priceNum;
+        liveGoldPrices.lastUpdated = new Date().toISOString();
+        return res.json({ status: 'success', server: srv, currentGoldPrice: priceNum, goldPrices: liveGoldPrices });
+    }
+    res.status(400).json({ error: 'Invalid gold price value' });
+});
+
 app.post('/api/devices/ping', (req, res) => {
     const { hwId, appVersion, deviceName, activeOrdersCount, username, password, prefsData } = req.body;
     if (!hwId) return res.status(400).json({ error: 'Missing hwId' });

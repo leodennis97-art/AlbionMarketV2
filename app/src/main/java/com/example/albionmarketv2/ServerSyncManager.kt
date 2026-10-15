@@ -452,6 +452,67 @@ object ServerSyncManager {
         sendBatchDataPackage(context, snapshots)
     }
 
+    suspend fun fetchLiveGoldPrices(context: Context): Map<String, Int> = withContext(Dispatchers.IO) {
+        val result = mutableMapOf<String, Int>()
+        for (baseUrl in getServerBaseUrls(context)) {
+            var conn: HttpURLConnection? = null
+            try {
+                val url = URL("$baseUrl/api/gold/prices")
+                conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "GET"
+                conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                conn.connectTimeout = 4000
+                conn.readTimeout = 4000
+                if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    val jsonObj = JSONObject(text)
+                    val pricesObj = jsonObj.optJSONObject("goldPrices")
+                    if (pricesObj != null) {
+                        if (pricesObj.has("EUROPE")) result["EUROPE"] = pricesObj.getInt("EUROPE")
+                        if (pricesObj.has("WEST")) result["WEST"] = pricesObj.getInt("WEST")
+                        if (pricesObj.has("EAST")) result["EAST"] = pricesObj.getInt("EAST")
+                        return@withContext result
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                conn?.disconnect()
+            }
+        }
+        result
+    }
+
+    suspend fun updateLiveGoldPrice(context: Context, serverName: String, newPrice: Int): Boolean = withContext(Dispatchers.IO) {
+        val payload = JSONObject().apply {
+            put("serverName", serverName)
+            put("newPrice", newPrice)
+        }.toString()
+
+        for (baseUrl in getServerBaseUrls(context)) {
+            var conn: HttpURLConnection? = null
+            try {
+                val url = URL("$baseUrl/api/gold/update")
+                conn = url.openConnection() as HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                conn.connectTimeout = 4000
+                conn.readTimeout = 4000
+                conn.doOutput = true
+                conn.outputStream.use { os ->
+                    os.write(payload.toByteArray(Charsets.UTF_8))
+                }
+                if (conn.responseCode == HttpURLConnection.HTTP_OK) {
+                    return@withContext true
+                }
+            } catch (_: Exception) {
+            } finally {
+                conn?.disconnect()
+            }
+        }
+        false
+    }
+
     suspend fun fetchCloudPrices(context: Context): List<PriceSnapshot> = withContext(Dispatchers.IO) {
         val prefs = AppPreferences(context)
         if (!prefs.isUserLoggedIn) return@withContext emptyList()
