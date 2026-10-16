@@ -324,7 +324,9 @@ data class IslandBuilding(
     val estimatedDailyIncomeSilver: Long = 0L,
     val estimatedRoiPercent: Double = 0.0,
     val maxTier: Int = 8,
-    val tier: Int = 1,
+    val tier: Int = 8,
+    val categoryName: String = "Gebäude",
+    val topProductDe: String = "",
     val id: String = ""
 )
 
@@ -363,7 +365,10 @@ object IslandRepository {
             abilityDescDe = "Anbau von Klette, Drachenteufel & Elfenkraut für Tränke",
             cityBonusCity = "Lymhurst",
             estimatedDailyIncomeSilver = 145000L,
-            estimatedRoiPercent = 28.5
+            estimatedRoiPercent = 28.5,
+            tier = 8,
+            categoryName = "Kräuter",
+            topProductDe = "🌿 T8 Elfenkraut & Drachenteufel (~48.000 S./Beet)"
         ),
         IslandBuilding(
             id = "FARM",
@@ -374,7 +379,10 @@ object IslandRepository {
             abilityDescDe = "Anbau von Möhren, Weizen, Rübchen & Mais für Nahrung",
             cityBonusCity = "Bridgewatch",
             estimatedDailyIncomeSilver = 120000L,
-            estimatedRoiPercent = 24.0
+            estimatedRoiPercent = 24.0,
+            tier = 8,
+            categoryName = "Feldfrüchte",
+            topProductDe = "🌾 T8 Kürbisse & Mais (~42.000 S./Feld)"
         ),
         IslandBuilding(
             id = "PASTURE",
@@ -385,7 +393,10 @@ object IslandRepository {
             abilityDescDe = "Zucht von Hühnern, Rindern, Ochsen & Schreckenswölfen",
             cityBonusCity = "FortSterling",
             estimatedDailyIncomeSilver = 210000L,
-            estimatedRoiPercent = 35.0
+            estimatedRoiPercent = 35.0,
+            tier = 8,
+            categoryName = "Tiere",
+            topProductDe = "🐄 T8 Rinder & T8 Schreckenswolf-Welpen (~85.000 S./Gehege)"
         ),
         IslandBuilding(
             id = "LABORER_HOUSE",
@@ -396,7 +407,10 @@ object IslandRepository {
             abilityDescDe = "Handwerker-, Söldner- & Sammler-Arbeiter für passive Einnahmen",
             cityBonusCity = "Caerleon",
             estimatedDailyIncomeSilver = 320000L,
-            estimatedRoiPercent = 42.0
+            estimatedRoiPercent = 42.0,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "📚 T8 Gefüllte Tagebücher (~125.000 S./Haus)"
         ),
         IslandBuilding(
             id = "WARRIORS_FORGE",
@@ -407,7 +421,10 @@ object IslandRepository {
             abilityDescDe = "Herstellung von Schwertern, Äxten, Streitkolben, Platte & Schilden",
             cityBonusCity = "FortSterling",
             estimatedDailyIncomeSilver = 280000L,
-            estimatedRoiPercent = 38.0
+            estimatedRoiPercent = 38.0,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "⚔️ T8.4 Meisterhaft Königsmacher (~450.000 S. Profit/Craft)"
         ),
         IslandBuilding(
             id = "MAGES_TOWER",
@@ -418,7 +435,10 @@ object IslandRepository {
             abilityDescDe = "Herstellung von Feuer-, Frost-, Fluch-Stäben & Stoffrüstungen",
             cityBonusCity = "Caerleon",
             estimatedDailyIncomeSilver = 310000L,
-            estimatedRoiPercent = 40.0
+            estimatedRoiPercent = 40.0,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "🔮 T8.4 Schattenrufer & Eisstab (~480.000 S. Profit/Craft)"
         ),
         IslandBuilding(
             id = "HUNTERS_LODGE",
@@ -429,7 +449,10 @@ object IslandRepository {
             abilityDescDe = "Herstellung von Bögen, Armbrüsten, Dolchen, Speeren & Lederrüstung",
             cityBonusCity = "Bridgewatch",
             estimatedDailyIncomeSilver = 260000L,
-            estimatedRoiPercent = 34.0
+            estimatedRoiPercent = 34.0,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "🏹 T8.4 Totengeber & Belagerungsarmbrust (~390.000 S. Profit/Craft)"
         ),
         IslandBuilding(
             id = "TOOLMAKER",
@@ -440,7 +463,10 @@ object IslandRepository {
             abilityDescDe = "Herstellung von T8 Spitzhacken, Äxten, Angeln & Umhängen/Taschen",
             cityBonusCity = "Martlock",
             estimatedDailyIncomeSilver = 240000L,
-            estimatedRoiPercent = 31.0
+            estimatedRoiPercent = 31.0,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "🎒 T8.4 Meister-Taschen & T8 Spitzhacken (~210.000 S. Profit/Craft)"
         ),
         IslandBuilding(
             id = "SMELTER",
@@ -451,7 +477,10 @@ object IslandRepository {
             abilityDescDe = "Veredelung von Kupfer, Eisen, Titanerz zu Metallbarren",
             cityBonusCity = "Thetford",
             estimatedDailyIncomeSilver = 290000L,
-            estimatedRoiPercent = 37.5
+            estimatedRoiPercent = 37.5,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "⛏️ T8.4 Adamantiumbarren (~280.000 S. Profit/Batch)"
         ),
         IslandBuilding(
             id = "TANNERY",
@@ -462,7 +491,10 @@ object IslandRepository {
             abilityDescDe = "Gerben von Tierhäuten zu feinstem T8 Leder",
             cityBonusCity = "Martlock",
             estimatedDailyIncomeSilver = 275000L,
-            estimatedRoiPercent = 36.0
+            estimatedRoiPercent = 36.0,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "🐆 T8.4 Makelloses Leder (~260.000 S. Profit/Batch)"
         ),
         IslandBuilding(
             id = "WEAVERY",
@@ -473,7 +505,10 @@ object IslandRepository {
             abilityDescDe = "Weben von Baumwolle & Hanf zu T8 Stoffballen",
             cityBonusCity = "Lymhurst",
             estimatedDailyIncomeSilver = 265000L,
-            estimatedRoiPercent = 33.5
+            estimatedRoiPercent = 33.5,
+            tier = 8,
+            categoryName = "Gebäude",
+            topProductDe = "🌾 T8.4 Geisterhanf Stoff (~240.000 S. Profit/Batch)"
         ),
         IslandBuilding(
             id = "LUMBERMILL",

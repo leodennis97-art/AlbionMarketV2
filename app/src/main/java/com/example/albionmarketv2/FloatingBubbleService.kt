@@ -3420,11 +3420,22 @@ fun BubbleIslandTab(
 ) {
     val buildings = remember { IslandRepository.buildings }
     var selectedCityFilter by remember { mutableStateOf("ALLE") }
-    val cities = listOf("ALLE", "Caerleon", "Martlock", "Lymhurst", "Bridgewatch", "Fort Sterling", "Thetford", "Brecilien")
+    var selectedTierFilter by remember { mutableIntStateOf(0) }
+    var selectedCategoryFilter by remember { mutableStateOf("ALLE") }
 
-    val filteredBuildings = remember(selectedCityFilter, buildings) {
-        val base = if (selectedCityFilter == "ALLE") buildings else buildings.filter { it.cityBonusCity.contains(selectedCityFilter, ignoreCase = true) }
-        base.sortedByDescending { it.estimatedRoiPercent }
+    val cities = listOf("ALLE", "Caerleon", "Martlock", "Lymhurst", "Bridgewatch", "Fort Sterling", "Thetford", "Brecilien")
+    val tiersList = listOf(0 to "Alle Tiers", 4 to "Tier 4", 5 to "Tier 5", 6 to "Tier 6", 7 to "Tier 7", 8 to "Tier 8")
+    val islandCategories = listOf("ALLE", "Feldfrüchte", "Kräuter", "Tiere", "Gebäude")
+
+    val filteredBuildings = remember(selectedCityFilter, selectedTierFilter, selectedCategoryFilter, buildings) {
+        var base = if (selectedCityFilter == "ALLE") buildings else buildings.filter { it.cityBonusCity.contains(selectedCityFilter, ignoreCase = true) }
+        if (selectedTierFilter > 0) {
+            base = base.filter { it.tier == selectedTierFilter }
+        }
+        if (selectedCategoryFilter != "ALLE") {
+            base = base.filter { it.categoryName.equals(selectedCategoryFilter, ignoreCase = true) || it.nameDe.contains(selectedCategoryFilter, ignoreCase = true) }
+        }
+        base.sortedByDescending { it.estimatedRoiPercent }.take(20)
     }
 
     var activeTimers by remember { mutableStateOf(IslandTimerManager.getTimers(context)) }
@@ -3459,6 +3470,46 @@ fun BubbleIslandTab(
                     Text(
                         text = city,
                         color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+            }
+        }
+
+        // Tier Selector Chips (T4 - T8)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(items = tiersList) { (tNum, tLabel) ->
+                val isSelected = selectedTierFilter == tNum
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFF10B981) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable { selectedTierFilter = tNum }
+                ) {
+                    Text(
+                        text = tLabel,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                    )
+                }
+            }
+        }
+
+        // Category Filter Chips
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            items(items = islandCategories) { cat ->
+                val isSelected = selectedCategoryFilter == cat
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (isSelected) Color(0xFFF59E0B) else Color(0xFF1E3A4C),
+                    modifier = Modifier.clickable { selectedCategoryFilter = cat }
+                ) {
+                    Text(
+                        text = cat,
+                        color = if (isSelected) Color.Black else Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 9.sp,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
@@ -3571,17 +3622,21 @@ fun BubbleIslandTab(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(bldg.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(1f))
-                            if (index < 3) {
-                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFD97706)) {
-                                    Text(
-                                        text = "🔥 Top Deal (#${index + 1} Marge)",
-                                        color = Color.White,
-                                        fontSize = 8.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
-                                    )
-                                }
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = if (index < 3) Color(0xFFFFD700) else Color(0xFF0284C7)
+                            ) {
+                                Text(
+                                    text = "🔥 #${index + 1} Marge (+${String.format(Locale.GERMANY, "%.1f", bldg.estimatedRoiPercent)}%)",
+                                    color = if (index < 3) Color.Black else Color.White,
+                                    fontSize = 8.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                )
                             }
+                        }
+                        if (bldg.topProductDe.isNotBlank()) {
+                            Text(bldg.topProductDe, color = Color(0xFF4ADE80), fontWeight = FontWeight.Bold, fontSize = 9.sp)
                         }
                         Text("⚡ ${bldg.abilityDescDe}", color = Color.LightGray, fontSize = 9.sp)
                         Text("📍 Bonus: ${bldg.cityBonusCity}", color = Color(0xFF81D4FA), fontSize = 9.sp)
