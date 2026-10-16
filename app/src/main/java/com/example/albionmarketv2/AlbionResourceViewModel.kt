@@ -229,17 +229,36 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
     }
 
     private fun performInitialFullDataSync() {
-        viewModelScope.launch {
-            // Einmaliges vorbereitendes Laden von Fallback-Daten und lokalen Daten beim App-Start
-            _uiState.value = _uiState.value.copy(isLoadingPrices = true)
-            val fallback = withContext(Dispatchers.IO) { AlbionMarketApi.getFallbackMarketPrices() }
+        viewModelScope.launch(Dispatchers.IO) {
+            // Sofortiger 0ms App-Start: Lokale Snapshots sofort anzeigen, keine Ladezeiten
             val initialOrders = prefs.getTradeOrders()
             val freshEvents = AlbionWorldData.generateLiveEvents()
-            _uiState.value = _uiState.value.copy(
-                marketPrices = fallback,
-                liveEventsList = freshEvents,
-                tradeOrders = initialOrders
-            )
+            val localSnapshots = prefs.getPriceSnapshots(server = _uiState.value.server)
+
+            val initialPrices = localSnapshots.asSequence()
+                .filter { it.sellPriceMin > 0 }
+                .map { s ->
+                    val isoDate = TradeCalculator.formatEpochToIso(s.timestampMs)
+                    MarketPrice(
+                        itemId = s.itemId,
+                        city = s.city,
+                        quality = 1,
+                        sellPriceMin = s.sellPriceMin,
+                        sellPriceMinDate = isoDate,
+                        buyPriceMax = s.buyPriceMax,
+                        buyPriceMaxDate = isoDate,
+                        sellPriceMinAmount = s.sellPriceMinAmount
+                    )
+                }.groupBy { it.itemId }
+
+            withContext(Dispatchers.Main) {
+                _uiState.value = _uiState.value.copy(
+                    marketPrices = initialPrices,
+                    liveEventsList = freshEvents,
+                    tradeOrders = initialOrders,
+                    isLoadingPrices = false
+                )
+            }
         }
     }
 
