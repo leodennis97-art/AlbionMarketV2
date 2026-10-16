@@ -930,9 +930,10 @@ object TradeCalculator {
         }
     }
         return list.sortedWith(
-            compareByDescending<TradeOpportunity> { it.roiPercent }
+            compareByDescending<TradeOpportunity> { it.updatedTimestamp }
+                .thenByDescending { it.roiPercent }
                 .thenByDescending { it.totalNetProfit }
-        )
+        ).take(20)
     }
 
     data class RefiningSpec(

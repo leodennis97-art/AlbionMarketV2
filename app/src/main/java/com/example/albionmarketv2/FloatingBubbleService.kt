@@ -2432,21 +2432,44 @@ fun BubbleStationFlippingTab(
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val cloudSnaps = remember { prefsObj.getPriceSnapshots(prefsObj.server) }
 
-    val allFlippingOpps = remember(priceMap, uiState.silverBudget, prefsObj.hasPremium) {
-        TradeCalculator.calculateStationTradingFlippingOpportunities(
-            resources = AlbionResourceRepository.resources,
-            pricesByItem = priceMap,
-            silverBudget = uiState.silverBudget,
-            marketTaxPercent = if (prefsObj.hasPremium) 4.0 else 8.0,
-            cloudSnapshots = cloudSnaps
-        )
+    var accumulatedFlippingOpps by remember { mutableStateOf<List<TradeOpportunity>>(emptyList()) }
+
+    LaunchedEffect(priceMap, uiState.silverBudget, prefsObj.hasPremium) {
+        val freshOpps = withContext(Dispatchers.IO) {
+            TradeCalculator.calculateStationTradingFlippingOpportunities(
+                resources = AlbionResourceRepository.resources,
+                pricesByItem = priceMap,
+                silverBudget = uiState.silverBudget,
+                marketTaxPercent = if (prefsObj.hasPremium) 4.0 else 8.0,
+                cloudSnapshots = cloudSnaps
+            )
+        }
+
+        if (freshOpps.isNotEmpty()) {
+            val mergedMap = LinkedHashMap<String, TradeOpportunity>()
+            for (opp in freshOpps) {
+                val key = "${opp.resource.fullId}_${opp.buyCity}"
+                mergedMap[key] = opp
+            }
+            for (opp in accumulatedFlippingOpps) {
+                val key = "${opp.resource.fullId}_${opp.buyCity}"
+                if (!mergedMap.containsKey(key)) {
+                    mergedMap[key] = opp
+                }
+            }
+            accumulatedFlippingOpps = mergedMap.values.asSequence().sortedWith(
+                compareByDescending<TradeOpportunity> { it.updatedTimestamp }
+                    .thenByDescending { it.roiPercent }
+                    .thenByDescending { it.totalNetProfit }
+            ).take(20).toList()
+        }
     }
 
-    val flippingOpps = remember(allFlippingOpps, selectedFlippingCity) {
+    val flippingOpps = remember(accumulatedFlippingOpps, selectedFlippingCity) {
         if (selectedFlippingCity == "ALLE") {
-            allFlippingOpps
+            accumulatedFlippingOpps
         } else {
-            allFlippingOpps.filter { TradeCalculator.citiesMatch(it.buyCity, selectedFlippingCity) }
+            accumulatedFlippingOpps.filter { TradeCalculator.citiesMatch(it.buyCity, selectedFlippingCity) }
         }
     }
 
