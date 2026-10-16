@@ -710,6 +710,8 @@ data class LaborerJournal(
 }
 
 enum class BuildCategory(val icon: String = "⚔️", val displayName: String = "Build") {
+    UNFAIR_LIFESTEAL("🩸", "Unfairer Lebensraub"),
+    ONE_HIT_BURST("💥", "One-Hit Executioner"),
     DAMAGE_DPS("⚔️", "Damage DPS"),
     MELEE_DPS("⚔️", "Melee DPS"),
     TANK("🛡️", "Tank"),
@@ -765,6 +767,181 @@ data class EquipmentBuild(
 
 object EquipmentBuildRepository {
     val builds: List<EquipmentBuild> = listOf(
+        // 🩸 UNFAIR LIFESTEAL BUILD 1: BATTLEAXE VAMPIRE GOD
+        EquipmentBuild(
+            id = "UNFAIR_LIFESTEAL_BATTLEAXE",
+            title = "🩸 Unfairer Schlachtaxt Unendlicher Lebensraub (T8.4)",
+            category = BuildCategory.UNFAIR_LIFESTEAL,
+            weapon = "Schlachtaxt / Battleaxe (T8.4) + Muysak (T8.4)",
+            head = "Söldner-Kapuze / Mercenary Hood (T8.4)",
+            armor = "Hellion-Rüstung / Hellion Jacket (T8.4)",
+            shoes = "Dämonen-Stiefel / Demon Boots (T8.4)",
+            mount = "Panther / Geisterwildschwein",
+            potion = "Major Healing Potion / Heiltrank (T8)",
+            food = "Schweinebraten / Roast Pork (T8.3 - +13.5% Lifesteal)",
+            estimatedCostSilver = 3850000L,
+            estimatedMarginPercent = 38.5,
+            damageRating = 92,
+            defenseRating = 98,
+            mobilityRating = 88,
+            healingRating = 100,
+            strongestWeaponHighlight = "🩸 UNENDLICHER LEBENSRAUB: Regeneriert 1200+ HP pro Sekunde im laufenden Kampf!",
+            aiEvaluationDe = "🩸 UNFAIRER LEBENSRAUB (SCHLACHTAXT): Regeneriert 1200+ HP pro Sekunde! Die Kombination aus Doppelaxt-Axtwurf (E) mit Hellion-Aura und Schweinebraten heilt dich im Kampf von 10% auf 100% HP auf.",
+            combatRotationDe = "1. Q-Bleeds stapeln ➔ 2. Hellion-Aura (Rüstung R) aktivieren ➔ 3. E-Axtwurf zünden für +1200 HP Sofort-Heilung!",
+            vorteileDe = listOf("Gilt als unsterblich im 1v1 & 1vX Mists", "Extrem hohe Eigenheilung ohne Manaprobleme", "Invertiert Niederlagen bei <20% HP"),
+            nachteileDe = listOf("Erfordert Kontakt zum Ziel für Lifesteal")
+        ),
+
+        // 🩸 UNFAIR LIFESTEAL BUILD 2: BLOODLETTER MERCENARY VAMPIRE
+        EquipmentBuild(
+            id = "UNFAIR_LIFESTEAL_BLOODLETTER",
+            title = "🩸 Unfairer Blutmacher Vampir-Exekutor (T8.4)",
+            category = BuildCategory.UNFAIR_LIFESTEAL,
+            weapon = "Blutstrikefeld / Bloodletter (T8.4) + Nebelrufer (T8.4)",
+            head = "Jäger-Kapuze / Hunter Hood (T8.4)",
+            armor = "Söldner-Rüstung / Mercenary Jacket (T8.4)",
+            shoes = "Königliche Schuhe / Royal Shoes (T8.4)",
+            mount = "Schreckenswolf / Swiftclaw",
+            potion = "Major Poison Potion / Gifttrank (T8)",
+            food = "Schweinebraten / Roast Pork (T8.3)",
+            estimatedCostSilver = 4120000L,
+            estimatedMarginPercent = 35.0,
+            damageRating = 95,
+            defenseRating = 90,
+            mobilityRating = 100,
+            healingRating = 95,
+            strongestWeaponHighlight = "🩸 BLUTRAUSCH-HEILUNG: Söldner-Blutrausch heilt +200 HP pro Treffer bei schnellen Dolch-Hits!",
+            aiEvaluationDe = "🩸 UNFAIRER LEBENSRAUB (DOLCHE): Unbesiegbares Vampire-Build! Kombiniert Söldner-Blutrausch (+200 HP pro Treffer) mit schnellen Dolch-Hits (Q+W) und Schweinebraten-Lifesteal.",
+            combatRotationDe = "1. Dash an den Gegner ➔ 2. Blutrausch (R) zünden + Q-Spam für +1600 HP Heilung in 2 Sekunden ➔ 3. E-Execute unter 40% HP!",
+            vorteileDe = listOf("Höchste Mobilität im Spiel", "Sehr schnelle Heil-Impulse", "Gegner unter 40% HP sterben sofort"),
+            nachteileDe = listOf("Empfindlich gegen Stuns während Blutrausch")
+        ),
+
+        // 🩸 UNFAIR LIFESTEAL BUILD 3: GREAT NATURE LIFE REGEN GOD
+        EquipmentBuild(
+            id = "UNFAIR_LIFESTEAL_NATURE",
+            title = "🩸 Unfairer Naturstab Unsterblicher Lebensregen (T8.4)",
+            category = BuildCategory.UNFAIR_LIFESTEAL,
+            weapon = "Großer Naturstab / Great Nature Staff (T8.4)",
+            head = "Kultisten-Kapuze / Cultist Cowl (T8.4)",
+            armor = "Hellion-Rüstung / Hellion Jacket (T8.4)",
+            shoes = "Dämonen-Stiefel / Demon Boots (T8.4)",
+            mount = "Grizzlybär / Ochs",
+            potion = "Gigantismus-Trank (T8)",
+            food = "Schweinebraten / Roast Pork (T8.3)",
+            estimatedCostSilver = 3450000L,
+            estimatedMarginPercent = 42.0,
+            damageRating = 85,
+            defenseRating = 100,
+            mobilityRating = 80,
+            healingRating = 100,
+            strongestWeaponHighlight = "🌿 UNSTERBLICHE NATUR: Jeder gegnerische Treffer wandelt sich in +350 HP Heilung um!",
+            aiEvaluationDe = "🩸 UNFAIRER LEBENSRAUB (NATURMAGIE): Unsterbliche Heil-Barriere! Der Living Armor E-Spell wandelt JEDEN gegnerischen Treffer in +350 HP Heilung um. Unmöglich im 1v1 zu töten.",
+            combatRotationDe = "1. 3x Rejuvenation Stack aufrechterhalten ➔ 2. Living Armor (E) bei gegnerischem Burst zünden ➔ 3. Hellion-Aura zünden!",
+            vorteileDe = listOf("Hält selbst ZvZ-Schaden im 1vX aus", "Gegnerische Angriffe heilen dich", "Sehr entspanntes Solo-PvP"),
+            nachteileDe = listOf("Etwas geringere Burst-Gefahr für Gegner")
+        ),
+
+        // 🩸 UNFAIR LIFESTEAL BUILD 4: SHADOWCALLER SHRED VAMPIRE
+        EquipmentBuild(
+            id = "UNFAIR_LIFESTEAL_SHADOWCALLER",
+            title = "🩸 Unfairer Schattenrufer Vampir-Zauberer (T8.4)",
+            category = BuildCategory.UNFAIR_LIFESTEAL,
+            weapon = "Schattenrufer / Shadowcaller (T8.4) + Kryptakerze (T8.4)",
+            head = "Kapuze der Reinheit / Cowl of Purity (T8.4)",
+            armor = "Hellion-Rüstung / Hellion Jacket (T8.4)",
+            shoes = "Königliche Schuhe / Royal Shoes (T8.4)",
+            mount = "Schreckenswolf / Panther",
+            potion = "Major Poison Potion / Gifttrank (T8)",
+            food = "Schweinebraten / Roast Pork (T8.3)",
+            estimatedCostSilver = 5200000L,
+            estimatedMarginPercent = 36.8,
+            damageRating = 98,
+            defenseRating = 92,
+            mobilityRating = 90,
+            healingRating = 98,
+            strongestWeaponHighlight = "🔮 AOE SHRED LIFESTEAL: Zerschmettert Rüstungen um -45% und saugt 1800+ HP pro Sekunde ab!",
+            aiEvaluationDe = "🩸 UNFAIRER LEBENSRAUB (FLUCHMAGIE): Riesiger AoE-Lebensraub! Schattenrufer E-Ring zerschmettert Gegner-Rüstungen um -45% und saugt 1800+ HP pro Sekunde aus kompletten Spieler-Gruppen ab.",
+            combatRotationDe = "1. E-Shadowcaller Ring zünden (-45% Rüstung) ➔ 2. Hellion-Aura (R) aktivieren ➔ 3. Q-Cursed Sickle spammen für massiven Vampir-Ertrag!",
+            vorteileDe = listOf("Gigantischer Gruppenschaden & Gruppenheilung", "Zerstört gegnerische Rüstungen", "Ideal für Mists & Small Scale"),
+            nachteileDe = listOf("Hoher Preis für T8.4 Schattenrufer")
+        ),
+
+        // 💥 ONE-HIT EXECUTIONER BUILD 1: DAGGER PAIR 1-SHOT EXECUTION
+        EquipmentBuild(
+            id = "ONE_HIT_DAGGER_PAIR",
+            title = "💥 Unfaires Dolchpaar 1-Hit Instant Exekution (T8.4)",
+            category = BuildCategory.ONE_HIT_BURST,
+            weapon = "Dolchpaar / Dagger Pair (T8.4 Masterwork)",
+            head = "Stalker-Kapuze / Stalker Hood (T8.4)",
+            armor = "Assassinen-Rüstung / Assassin Jacket (T8.4)",
+            shoes = "Königliche Sandalen / Royal Sandals (T8.4)",
+            mount = "Schreckenswolf / Swiftclaw",
+            potion = "Major Poison Potion / Gifttrank (T8)",
+            food = "Rinder-Spezialeintopf / Beef Stew (T8.3 - +13.5% Schaden)",
+            estimatedCostSilver = 4400000L,
+            estimatedMarginPercent = 40.0,
+            damageRating = 100,
+            defenseRating = 75,
+            mobilityRating = 98,
+            healingRating = 60,
+            strongestWeaponHighlight = "💥 3500+ SOFORT-SCHADEN: Vernichtet Gegner mit 1-Hit Exekution in 0.4 Sekunden!",
+            aiEvaluationDe = "💥 UNFAIRER ONE-HIT EXECUTIONER: Vernichtet Gegner mit 3500+ Instant Damage auf EINEN SCHLAG! 3x Assassin Charges + Stealth Ambush (+40% Dmg) + Royal Sandals (+20% Dmg) + Stalker Hood (-35% Rüstung) = 1-Hit Tötung!",
+            combatRotationDe = "1. 3x Assassin Charges aufladen ➔ 2. Royal Sandals (+20% Dmg) zünden ➔ 3. Ambush Stealth (+40% Dmg) ➔ 4. Stalker Hood (-35% Rüstung) ➔ 5. E-Exekution = SOFORT-TOD!",
+            vorteileDe = listOf("Löscht Gegner im Mists in 0.4 Sekunden aus", "Gegner haben keine Reaktionszeit", "Höchster Single-Target Burst im Spiel"),
+            nachteileDe = listOf("Gefahr bei Verfehlen des E-Spells")
+        ),
+
+        // 💥 ONE-HIT EXECUTIONER BUILD 2: CLAYMORE 1-SHOT SLAUGHTER
+        EquipmentBuild(
+            id = "ONE_HIT_CLAYMORE_GOD",
+            title = "💥 Unfaires Claymore 1-Hit Todesstoss (T8.4)",
+            category = BuildCategory.ONE_HIT_BURST,
+            weapon = "Zweihänder / Claymore (T8.4 Masterwork)",
+            head = "Stalker-Kapuze / Stalker Hood (T8.4)",
+            armor = "Assassinen-Rüstung / Assassin Jacket (T8.4)",
+            shoes = "Königliche Sandalen / Royal Sandals (T8.4)",
+            mount = "Schreckenswolf / Direwolf",
+            potion = "Major Poison Potion / Gifttrank (T8)",
+            food = "Rinder-Spezialeintopf / Beef Stew (T8.3)",
+            estimatedCostSilver = 4600000L,
+            estimatedMarginPercent = 37.5,
+            damageRating = 100,
+            defenseRating = 85,
+            mobilityRating = 95,
+            healingRating = 70,
+            strongestWeaponHighlight = "💥 UNAUFHALTSAMER TODESSTOSS: Durchschlägt Schilde & Rüstungen für 3200+ Sofort-Schaden!",
+            aiEvaluationDe = "💥 UNFAIRER ONE-HIT CLAYMORE: 3x Heroic Charge + Ambush Stealth + E-Charge (Unaufhaltsam) durchschlägt Schild & Rüstung für 3200+ Sofort-Schaden auf einen Schlag!",
+            combatRotationDe = "1. 3x Heroic Charges stacken ➔ 2. Ambush Stealth aktivieren ➔ 3. Stalker-Kapuze zünden ➔ 4. E-Claymore Charge auf das Ziel!",
+            vorteileDe = listOf("Der E-Charge kann NICHT unterbrochen werden", "Sehr hoher Sofort-Schaden", "Stark im 1v1 Corrupted & Mists"),
+            nachteileDe = listOf("Gegenwehr erfordert Purge-Schutz")
+        ),
+
+        // 💥 ONE-HIT EXECUTIONER BUILD 3: ARMBRUST SNIPER ONE-SHOT
+        EquipmentBuild(
+            id = "ONE_HIT_CROSSBOW_SNIPER",
+            title = "💥 Unfaire Armbrust 20m Sniper One-Shot (T8.4)",
+            category = BuildCategory.ONE_HIT_BURST,
+            weapon = "Schwere Armbrust / Siegecross / Boltcasters (T8.4)",
+            head = "Stalker-Kapuze / Stalker Hood (T8.4)",
+            armor = "Königliche Robe / Royal Robe (T8.4)",
+            shoes = "Königliche Sandalen / Royal Sandals (T8.4)",
+            mount = "Schreckenswolf / Swiftclaw",
+            potion = "Major Poison Potion / Gifttrank (T8)",
+            food = "Rinder-Spezialeintopf / Beef Stew (T8.3)",
+            estimatedCostSilver = 3900000L,
+            estimatedMarginPercent = 41.0,
+            damageRating = 100,
+            defenseRating = 70,
+            mobilityRating = 75,
+            healingRating = 50,
+            strongestWeaponHighlight = "💥 20-METER SNIPER ONE-SHOT: Schießt Gegner aus maximaler Distanz mit EINEM Treffer weg!",
+            aiEvaluationDe = "💥 UNFAIRER ONE-SHOT ARMBRUST SNIPER: Der Magic Circle (+50% Dmg) + Royal Sandals (+20% Dmg) schießen Gegner aus 20 Metern Entfernung mit EINEM E-Treffer komplett aus dem Spiel!",
+            combatRotationDe = "1. Royal Robe Magic Circle (+50% Dmg) legen ➔ 2. Royal Sandals (+20% Dmg) aktivieren ➔ 3. E-Sniper Shot aus 20m Distanz zünden!",
+            vorteileDe = listOf("Extrem hohe Reichweite (20 Meter)", "Keine Annäherung an Gegner erforderlich", "Ideal für Ganking & Open World"),
+            nachteileDe = listOf("Geringe Mobilität beim Zaubern")
+        ),
+
         // S-TIER GOD BUILD 1: KINGMAKER ONE-SHOT BURST
         EquipmentBuild(
             id = "KINGMAKER_GOD_BURST",

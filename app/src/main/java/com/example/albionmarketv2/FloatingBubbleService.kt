@@ -4220,7 +4220,7 @@ fun BubbleBuildsTab(
     uiState: ResourceUiState,
     maxHeight: Dp
 ) {
-    var selectedCat by remember { mutableStateOf(BuildCategory.DAMAGE_DPS) }
+    var selectedCat by remember { mutableStateOf(BuildCategory.UNFAIR_LIFESTEAL) }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
     val filteredBuilds = remember(selectedCat, uiState.equipmentBuilds) {
