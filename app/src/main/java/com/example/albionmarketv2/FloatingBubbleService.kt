@@ -83,6 +83,7 @@ import java.util.*
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 
 class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
 
@@ -352,10 +353,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                     break
                 }
                 loadActiveOrder()
-                // Automatische Live-Aktualisierung im 15-Sekunden Takt für schwebendes In-Game Overlay
-                loadTopOpportunities(forceRefresh = true)
+                // Smart Eco-Refresh (2.5 Minuten) - Schont den Prozessor und verhindert Akku-Überhitzung
+                loadTopOpportunities(forceRefresh = (loopCount % 4 == 0))
                 loopCount++
-                delay(15.seconds)
+                delay(2.5.minutes)
             }
         }
     }

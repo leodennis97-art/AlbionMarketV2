@@ -6,9 +6,11 @@ import android.os.Build
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -267,16 +269,16 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
             val sdf = SimpleDateFormat("HH:mm:ss", Locale.GERMANY)
             var cycleTick = 0L
 
-            while (true) {
+            while (isActive) {
                 val nowStr = sdf.format(Date())
 
-                // 1. Echtzeit Live-Auto-Aktualisierung: Markt- & Goldpreise kontinuierlich abfragen
+                // 1. Intelligentes Eco-Intervall: Schont den Prozessor und verhindert Überhitzung
                 _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
                 fetchMarketPricesInternal()
                 fetchGoldPricesInternal()
                 reloadOrdersFromPrefs()
 
-                // 2. Server-Sync & Ping (alle 30s)
+                // 2. Server-Sync & Ping (alle 5 Minuten)
                 if ((cycleTick % 2L) == 0L) {
                     val serverStats = ServerSyncManager.pingServer(getApplication(), _uiState.value.activeOrders.size)
                     serverStats?.let { stats ->
@@ -287,14 +289,14 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     }
                 }
 
-                // 3. Live Events Zyklus (alle 10 Minuten)
-                if ((cycleTick % 40L) == 0L && cycleTick > 0L) {
+                // 3. Live Events Zyklus
+                if ((cycleTick % 4L) == 0L && cycleTick > 0L) {
                     val freshEvents = AlbionWorldData.generateLiveEvents()
                     _uiState.value = _uiState.value.copy(liveEventsList = freshEvents)
                 }
 
                 cycleTick++
-                delay(15.seconds) // Continuous 15-second Live Auto-Refresh
+                delay(2.5.minutes) // Intelligentes 2.5-Minuten Cool-Intervall (Verhindert CPU-Hitze & schont Akku)
             }
         }
     }
