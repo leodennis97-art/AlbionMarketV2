@@ -827,17 +827,13 @@ object TradeCalculator {
                 }
 
                 // 3. Statistische In-Game Buy Order & Sell Order Preisfindung für max. Marge
-                val buyOrderPrice = if (liveBuyOrder > 10 && liveBuyOrder < (askPrice * 0.92)) {
-                    minOf(liveBuyOrder + 1, (askPrice * (1.0 - baseSpreadPct)).toInt()).coerceAtLeast(1)
+                val buyOrderPrice = if (liveBuyOrder > 10 && liveBuyOrder < askPrice) {
+                    (liveBuyOrder + 1).coerceAtMost(askPrice - 1).coerceAtLeast(1)
                 } else {
-                    statLow.coerceAtMost((askPrice * (1.0 - baseSpreadPct)).toInt()).coerceAtLeast(1)
+                    (askPrice * (1.0 - baseSpreadPct)).toInt().coerceAtLeast(1)
                 }
 
-                val sellOrderPrice = if (askPrice > buyOrderPrice) {
-                    (askPrice - 1).coerceAtLeast(buyOrderPrice + 2)
-                } else {
-                    statHigh.coerceAtLeast((buyOrderPrice * (1.0 + baseSpreadPct)).toInt())
-                }
+                val sellOrderPrice = (askPrice - 1).coerceAtLeast(buyOrderPrice + 2)
 
                 if (buyOrderPrice <= 0 || sellOrderPrice <= buyOrderPrice) continue
 
@@ -849,7 +845,7 @@ object TradeCalculator {
                 if (unitNetProfit <= 0) continue
 
                 val marginPercent = (unitNetProfit.toDouble() / buyOrderPrice) * 100.0
-                if (marginPercent < 1.5 || marginPercent > 150.0) continue
+                if (marginPercent < 0.1 || marginPercent > 250.0) continue
 
                 val unitWeight = getItemWeightKg(res)
                 val tradeUnits = maxOf(1, (silverBudget / buyOrderPrice).toInt())
