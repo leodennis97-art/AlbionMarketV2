@@ -660,26 +660,50 @@ class MainActivity : ComponentActivity() {
                                             )
                                         }
 
+                                        // INLINE AUTH ERROR CARD
+                                        var authInlineError by remember { mutableStateOf("") }
+
+                                        if (authInlineError.isNotBlank()) {
+                                            Surface(
+                                                shape = RoundedCornerShape(10.dp),
+                                                color = Color(0xFFEF4444).copy(alpha = 0.15f),
+                                                border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                                            ) {
+                                                Text(
+                                                    text = authInlineError,
+                                                    color = Color(0xFFFCA5A5),
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(10.dp)
+                                                )
+                                            }
+                                        }
+
                                         // 5. ACTION BUTTONS
                                         if (isRegistrationMode) {
-                                            Button(
+                                            DynamicGlowButton(
+                                                text = if (isAuthenticating) "🔄 Registriere in Cloud & VIP Panel..." else "🚀 Account Erstellen",
+                                                containerColor = Color(0xFF10B981),
+                                                enabled = !isAuthenticating,
                                                 onClick = {
+                                                    authInlineError = ""
                                                     val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
                                                     if (!canLogin) {
-                                                        Toast.makeText(context, "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden.", Toast.LENGTH_LONG).show()
-                                                        return@Button
+                                                        authInlineError = "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden."
+                                                        return@DynamicGlowButton
                                                     }
 
                                                     val uValid = LoginSecurityManager.validateUsername(usernameInput)
                                                     if (!uValid.first) {
-                                                        Toast.makeText(context, uValid.second, Toast.LENGTH_SHORT).show()
-                                                        return@Button
+                                                        authInlineError = uValid.second
+                                                        return@DynamicGlowButton
                                                     }
 
                                                     val pValid = LoginSecurityManager.validatePassword(passwordInput, isRegistration = true)
                                                     if (!pValid.first) {
-                                                        Toast.makeText(context, pValid.second, Toast.LENGTH_SHORT).show()
-                                                        return@Button
+                                                        authInlineError = pValid.second
+                                                        return@DynamicGlowButton
                                                     }
 
                                                     isAuthenticating = true
@@ -709,29 +733,44 @@ class MainActivity : ComponentActivity() {
                                                             } else {
                                                                 prefs.savedUsername = usernameInput.trim()
                                                                 isRegistrationMode = false
+                                                                authInlineError = "🟢 Account registriert! Bitte jetzt anmelden."
                                                             }
                                                         } else {
                                                             isAuthenticating = false
+                                                            authInlineError = when {
+                                                                regMsg.contains("existiert", ignoreCase = true) -> "👤 Konto existiert bereits! Bitte melde dich an."
+                                                                regMsg.contains("Lizenz", ignoreCase = true) -> "🔑 Ungültige oder abgelaufene Lizenz. Bitte Lizenzcode eingeben."
+                                                                else -> "🌐 Keine Cloud-Verbindung verfügbar. Bitte Internet oder Server-Status prüfen."
+                                                            }
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(44.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
-                                                shape = RoundedCornerShape(10.dp)
-                                            ) {
-                                                Text("🚀 Account Erstellen", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                                            }
+                                                modifier = Modifier.fillMaxWidth().height(46.dp)
+                                            )
                                         } else {
-                                            Button(
+                                            DynamicGlowButton(
+                                                text = if (isAuthenticating) "🔄 Verifiziere Cloud & Lizenz..." else "🔑 In Konto Anmelden",
+                                                containerColor = Color(0xFF0284C7),
+                                                enabled = !isAuthenticating,
                                                 onClick = {
+                                                    authInlineError = ""
                                                     val (canLogin, lockoutSec) = LoginSecurityManager.canAttemptLogin(context)
-                                                    if (!canLogin) return@Button
+                                                    if (!canLogin) {
+                                                        authInlineError = "⏳ Zu viele Fehlversuche! Bitte warte $lockoutSec Sekunden."
+                                                        return@DynamicGlowButton
+                                                    }
 
                                                     val uValid = LoginSecurityManager.validateUsername(usernameInput)
-                                                    if (!uValid.first) return@Button
+                                                    if (!uValid.first) {
+                                                        authInlineError = uValid.second
+                                                        return@DynamicGlowButton
+                                                    }
 
                                                     val pValid = LoginSecurityManager.validatePassword(passwordInput)
-                                                    if (!pValid.first) return@Button
+                                                    if (!pValid.first) {
+                                                        authInlineError = pValid.second
+                                                        return@DynamicGlowButton
+                                                    }
 
                                                     isAuthenticating = true
                                                     lifecycleScope.launch {
@@ -757,6 +796,14 @@ class MainActivity : ComponentActivity() {
                                                             isUserLoggedInState = false
                                                             isUnlockedForSession = false
                                                             val errStr = ServerSyncManager.lastLoginErrorMessage ?: ""
+                                                            authInlineError = when {
+                                                                errStr.contains("Lizenz", ignoreCase = true) || errStr.contains("abgelaufen", ignoreCase = true) ->
+                                                                    "🔑 Ungültige oder abgelaufene Lizenz. Bitte Lizenzcode eingeben."
+                                                                errStr.contains("nicht gefunden", ignoreCase = true) || errStr.contains("ungültig", ignoreCase = true) ->
+                                                                    "👤 Kein Konto gefunden oder Passwort falsch. Bitte erstelle zuerst einen Account."
+                                                                else ->
+                                                                    "🌐 Keine Cloud-Verbindung verfügbar. Bitte Internet oder Server-Status prüfen."
+                                                            }
                                                             if (errStr.contains("App aktualisieren") || errStr.contains("veraltet") || ServerSyncManager.isOtaUpdateAvailable) {
                                                                 lifecycleScope.launch(Dispatchers.IO) {
                                                                     OtaUpdateManager.downloadAndInstallUpdate(context, force = true)
@@ -765,12 +812,8 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     }
                                                 },
-                                                modifier = Modifier.fillMaxWidth().height(44.dp),
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
-                                                shape = RoundedCornerShape(10.dp)
-                                            ) {
-                                                Text("🔑 In Konto Anmelden", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-                                            }
+                                                modifier = Modifier.fillMaxWidth().height(46.dp)
+                                            )
                                         }
 
                                         Spacer(modifier = Modifier.height(8.dp))
