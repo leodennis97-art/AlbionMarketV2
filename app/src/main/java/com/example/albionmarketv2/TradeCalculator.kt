@@ -777,10 +777,32 @@ object TradeCalculator {
         val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
         val fmtNum = NumberFormat.getNumberInstance(Locale.GERMANY)
 
-        for (res in resources) {
-            val idAt = res.fullId.replace("_", "@")
-            val idUnderscore = res.fullId.replace("@", "_")
-            val prices = pricesByItem[res.fullId] ?: pricesByItem[idAt] ?: pricesByItem[idUnderscore] ?: pricesByItem[res.id] ?: continue
+        for (baseResource in resources) {
+            for (enc in listOf(0, 1, 2, 3, 4)) {
+                val res = if (enc > 0) baseResource.copy(enchantment = enc) else baseResource
+                val idAt = res.fullId.replace("_", "@")
+                val idUnderscore = res.fullId.replace("@", "_")
+
+                val directPrices = pricesByItem[res.fullId] ?: pricesByItem[idAt] ?: pricesByItem[idUnderscore] ?: pricesByItem[res.id]
+
+                val snapPrices = if (directPrices.isNullOrEmpty() && cloudSnapshots.isNotEmpty()) {
+                    cloudSnapshots.filter { (it.itemId == res.fullId || it.itemId == idAt || it.itemId == idUnderscore || it.itemId == res.id) && it.sellPriceMin > 0 }.map { s ->
+                        val isoDate = formatEpochToIso(s.timestampMs)
+                        MarketPrice(
+                            itemId = s.itemId,
+                            city = s.city,
+                            quality = 1,
+                            sellPriceMin = s.sellPriceMin,
+                            sellPriceMinDate = isoDate,
+                            buyPriceMax = s.buyPriceMax,
+                            buyPriceMaxDate = isoDate,
+                            sellPriceMinAmount = s.sellPriceMinAmount
+                        )
+                    }
+                } else emptyList()
+
+                val prices = if (!directPrices.isNullOrEmpty()) directPrices else snapPrices
+                if (prices.isEmpty()) continue
 
             for (cityName in cities) {
                 // Echte Marktpreise für diese Stadt filtern
@@ -906,6 +928,7 @@ object TradeCalculator {
                 )
             }
         }
+    }
         return list.sortedWith(
             compareByDescending<TradeOpportunity> { it.roiPercent }
                 .thenByDescending { it.totalNetProfit }
