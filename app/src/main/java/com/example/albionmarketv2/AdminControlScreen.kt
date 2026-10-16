@@ -1547,7 +1547,7 @@ fun AdminLicensesTab(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(lic.key, fontWeight = FontWeight.Bold, fontSize = 11.sp, fontFamily = FontFamily.Monospace, color = Color(0xFF10B981))
-                                Text("Paket: ${lic.tier.uppercase()} (${lic.price}) ${if (lic.created.isNotBlank()) "• Erstellt: " + lic.created else ""}", fontSize = 10.sp, color = Color(0xFF94A3B8))
+                                Text("Paket: ${lic.tier.uppercase()} (${lic.price}) • ${getLicenseDurationBadgeText(lic.tier)} ${if (lic.created.isNotBlank()) "• Erstellt: " + lic.created else ""}", fontSize = 10.sp, color = Color(0xFF94A3B8))
                                 if (lic.note.isNotBlank()) Text("Notiz: ${lic.note}", fontSize = 10.sp, color = Color(0xFF38BDF8))
                             }
                             IconButton(
@@ -3426,6 +3426,17 @@ fun AdminDevicesTab(
                 }
             }
         }
+    }
+}
+
+private fun getLicenseDurationBadgeText(tier: String): String {
+    val t = tier.lowercase().trim()
+    return when {
+        t.contains("12m") || t.contains("12 monat") -> "⏱️ Gültigkeit: 12 Monate (365 Tage)"
+        t.contains("6m") || t.contains("6 monat") -> "⏱️ Gültigkeit: 6 Monate (180 Tage)"
+        t.contains("3m") || t.contains("3 monate") -> "⏱️ Gültigkeit: 3 Monate (90 Tage)"
+        t.contains("lifetime") || t.contains("2099") -> "♾️ Gültigkeit: Lifetime (Unbegrenzt)"
+        else -> "⏱️ Gültigkeit: 1 Monat (30 Tage)"
     }
 }
 
