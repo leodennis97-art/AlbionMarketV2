@@ -1751,12 +1751,22 @@ fun BubbleOverlayContent(
                                     matchesCity && matchesCat && matchesTier && matchesEnc && matchesSearch && notBm && notBrec && notDanger
                                 }
 
+                                val strictFreshMarginDeals = filtered.filter { opp ->
+                                    opp.roiPercent in 20.0..200.0 && opp.ageInSeconds <= 300
+                                }
+
+                                val finalSelection = if (strictFreshMarginDeals.size >= 20) {
+                                    strictFreshMarginDeals
+                                } else {
+                                    val backupDeals = filtered.filter { opp -> opp.roiPercent >= 15.0 }
+                                    (strictFreshMarginDeals + backupDeals).distinctBy { "${it.resource.fullId}_${it.buyCity}_${it.sellCity}" }
+                                }
+
                                 val favIds = prefsForCity.favoriteItemIds
-                                val (freshBotOpps, olderOpps) = filtered.partition { it.ageInSeconds <= 300 || it.priorityScore >= 90 }
                                 val sortedBase = when (currentBubbleSort) {
-                                    "NEWEST" -> freshBotOpps.sortedByDescending { it.updatedTimestamp } + olderOpps.sortedByDescending { it.updatedTimestamp }
-                                    "FEWEST_STOCK" -> freshBotOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent }) + olderOpps.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
-                                    else -> freshBotOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit }) + olderOpps.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
+                                    "NEWEST" -> finalSelection.sortedByDescending { it.updatedTimestamp }
+                                    "FEWEST_STOCK" -> finalSelection.sortedWith(compareBy<TradeOpportunity> { if (it.stockAvailable > 0) it.stockAvailable else Int.MAX_VALUE }.thenByDescending { it.roiPercent })
+                                    else -> finalSelection.sortedWith(compareByDescending<TradeOpportunity> { it.roiPercent }.thenByDescending { it.totalNetProfit })
                                 }
                                 sortedBase.sortedByDescending { opp -> favIds.contains(opp.resource.fullId) || favIds.contains(opp.resource.id) }
                             }
