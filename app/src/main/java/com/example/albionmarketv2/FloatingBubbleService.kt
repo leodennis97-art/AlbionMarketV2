@@ -1857,9 +1857,9 @@ fun BubbleOverlayContent(
                                 sortedBase.sortedByDescending { opp -> favIds.contains(opp.resource.fullId) || favIds.contains(opp.resource.id) }
                             }
 
-                            val displayedOpps = remember(filteredBubbleOpportunities) { filteredBubbleOpportunities.take(50) }
+                            val displayedOpps = remember(filteredBubbleOpportunities) { filteredBubbleOpportunities.take(20) }
 
-                            // Counter Header Badge for 50 Scanned Opportunities
+                            // Counter Header Badge for 20 Scanned Opportunities
                             Surface(
                                 shape = RoundedCornerShape(8.dp),
                                 color = Color(0xFF0F172A),
@@ -1872,7 +1872,7 @@ fun BubbleOverlayContent(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "📊 Gescannte Handelschancen (${displayedOpps.size} von 50)",
+                                        text = "📊 Top 20 Handelschancen (${displayedOpps.size} v. 20)",
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Bold,
                                         color = Color(0xFF34D399)
@@ -2447,7 +2447,17 @@ fun BubbleStationFlippingTab(
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val cloudSnaps = remember { prefsObj.getPriceSnapshots(prefsObj.server) }
 
-    var accumulatedFlippingOpps by remember { mutableStateOf<List<TradeOpportunity>>(emptyList()) }
+    val initialFlippingOpps = remember(cloudSnaps) {
+        TradeCalculator.calculateStationTradingFlippingOpportunities(
+            resources = AlbionResourceRepository.resources,
+            pricesByItem = priceMap,
+            silverBudget = uiState.silverBudget,
+            marketTaxPercent = if (prefsObj.hasPremium) 4.0 else 8.0,
+            cloudSnapshots = cloudSnaps
+        ).take(20)
+    }
+
+    var accumulatedFlippingOpps by remember { mutableStateOf(initialFlippingOpps) }
 
     LaunchedEffect(priceMap, uiState.silverBudget, prefsObj.hasPremium) {
         val freshOpps = withContext(Dispatchers.IO) {
