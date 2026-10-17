@@ -358,10 +358,10 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                     break
                 }
                 loadActiveOrder()
-                // Smart Eco-Refresh (2.5 Minuten) - Schont den Prozessor und verhindert Akku-Überhitzung
-                loadTopOpportunities(forceRefresh = (loopCount % 4 == 0))
+                // Strikter 3-Minuten Real-Time Cloud-Update Zyklus für In-Game Overlay
+                loadTopOpportunities(forceRefresh = (loopCount % 3 == 0))
                 loopCount++
-                delay(2.5.minutes)
+                delay(3.minutes)
             }
         }
     }

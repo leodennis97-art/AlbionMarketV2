@@ -296,7 +296,7 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 }
 
                 cycleTick++
-                delay(2.5.minutes) // Intelligentes 2.5-Minuten Cool-Intervall (Verhindert CPU-Hitze & schont Akku)
+                delay(3.minutes) // Strikter 3-Minuten Real-Time Cloud-Update Zyklus (In-Echtzeit alle 3 Minuten)
             }
         }
     }
