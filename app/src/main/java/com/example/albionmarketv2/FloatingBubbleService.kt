@@ -2500,7 +2500,10 @@ fun BubbleRefiningMatrixTab(
     val context = LocalContext.current
     val prefsObj = remember { AppPreferences(context) }
     var selectedCity by remember { mutableStateOf(prefsObj.bubbleStandpunktCity) }
+    var selectedTier by remember { mutableIntStateOf(0) }
+
     val cities = listOf("ALLE", "Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
+    val tiersList = listOf(0 to "Alle Stufen", 2 to "T2", 3 to "T3", 4 to "T4", 5 to "T5", 6 to "T6", 7 to "T7", 8 to "T8")
 
     val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
@@ -2509,12 +2512,16 @@ fun BubbleRefiningMatrixTab(
         TradeCalculator.calculateRefiningOpportunities(priceMap, useFocus = true, hasPremium = true)
     }
 
-    val refiningOpps = remember(allRefiningOpps, selectedCity) {
-        if (selectedCity == "ALLE") {
+    val refiningOpps = remember(allRefiningOpps, selectedCity, selectedTier) {
+        var list = if (selectedCity == "ALLE") {
             allRefiningOpps
         } else {
             allRefiningOpps.filter { TradeCalculator.citiesMatch(it.highestSellCity, selectedCity) || TradeCalculator.citiesMatch(it.cheapestBuyCity, selectedCity) }
         }
+        if (selectedTier > 0) {
+            list = list.filter { it.resource.tier == selectedTier }
+        }
+        list
     }
 
     Column(modifier = Modifier.fillMaxWidth().heightIn(max = maxHeight)) {
@@ -2522,7 +2529,7 @@ fun BubbleRefiningMatrixTab(
         
         Text(LanguageManager.translateUI("🏙️ Nach Stadt filtern:", lang), color = Color(0xFFFFB74D), fontSize = 10.sp, fontWeight = FontWeight.Bold)
         Spacer(modifier = Modifier.height(2.dp))
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 4.dp)) {
             items(items = cities) { c ->
                 val isSelected = selectedCity == c
                 Surface(
@@ -2536,6 +2543,28 @@ fun BubbleRefiningMatrixTab(
                     Text(
                         text = if (c == "ALLE") "Alle Städte" else c,
                         color = if (isSelected) Color.Black else Color.White,
+                        fontSize = 9.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+        }
+
+        // Tier Filter Chips Row (T2 - T8)
+        Text(LanguageManager.translateUI("📊 Nach Stufe (Tier) filtern:", lang), color = Color(0xFFFFB74D), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(2.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(bottom = 6.dp)) {
+            items(items = tiersList) { (tNum, tLabel) ->
+                val isSelected = selectedTier == tNum
+                Surface(
+                    shape = RoundedCornerShape(4.dp),
+                    color = if (isSelected) Color(0xFF10B981) else Color(0xFF332200),
+                    modifier = Modifier.clickable { selectedTier = tNum }
+                ) {
+                    Text(
+                        text = tLabel,
+                        color = Color.White,
                         fontSize = 9.sp,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
