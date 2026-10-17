@@ -518,7 +518,7 @@ object ServerSyncManager {
         val prefs = AppPreferences(context)
         if (!prefs.isUserLoggedIn) return@withContext emptyList()
         val srvId = prefs.server.serverId
-        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/market/prices/live?server=$srvId" }
+        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/market/prices/30d-live?server=$srvId" }
         for (serverUrl in urlsToTry) {
             var connection: HttpURLConnection? = null
             try {
@@ -539,31 +539,34 @@ object ServerSyncManager {
                     } else connection.inputStream
 
                     val response = stream.bufferedReader().use { it.readText() }
-                    if (response.trim().startsWith("[")) {
-                        val jsonArray = JSONArray(response)
-                        val snapshots = mutableListOf<PriceSnapshot>()
-                        for (i in 0 until jsonArray.length()) {
-                            val obj = jsonArray.optJSONObject(i) ?: continue
-                            val itemId = obj.optString("itemId", obj.optString("item_id", ""))
-                            val city = obj.optString("city", "")
-                            if (itemId.isBlank() || city.isBlank()) continue
+                    val jsonArray = if (response.trim().startsWith("[")) {
+                        JSONArray(response)
+                    } else if (response.trim().startsWith("{")) {
+                        JSONObject(response).optJSONArray("prices") ?: JSONArray()
+                    } else JSONArray()
 
-                            val sellPriceMin = obj.optInt("sellPriceMin", obj.optInt("sell_price_min", 0))
-                            if (sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(itemId, sellPriceMin)) {
-                                snapshots.add(
-                                    PriceSnapshot(
-                                        itemId = itemId,
-                                        city = city,
-                                        sellPriceMin = sellPriceMin,
-                                        buyPriceMax = obj.optInt("buyPriceMax", obj.optInt("buy_price_max", 0)),
-                                        timestampMs = obj.optLong("timestampMs", Date().time),
-                                        sellPriceMinAmount = obj.optInt("sellPriceMinAmount", obj.optInt("sell_price_min_amount", 1))
-                                    )
+                    val snapshots = mutableListOf<PriceSnapshot>()
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.optJSONObject(i) ?: continue
+                        val itemId = obj.optString("itemId", obj.optString("item_id", ""))
+                        val city = obj.optString("city", "")
+                        if (itemId.isBlank() || city.isBlank()) continue
+
+                        val sellPriceMin = obj.optInt("sellPriceMin", obj.optInt("sell_price_min", 0))
+                        if (sellPriceMin > 0 && !AlbionMarketApi.isUnrealisticPrice(itemId, sellPriceMin)) {
+                            snapshots.add(
+                                PriceSnapshot(
+                                    itemId = itemId,
+                                    city = city,
+                                    sellPriceMin = sellPriceMin,
+                                    buyPriceMax = obj.optInt("buyPriceMax", obj.optInt("buy_price_max", 0)),
+                                    timestampMs = obj.optLong("timestampMs", Date().time),
+                                    sellPriceMinAmount = obj.optInt("sellPriceMinAmount", obj.optInt("sell_price_min_amount", 1))
                                 )
-                            }
+                            )
                         }
-                        if (snapshots.isNotEmpty()) return@withContext snapshots
                     }
+                    if (snapshots.isNotEmpty()) return@withContext snapshots
                 }
             } catch (_: Exception) {
             } finally {
