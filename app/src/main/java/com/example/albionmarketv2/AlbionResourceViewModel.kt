@@ -271,9 +271,19 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
 
             while (isActive) {
                 val nowStr = sdf.format(Date())
+                val batteryInfo = BatteryThermalGuard.getBatteryInfo(getApplication())
 
-                // 1. Intelligentes Eco-Intervall: Schont den Prozessor und verhindert Überhitzung
-                _uiState.value = _uiState.value.copy(lastFetchTime = nowStr)
+                // Thermal Protection Check: If battery >= 45°C, pause non-essential scanning to cool down!
+                if (batteryInfo.thermalState == BatteryThermalGuard.ThermalState.CRITICAL) {
+                    _uiState.value = _uiState.value.copy(
+                        lastFetchTime = "🔋 Akkuschutz Aktiv: ${batteryInfo.formattedTemp} (Pausiert)",
+                        priceFetchError = "⚠️ Akkuschutz: Akku-Temperatur bei ${batteryInfo.formattedTemp}. Hintergrund-Scans pausiert bis Abkühlung."
+                    )
+                    delay(5.minutes)
+                    continue
+                }
+
+                _uiState.value = _uiState.value.copy(lastFetchTime = "${batteryInfo.statusBadgeText} • $nowStr")
                 fetchMarketPricesInternal()
                 fetchGoldPricesInternal()
                 reloadOrdersFromPrefs()
@@ -296,7 +306,8 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                 }
 
                 cycleTick++
-                delay(3.minutes) // Strikter 3-Minuten Real-Time Cloud-Update Zyklus (In-Echtzeit alle 3 Minuten)
+                val sleepInterval = if (batteryInfo.thermalState == BatteryThermalGuard.ThermalState.WARM) 6.minutes else 3.minutes
+                delay(sleepInterval)
             }
         }
     }

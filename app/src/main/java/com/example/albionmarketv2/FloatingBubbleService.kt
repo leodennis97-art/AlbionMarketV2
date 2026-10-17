@@ -348,6 +348,14 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         serviceScope.launch(Dispatchers.IO) {
             var loopCount = 0
             while (isRunning && isActive) {
+                val batteryInfo = BatteryThermalGuard.getBatteryInfo(this@FloatingBubbleService)
+
+                // Thermal Protection Check: If battery >= 45°C, pause non-essential scanning in overlay
+                if (batteryInfo.thermalState == BatteryThermalGuard.ThermalState.CRITICAL) {
+                    delay(5.minutes)
+                    continue
+                }
+
                 val prefs = AppPreferences(this@FloatingBubbleService)
                 val isLoggedIn = prefs.isUserLoggedIn && LicenseManager.isLicenseValid(this@FloatingBubbleService)
                 if (!isLoggedIn) {
@@ -361,7 +369,9 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
                 // Strikter 3-Minuten Real-Time Cloud-Update Zyklus für In-Game Overlay
                 loadTopOpportunities(forceRefresh = (loopCount % 3 == 0))
                 loopCount++
-                delay(3.minutes)
+
+                val sleepInterval = if (batteryInfo.thermalState == BatteryThermalGuard.ThermalState.WARM) 6.minutes else 3.minutes
+                delay(sleepInterval)
             }
         }
     }

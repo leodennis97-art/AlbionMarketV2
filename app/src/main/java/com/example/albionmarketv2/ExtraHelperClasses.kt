@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
 import androidx.compose.runtime.Composable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -29,6 +31,73 @@ object DeviceSecurityManager {
     fun checkSecurity(): Boolean = true
     fun isDeviceBanned(context: Context): Boolean = false
     fun isDeviceCompromised(context: Context): Boolean = false
+}
+
+object BatteryThermalGuard {
+    private var cachedTempC: Float = 36.0f
+    private var cachedLevel: Int = 100
+    private var isCharging: Boolean = false
+    private var lastCheckMs: Long = 0L
+
+    fun getBatteryInfo(context: Context): BatteryStatus {
+        val now = System.currentTimeMillis()
+        if (now - lastCheckMs < 10_000L) {
+            return BatteryStatus(cachedTempC, cachedLevel, isCharging, getThermalState(cachedTempC))
+        }
+        lastCheckMs = now
+
+        try {
+            val intentFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+            val batteryStatus: Intent? = context.registerReceiver(null, intentFilter)
+
+            if (batteryStatus != null) {
+                val temp = batteryStatus.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0)
+                cachedTempC = if (temp > 0) temp / 10.0f else 36.0f
+
+                val level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                val scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                cachedLevel = if (level >= 0 && scale > 0) ((level.toFloat() / scale.toFloat()) * 100).toInt() else 100
+
+                val status = batteryStatus.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
+                isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return BatteryStatus(cachedTempC, cachedLevel, isCharging, getThermalState(cachedTempC))
+    }
+
+    private fun getThermalState(tempC: Float): ThermalState {
+        return when {
+            tempC >= 45.0f -> ThermalState.CRITICAL
+            tempC >= 41.0f -> ThermalState.WARM
+            else -> ThermalState.NORMAL
+        }
+    }
+
+    data class BatteryStatus(
+        val temperatureCelsius: Float,
+        val levelPercent: Int,
+        val isCharging: Boolean,
+        val thermalState: ThermalState
+    ) {
+        val formattedTemp: String
+            get() = String.format(Locale.GERMANY, "%.1f°C", temperatureCelsius)
+
+        val statusBadgeText: String
+            get() = when (thermalState) {
+                ThermalState.NORMAL -> "🔋 $levelPercent% • $formattedTemp (Kühl)"
+                ThermalState.WARM -> "🔥 $levelPercent% • $formattedTemp (Warm - Eco-Schutz)"
+                ThermalState.CRITICAL -> "⚠️ $levelPercent% • $formattedTemp (KRITISCH - Pausiert)"
+            }
+    }
+
+    enum class ThermalState {
+        NORMAL,   // < 41°C
+        WARM,     // 41°C - 45°C
+        CRITICAL  // >= 45°C
+    }
 }
 
 object ExternalStorageBackupManager {
