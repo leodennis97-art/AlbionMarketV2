@@ -961,31 +961,41 @@ object TradeCalculator {
         val cities = listOf("Bridgewatch", "Caerleon", "Fort Sterling", "Lymhurst", "Martlock", "Thetford", "Brecilien")
 
         val rawTypes = listOf(
-            // T4 to T8 PLANKS (Holz)
+            // T2 to T8 PLANKS (Holz)
+            RefiningSpec("T2_PLANKS", "T2_WOOD", "T1_PLANKS", "Fort Sterling"),
+            RefiningSpec("T3_PLANKS", "T3_WOOD", "T2_PLANKS", "Fort Sterling"),
             RefiningSpec("T4_PLANKS", "T4_WOOD", "T3_PLANKS", "Fort Sterling"),
             RefiningSpec("T5_PLANKS", "T5_WOOD", "T4_PLANKS", "Fort Sterling"),
             RefiningSpec("T6_PLANKS", "T6_WOOD", "T5_PLANKS", "Fort Sterling"),
             RefiningSpec("T7_PLANKS", "T7_WOOD", "T6_PLANKS", "Fort Sterling"),
             RefiningSpec("T8_PLANKS", "T8_WOOD", "T7_PLANKS", "Fort Sterling"),
-            // T4 to T8 METALBAR (Barren)
+            // T2 to T8 METALBAR (Barren)
+            RefiningSpec("T2_METALBAR", "T2_ORE", "T1_METALBAR", "Thetford"),
+            RefiningSpec("T3_METALBAR", "T3_ORE", "T2_METALBAR", "Thetford"),
             RefiningSpec("T4_METALBAR", "T4_ORE", "T3_METALBAR", "Thetford"),
             RefiningSpec("T5_METALBAR", "T5_ORE", "T4_METALBAR", "Thetford"),
             RefiningSpec("T6_METALBAR", "T6_ORE", "T5_METALBAR", "Thetford"),
             RefiningSpec("T7_METALBAR", "T7_ORE", "T6_METALBAR", "Thetford"),
             RefiningSpec("T8_METALBAR", "T8_ORE", "T7_METALBAR", "Thetford"),
-            // T4 to T8 LEATHER (Leder)
+            // T2 to T8 LEATHER (Leder)
+            RefiningSpec("T2_LEATHER", "T2_HIDE", "T1_LEATHER", "Martlock"),
+            RefiningSpec("T3_LEATHER", "T3_HIDE", "T2_LEATHER", "Martlock"),
             RefiningSpec("T4_LEATHER", "T4_HIDE", "T3_LEATHER", "Martlock"),
             RefiningSpec("T5_LEATHER", "T5_HIDE", "T4_LEATHER", "Martlock"),
             RefiningSpec("T6_LEATHER", "T6_HIDE", "T5_LEATHER", "Martlock"),
             RefiningSpec("T7_LEATHER", "T7_HIDE", "T6_LEATHER", "Martlock"),
             RefiningSpec("T8_LEATHER", "T8_HIDE", "T7_LEATHER", "Martlock"),
-            // T4 to T8 CLOTH (Stoff)
+            // T2 to T8 CLOTH (Stoff)
+            RefiningSpec("T2_CLOTH", "T2_FIBER", "T1_CLOTH", "Lymhurst"),
+            RefiningSpec("T3_CLOTH", "T3_FIBER", "T2_CLOTH", "Lymhurst"),
             RefiningSpec("T4_CLOTH", "T4_FIBER", "T3_CLOTH", "Lymhurst"),
             RefiningSpec("T5_CLOTH", "T5_FIBER", "T4_CLOTH", "Lymhurst"),
             RefiningSpec("T6_CLOTH", "T6_FIBER", "T5_CLOTH", "Lymhurst"),
             RefiningSpec("T7_CLOTH", "T7_FIBER", "T6_CLOTH", "Lymhurst"),
             RefiningSpec("T8_CLOTH", "T8_FIBER", "T7_CLOTH", "Lymhurst"),
-            // T4 to T8 STONEBLOCK (Blöcke)
+            // T2 to T8 STONEBLOCK (Blöcke)
+            RefiningSpec("T2_STONEBLOCK", "T2_ROCK", "T1_STONEBLOCK", "Bridgewatch"),
+            RefiningSpec("T3_STONEBLOCK", "T3_ROCK", "T2_STONEBLOCK", "Bridgewatch"),
             RefiningSpec("T4_STONEBLOCK", "T4_ROCK", "T3_STONEBLOCK", "Bridgewatch"),
             RefiningSpec("T5_STONEBLOCK", "T5_ROCK", "T4_STONEBLOCK", "Bridgewatch"),
             RefiningSpec("T6_STONEBLOCK", "T6_ROCK", "T5_STONEBLOCK", "Bridgewatch"),
@@ -1014,6 +1024,8 @@ object TradeCalculator {
             }
 
             val baseP = when (res.tier) {
+                2 -> 150
+                3 -> 450
                 4 -> 1250
                 5 -> 3900
                 6 -> 12800
@@ -1035,18 +1047,16 @@ object TradeCalculator {
                     highestSellCity = city
                 }
             }
+            if (highestFinishedPrice <= 0) highestFinishedPrice = (baseP * 0.95).toInt().coerceAtLeast(20)
 
             val rawAmount = (res.tier - 1).coerceAtLeast(2)
             val grossMatCost = (cheapestRawPrice.toLong() * rawAmount) + cheapestPrevRefinedPrice
-            val effectiveHerstellungskosten = (grossMatCost * (1.0 - rrr)).toLong()
+            val effectiveHerstellungskosten = (grossMatCost * (1.0 - rrr)).toLong().coerceAtLeast(1L)
             val taxRate = if (hasPremium) 0.04 else 0.08
-            val netVerkaufspreis = (highestFinishedPrice * (1.0 - taxRate - 0.025)).toLong() // 4%/8% Steuer + 2,5% Gebühr
+            val netVerkaufspreis = (highestFinishedPrice * (1.0 - taxRate - 0.025)).toLong()
             val netProfitMarge = netVerkaufspreis - effectiveHerstellungskosten
 
-            if (netProfitMarge <= 0 || effectiveHerstellungskosten <= 0) continue
-
             val roi = (netProfitMarge.toDouble() / effectiveHerstellungskosten) * 100.0
-            if (roi > 200.0) continue
 
             list.add(
                 CraftingOpportunityDetails(
@@ -1059,7 +1069,7 @@ object TradeCalculator {
                     netProfit = netProfitMarge,
                     recBuyOrderCost = (effectiveHerstellungskosten * 0.92).toLong(),
                     recSellOrderPrice = (highestFinishedPrice - 1).coerceAtLeast(1),
-                    ingredientSummary = "🛒 Kauf ($cheapestBuyCity): $rawAmount x Rohstoff (${fmt.format(cheapestRawPrice)} S.) + 1x T${res.tier-1} Veredelt (${fmt.format(cheapestPrevRefinedPrice)} S.) | 🧱 Herstellung: ${fmt.format(effectiveHerstellungskosten)} S. (${String.format(Locale.GERMANY, "%.1f", rrr * 100)}% RRR) | 🏷️ Verkauf ($highestSellCity): ${fmt.format(highestFinishedPrice)} S.",
+                    ingredientSummary = "🛒 Rohstoff ($cheapestBuyCity): ${fmt.format(cheapestRawPrice)} S. | 🧱 Veredelt ($highestSellCity): ${fmt.format(highestFinishedPrice)} S.",
                     maxOrderProfit = netProfitMarge * 100,
                     estimatedRoiPercent = roi,
                     resourceReturnRate = rrr,
@@ -1067,7 +1077,7 @@ object TradeCalculator {
                 )
             )
         }
-        return list.sortedByDescending { it.netProfit }
+        return list.sortedByDescending { it.roiPercent }
     }
 
     data class LaborerJournalSpec(

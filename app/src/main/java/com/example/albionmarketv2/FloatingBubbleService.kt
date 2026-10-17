@@ -741,7 +741,6 @@ enum class BubbleTab(val titleDe: String, val titleEn: String, val emoji: String
     TOP_MARGIN("Arbitrage & Marge", "Trade Margin", "🔥"),
     STATION_FLIPPING("Station Flipping", "Station Flipping", "🛒"),
     REFINING_MATRIX("Veredelung (RRR)", "Refining Matrix", "🧱"),
-    CRAFTING("Handwerks-Guide", "Crafting Guide", "⚒️"),
     LABORER_JOURNALS("Tagebücher & Arbeiter", "Laborer Journals", "📚"),
     FACTION_WARFARE("Fraktions-Handel", "Faction Warfare", "🚩"),
     SMUGGLER_GUIDE("Schmuggler-Radar", "Smuggler Radar", "🏴‍☠️"),
@@ -2355,7 +2354,6 @@ fun BubbleOverlayContent(
                                 ) { res ->
                                     viewModel.onResourceClicked(res)
                                 }
-                                BubbleTab.CRAFTING -> BubbleCraftingTab(viewModel = viewModel, uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.ISLAND -> BubbleIslandTab(context = context, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.EVENTS -> BubbleEventsTab(uiState = uiState, maxHeight = maxBubbleHeightTab)
                                 BubbleTab.GOLD_MARKET -> BubbleGoldTab(viewModel = viewModel, uiState = uiState, onFocusModeChanged = onFocusModeChanged, maxHeight = maxBubbleHeightTab)
@@ -2655,18 +2653,35 @@ fun BubbleRefiningMatrixTab(
                         Column(modifier = Modifier.padding(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    if (idx < 3) {
-                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFD700)) {
-                                            Text("🔥 TOP #${idx+1}", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                                        }
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (idx < 3) Color(0xFFFFD700) else Color(0xFF0284C7)
+                                    ) {
+                                        Text(
+                                            text = "🔥 TOP #${idx+1}",
+                                            color = if (idx < 3) Color.Black else Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 8.sp,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
                                     }
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     AsyncImage(model = opp.resource.imageUrl, contentDescription = null, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("${opp.resource.nameDe} (${opp.resource.tierText})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                                 }
-                                Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFF10B981)) {
-                                    Text("+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                val isProfit = opp.roiPercent >= 0.0
+                                Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = if (isProfit) Color(0xFF10B981) else Color(0xFFEF4444)
+                                ) {
+                                    Text(
+                                        text = if (isProfit) "+${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%" else "${String.format(Locale.GERMANY, "%.1f", opp.roiPercent)}%",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 9.sp,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                    )
                                 }
                                 IconButton(
                                     onClick = {
