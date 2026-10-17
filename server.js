@@ -2153,6 +2153,15 @@ app.get('/api/market/prices/live', (req, res) => {
     res.json(Object.values(globalMarketPrices[srv] || globalMarketPrices['europe']));
 });
 
+// Live AI Equipment Builds Endpoint for Real-time App & Overlay Sync
+app.get('/api/builds', (req, res) => {
+    res.json({
+        status: 'success',
+        version: CURRENT_SERVER_VERSION,
+        timestamp: new Date().toISOString()
+    });
+});
+
 app.get('/api/prices/albion2d', (req, res) => {
     const srv = (req.query.server || 'europe').toLowerCase();
     res.json(albion2dCache[srv] || albion2dCache['europe']);

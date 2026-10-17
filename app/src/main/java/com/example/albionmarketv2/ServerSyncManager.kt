@@ -20,6 +20,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import java.util.zip.GZIPInputStream
 
 data class HourlyDownloadStat(
@@ -570,6 +571,66 @@ object ServerSyncManager {
             }
         }
         emptyList()
+    }
+
+    suspend fun fetchCloudBuilds(context: Context): List<EquipmentBuild> = withContext(Dispatchers.IO) {
+        CryptoSecurityUtils.setupPermissiveSSLAndHostnameVerifier()
+        val buildUrls = getPrioritizedServerUrls(context).map { "$it/api/builds" }
+
+        for (serverUrl in buildUrls) {
+            var connection: HttpURLConnection? = null
+            try {
+                val url = URL(serverUrl)
+                connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "GET"
+                connection.setRequestProperty("Accept", "application/json")
+                connection.setRequestProperty("Bypass-Tunnel-Reminder", "true")
+                connection.connectTimeout = 8000
+                connection.readTimeout = 8000
+
+                if (connection.responseCode in 200..299) {
+                    connection.inputStream.bufferedReader().use { reader ->
+                        val responseText = reader.readText()
+                        val jsonObj = JSONObject(responseText)
+                        val array = jsonObj.optJSONArray("builds") ?: JSONArray()
+                        val resultList = mutableListOf<EquipmentBuild>()
+                        for (i in 0 until array.length()) {
+                            val bObj = array.getJSONObject(i)
+                            val catStr = bObj.optString("category", "EXTREME_LIFESTEAL")
+                            val cat = try { BuildCategory.valueOf(catStr) } catch (_: Exception) { BuildCategory.EXTREME_LIFESTEAL }
+                            resultList.add(
+                                EquipmentBuild(
+                                    id = bObj.optString("id", UUID.randomUUID().toString()),
+                                    title = bObj.optString("title", "AI Cloud Build"),
+                                    category = cat,
+                                    weapon = bObj.optString("weapon", ""),
+                                    head = bObj.optString("head", ""),
+                                    armor = bObj.optString("armor", ""),
+                                    shoes = bObj.optString("shoes", ""),
+                                    mount = bObj.optString("mount", ""),
+                                    estimatedCostSilver = bObj.optLong("estimatedCostSilver", 3500000L),
+                                    estimatedMarginPercent = bObj.optDouble("estimatedMarginPercent", 35.0),
+                                    damageRating = bObj.optInt("damageRating", 90),
+                                    defenseRating = bObj.optInt("defenseRating", 90),
+                                    mobilityRating = bObj.optInt("mobilityRating", 90),
+                                    healingRating = bObj.optInt("healingRating", 90),
+                                    strongestWeaponHighlight = bObj.optString("strongestWeaponHighlight", ""),
+                                    aiEvaluationDe = bObj.optString("aiEvaluationDe", ""),
+                                    combatRotationDe = bObj.optString("combatRotationDe", "")
+                                )
+                            )
+                        }
+                        if (resultList.isNotEmpty()) {
+                            return@withContext resultList
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+            } finally {
+                connection?.disconnect()
+            }
+        }
+        EquipmentBuildRepository.builds
     }
 
     suspend fun testAndConnectToServer(context: Context, serverUrlInput: String? = null): Boolean = withContext(Dispatchers.IO) {

@@ -305,6 +305,15 @@ class AlbionResourceViewModel(application: Application) : AndroidViewModel(appli
                     _uiState.value = _uiState.value.copy(liveEventsList = freshEvents)
                 }
 
+                // 4. Live Cloud AI Builds Sync von Render Server
+                try {
+                    val cloudBuilds = ServerSyncManager.fetchCloudBuilds(getApplication())
+                    if (cloudBuilds.isNotEmpty()) {
+                        val mergedBuilds = (_uiState.value.equipmentBuilds + cloudBuilds).distinctBy { it.id }
+                        _uiState.value = _uiState.value.copy(equipmentBuilds = mergedBuilds)
+                    }
+                } catch (_: Exception) {}
+
                 cycleTick++
                 val sleepInterval = if (batteryInfo.thermalState == BatteryThermalGuard.ThermalState.WARM) 6.minutes else 3.minutes
                 delay(sleepInterval)
