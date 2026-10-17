@@ -3657,18 +3657,6 @@ fun BubbleIslandTab(
                         Text("📍 Bonus: ${bldg.cityBonusCity}", color = Color(0xFF81D4FA), fontSize = 9.sp)
                         Spacer(modifier = Modifier.height(2.dp))
                         Text("🌾 Ertrag: $yieldQty | 💰 Wert: $yieldPrice", color = Color(0xFFFFB74D), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                        
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("🏗️ Gebäude-Upgrades (T1 bis T8 Ressourcen & Kosten):", color = Color(0xFF38BDF8), fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                        bldg.upgrades.forEach { step ->
-                            val fmtSilver = NumberFormat.getNumberInstance(Locale.GERMANY).format(step.silverCost)
-                            Column(modifier = Modifier.fillMaxWidth().padding(vertical = 1.dp)) {
-                                Text("• ${step.tierName}: $fmtSilver S.", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                if (step.woodReq.isNotBlank()) {
-                                    Text("   Holz/Planken: ${step.woodReq} | Stein/Blöcke: ${step.stoneReq}", color = Color(0xFF94A3B8), fontSize = 8.sp)
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -3833,8 +3821,11 @@ fun BubbleEventsTab(
 
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(monster.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                        Text("📍 ${monster.zoneLocationDe}", color = Color(0xFF94A3B8), fontSize = 8.sp)
-                        Text(monster.chestDropSummaryDe, color = Color(0xFFF59E0B), fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
+                        Text("📍 Zone: ${monster.zoneLocationDe} • Respawn: ${monster.respawnTimeDe}", color = Color(0xFF94A3B8), fontSize = 8.sp)
+                        Text("⚔️ Schwierigkeit: ${monster.difficultyDe} • ${monster.chestDropSummaryDe}", color = Color(0xFFF59E0B), fontSize = 8.sp, fontWeight = FontWeight.SemiBold)
+                        if (monster.combatTipsDe.isNotBlank()) {
+                            Text("💡 Taktik: ${monster.combatTipsDe}", color = Color(0xFF38BDF8), fontSize = 8.sp)
+                        }
                     }
                 }
             }

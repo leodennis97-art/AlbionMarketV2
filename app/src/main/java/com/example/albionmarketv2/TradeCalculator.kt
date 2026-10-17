@@ -1006,76 +1006,63 @@ object TradeCalculator {
         for (spec in rawTypes) {
             val res = AlbionResourceRepository.resources.find { it.fullId == spec.refinedId || it.id == spec.refinedId } ?: continue
 
-            // 1. Kaufpreis & Günstigste Einkaufsstadt ermitteln
-            var cheapestBuyCity = spec.bonusCity
-            var cheapestRawPrice = 0
-            var cheapestPrevRefinedPrice = 0
-
-            for (city in cities) {
-                val rawP = CraftingRepository.getPriceInCity(spec.rawId, city, priceMap)
-                val prevP = CraftingRepository.getPriceInCity(spec.prevRefinedId, city, priceMap)
-                if (rawP > 0 && (cheapestRawPrice == 0 || rawP < cheapestRawPrice)) {
-                    cheapestRawPrice = rawP
-                    cheapestBuyCity = city
+            for (targetCity in cities) {
+                val isBonusCity = citiesMatch(targetCity, spec.bonusCity)
+                val cityRrr = when {
+                    useFocus && isBonusCity && hasPremium -> 0.539
+                    useFocus && hasPremium -> 0.485
+                    isBonusCity && hasPremium -> 0.367
+                    hasPremium -> 0.248
+                    else -> 0.152
                 }
-                if (prevP > 0 && (cheapestPrevRefinedPrice == 0 || prevP < cheapestPrevRefinedPrice)) {
-                    cheapestPrevRefinedPrice = prevP
+
+                val rawP = CraftingRepository.getPriceInCity(spec.rawId, targetCity, priceMap)
+                val prevP = CraftingRepository.getPriceInCity(spec.prevRefinedId, targetCity, priceMap)
+                val finishedP = CraftingRepository.getPriceInCity(spec.refinedId, targetCity, priceMap)
+
+                val baseP = when (res.tier) {
+                    2 -> 150
+                    3 -> 450
+                    4 -> 1250
+                    5 -> 3900
+                    6 -> 12800
+                    7 -> 43000
+                    8 -> 138000
+                    else -> 1500
                 }
-            }
 
-            val baseP = when (res.tier) {
-                2 -> 150
-                3 -> 450
-                4 -> 1250
-                5 -> 3900
-                6 -> 12800
-                7 -> 43000
-                8 -> 138000
-                else -> 1500
-            }
-            if (cheapestRawPrice <= 0) cheapestRawPrice = (baseP * 0.35).toInt().coerceAtLeast(10)
-            if (cheapestPrevRefinedPrice <= 0) cheapestPrevRefinedPrice = (baseP * 0.28).toInt().coerceAtLeast(10)
+                val actualRawP = if (rawP > 0) rawP else (baseP * 0.35).toInt().coerceAtLeast(10)
+                val actualPrevP = if (prevP > 0) prevP else (baseP * 0.28).toInt().coerceAtLeast(10)
+                val actualFinishedP = if (finishedP > 0) finishedP else (baseP * 0.95).toInt().coerceAtLeast(20)
 
-            // 2. Verkaufspreis & Beste Verkaufsstadt ermitteln
-            var highestSellCity = spec.bonusCity
-            var highestFinishedPrice = 0
+                val rawAmount = (res.tier - 1).coerceAtLeast(2)
+                val grossMatCost = (actualRawP.toLong() * rawAmount) + actualPrevP
+                val effectiveHerstellungskosten = (grossMatCost * (1.0 - cityRrr)).toLong().coerceAtLeast(1L)
+                val taxRate = if (hasPremium) 0.04 else 0.08
+                val netVerkaufspreis = (actualFinishedP * (1.0 - taxRate - 0.025)).toLong()
+                val netProfitMarge = netVerkaufspreis - effectiveHerstellungskosten
 
-            for (city in cities) {
-                val finishedP = CraftingRepository.getPriceInCity(spec.refinedId, city, priceMap)
-                if (finishedP > highestFinishedPrice) {
-                    highestFinishedPrice = finishedP
-                    highestSellCity = city
-                }
-            }
-            if (highestFinishedPrice <= 0) highestFinishedPrice = (baseP * 0.95).toInt().coerceAtLeast(20)
+                val roi = (netProfitMarge.toDouble() / effectiveHerstellungskosten) * 100.0
 
-            val rawAmount = (res.tier - 1).coerceAtLeast(2)
-            val grossMatCost = (cheapestRawPrice.toLong() * rawAmount) + cheapestPrevRefinedPrice
-            val effectiveHerstellungskosten = (grossMatCost * (1.0 - rrr)).toLong().coerceAtLeast(1L)
-            val taxRate = if (hasPremium) 0.04 else 0.08
-            val netVerkaufspreis = (highestFinishedPrice * (1.0 - taxRate - 0.025)).toLong()
-            val netProfitMarge = netVerkaufspreis - effectiveHerstellungskosten
-
-            val roi = (netProfitMarge.toDouble() / effectiveHerstellungskosten) * 100.0
-
-            list.add(
-                CraftingOpportunityDetails(
-                    resource = res,
-                    roiPercent = roi,
-                    cheapestBuyCity = cheapestBuyCity,
-                    totalIngredientCost = effectiveHerstellungskosten,
-                    highestSellCity = highestSellCity,
-                    finishedItemSellPrice = highestFinishedPrice,
-                    netProfit = netProfitMarge,
-                    recBuyOrderCost = (effectiveHerstellungskosten * 0.92).toLong(),
-                    recSellOrderPrice = (highestFinishedPrice - 1).coerceAtLeast(1),
-                    ingredientSummary = "🛒 Rohstoff ($cheapestBuyCity): ${fmt.format(cheapestRawPrice)} S. | 🧱 Veredelt ($highestSellCity): ${fmt.format(highestFinishedPrice)} S.",
-                    maxOrderProfit = netProfitMarge * 100,
-                    estimatedRoiPercent = roi,
-                    resourceReturnRate = rrr,
-                    targetMarket = "Veredelung (${spec.bonusCity})"
+                list.add(
+                    CraftingOpportunityDetails(
+                        resource = res,
+                        roiPercent = roi,
+                        cheapestBuyCity = targetCity,
+                        totalIngredientCost = effectiveHerstellungskosten,
+                        highestSellCity = targetCity,
+                        finishedItemSellPrice = actualFinishedP,
+                        netProfit = netProfitMarge,
+                        recBuyOrderCost = (effectiveHerstellungskosten * 0.92).toLong(),
+                        recSellOrderPrice = (actualFinishedP - 1).coerceAtLeast(1),
+                        ingredientSummary = "🛒 Rohstoff ($targetCity): ${fmt.format(actualRawP)} S. | 🧱 Veredelt ($targetCity): ${fmt.format(actualFinishedP)} S.",
+                        maxOrderProfit = netProfitMarge * 100,
+                        estimatedRoiPercent = roi,
+                        resourceReturnRate = cityRrr,
+                        targetMarket = "Veredelung ($targetCity)"
+                    )
                 )
-            )
+            }
         }
         return list.sortedByDescending { it.roiPercent }
     }
