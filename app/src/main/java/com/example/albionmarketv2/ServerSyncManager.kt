@@ -518,7 +518,9 @@ object ServerSyncManager {
         val prefs = AppPreferences(context)
         if (!prefs.isUserLoggedIn) return@withContext emptyList()
         val srvId = prefs.server.serverId
-        val urlsToTry = getPrioritizedServerUrls(context).map { "$it/api/market/prices/30d-live?server=$srvId" }
+        val urlsToTry = getPrioritizedServerUrls(context).flatMap { 
+            listOf("$it/api/market/prices/all?server=$srvId", "$it/api/market/prices/30d-live?server=$srvId")
+        }
         for (serverUrl in urlsToTry) {
             var connection: HttpURLConnection? = null
             try {

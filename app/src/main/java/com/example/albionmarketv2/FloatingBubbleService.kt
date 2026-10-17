@@ -520,7 +520,21 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         }
 
         val timeStr = SimpleDateFormat("HH:mm:ss", Locale.GERMANY).format(Date())
-        val groupedMap = aiVerifiedPrices.groupBy { it.itemId }
+        val groupedMap = mutableMapOf<String, MutableList<MarketPrice>>()
+        for (p in aiVerifiedPrices) {
+            val keys = listOf(
+                p.itemId,
+                p.itemId.replace("_", "@"),
+                p.itemId.replace("@", "_"),
+                p.itemId.substringBefore("@").substringBefore("_")
+            ).distinct()
+
+            for (k in keys) {
+                if (k.isNotBlank()) {
+                    groupedMap.getOrPut(k) { mutableListOf() }.add(p)
+                }
+            }
+        }
 
         withContext(Dispatchers.Main) {
             lastAiPriceCheckTime = timeStr

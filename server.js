@@ -2153,6 +2153,12 @@ app.get('/api/market/prices/live', (req, res) => {
     res.json(Object.values(globalMarketPrices[srv] || globalMarketPrices['europe']));
 });
 
+app.get('/api/market/prices/all', (req, res) => {
+    const srv = (req.query.server || 'europe').toLowerCase();
+    const serverPrices = Object.values(globalMarketPrices[srv] || globalMarketPrices['europe'] || {});
+    res.json(serverPrices);
+});
+
 // 30-Day Market Statistics & Instant Hydration Package Endpoint
 app.get('/api/market/prices/30d-live', (req, res) => {
     const srv = (req.query.server || 'europe').toLowerCase();
