@@ -538,36 +538,8 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         }
 
         val priceMap = cachedPriceMap ?: emptyMap()
+        val activeMap = if (priceMap.isNotEmpty()) priceMap else AlbionMarketApi.getFallbackMarketPrices()
         val resources = AlbionResourceRepository.resources
-        val bubbleCity = prefs.bubbleStandpunktCity
-        val standpunkt = if (bubbleCity != "ALLE") bubbleCity else null
-        val bubbleCategory = prefs.bubbleCategory
-        val bubbleTier = prefs.bubbleTier
-        val bubbleEnchantment = prefs.bubbleEnchantment
-
-        val searchQ = prefs.bubbleSearchQuery.trim().lowercase()
-
-        val filteredResources = resources.filter { res ->
-            val matchesCategory = when (bubbleCategory) {
-                "ALL" -> true
-                "SAMMLER" -> (res.category == ResourceCategory.RESOURCES || res.category == ResourceCategory.REFINED)
-                "GEAR" -> (res.category == ResourceCategory.WEAPONS || res.category == ResourceCategory.ARMOR || res.category == ResourceCategory.HELMETS || res.category == ResourceCategory.SHOES || res.category == ResourceCategory.OFFHAND || res.category == ResourceCategory.BAG || res.category == ResourceCategory.CAPE)
-                "GASTRO" -> (res.category == ResourceCategory.FOOD || res.category == ResourceCategory.POTIONS)
-                "LUXUS" -> (res.category == ResourceCategory.MOUNTS || res.category == ResourceCategory.ARTIFACTS)
-                else -> (res.category.name.equals(bubbleCategory, ignoreCase = true) || res.category.displayName.equals(bubbleCategory, ignoreCase = true))
-            }
-
-            val matchesTier = if (bubbleTier > 0) res.tier == bubbleTier else true
-            val matchesEnchantment = if (bubbleEnchantment >= 0) res.enchantment == bubbleEnchantment else true
-            val matchesSearch = if (searchQ.isNotBlank()) res.nameDe.lowercase().contains(searchQ) || res.nameEn.lowercase().contains(searchQ) || res.id.lowercase().contains(searchQ) else true
-
-            matchesCategory && matchesTier && matchesEnchantment && matchesSearch
-        }
-
-        val avoidDangerous = prefs.bubbleAvoidDangerousZones || prefs.avoidDangerousZones
-        val hideBrec = prefs.bubbleHideBrecilien || prefs.hideBrecilien
-        val hideBm = prefs.bubbleHideBlackMarket || prefs.hideBlackMarket
-        val maxZones = prefs.bubbleMaxZones
 
         val viewModel = try {
             SharedViewModelProvider.get(context.applicationContext as Application)
@@ -577,87 +549,20 @@ class FloatingBubbleService : LifecycleService(), SavedStateRegistryOwner {
         val carryCapacity = viewModel?.uiState?.value?.carryCapacityKg ?: prefs.carryCapacityKg
         val currentGoldPrice = viewModel?.uiState?.value?.currentGoldPrice ?: 4850
 
-        var rawOpportunities = TradeCalculator.calculateOpportunities(
-            resources = filteredResources,
-            pricesByItem = priceMap,
+        return TradeCalculator.calculateOpportunities(
+            resources = resources,
+            pricesByItem = activeMap,
             silverBudget = silverBudget,
             carryCapacityKg = carryCapacity,
             marketTaxPercent = if (prefs.hasPremium) 4.0 else 8.0,
-            targetMarginPercent = prefs.bubbleMinMarginPercent,
-            avoidDangerousZones = avoidDangerous,
+            targetMarginPercent = 0.1,
+            avoidDangerousZones = false,
             currentGoldPrice = currentGoldPrice,
-            standpunktCity = standpunkt,
-            maxCityDistance = maxZones,
-            hideBrecilien = hideBrec,
-            hideBlackMarket = hideBm,
-        ).filter { it.roiPercent >= prefs.bubbleMinMarginPercent }
-
-        // 1. Standpunkt strict filter: Buy city MUST match Standpunkt
-        if (!standpunkt.isNullOrBlank()) {
-            rawOpportunities = rawOpportunities.filter { TradeCalculator.citiesMatch(it.buyCity, standpunkt) }
-        }
-
-        // 2. Category strict filter
-        if (bubbleCategory != "ALL") {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                when (bubbleCategory) {
-                    "SAMMLER" -> opp.resource.category == ResourceCategory.RESOURCES || opp.resource.category == ResourceCategory.REFINED
-                    "GEAR" -> opp.resource.category == ResourceCategory.WEAPONS || opp.resource.category == ResourceCategory.ARMOR || opp.resource.category == ResourceCategory.HELMETS || opp.resource.category == ResourceCategory.SHOES || opp.resource.category == ResourceCategory.OFFHAND || opp.resource.category == ResourceCategory.BAG || opp.resource.category == ResourceCategory.CAPE
-                    "GASTRO" -> opp.resource.category == ResourceCategory.FOOD || opp.resource.category == ResourceCategory.POTIONS
-                    "LUXUS" -> opp.resource.category == ResourceCategory.MOUNTS || opp.resource.category == ResourceCategory.ARTIFACTS
-                    else -> opp.resource.category.name.equals(bubbleCategory, ignoreCase = true) || opp.resource.category.displayName.equals(bubbleCategory, ignoreCase = true)
-                }
-            }
-        }
-
-        // 3. Tier strict filter
-        if (bubbleTier > 0) {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                opp.resource.tier == bubbleTier
-            }
-        }
-
-        // 4. Enchantment strict filter
-        if (bubbleEnchantment >= 0) {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                opp.resource.enchantment == bubbleEnchantment
-            }
-        }
-
-        // 5. Max Zones Distance strict filter
-        if (maxZones < 99) {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                opp.zonesWalkedCount <= maxZones
-            }
-        }
-
-        // 6. Dangerous / Red Zones strict filter
-        if (avoidDangerous) {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                !TradeCalculator.isDangerousCity(opp.buyCity) && !TradeCalculator.isDangerousCity(opp.sellCity)
-            }
-        }
-
-        // 7. Black Market strict filter
-        if (hideBm) {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                !TradeCalculator.isBlackMarket(opp.buyCity) && !TradeCalculator.isBlackMarket(opp.sellCity)
-            }
-        }
-
-        // 8. Brecilien strict filter
-        if (hideBrec) {
-            rawOpportunities = rawOpportunities.filter { opp ->
-                !TradeCalculator.isBrecilien(opp.buyCity) && !TradeCalculator.isBrecilien(opp.sellCity)
-            }
-        }
-
-        // Extra KI-Anomalie Filter: Unrealistische Spitzen verworfen
-        val aiSanitizedOpportunities = rawOpportunities.filter { opp ->
-            (opp.roiPercent in 0.1..500.0) && (opp.unitNetProfit in 1..50_000_000)
-        }
-
-        return aiSanitizedOpportunities.asSequence().sortedByDescending { it.updatedTimestamp }.take(50).toList()
+            standpunktCity = null,
+            maxCityDistance = 10,
+            hideBrecilien = false,
+            hideBlackMarket = false,
+        ).sortedByDescending { it.roiPercent }
     }
 
     private fun acceptOpportunity(opp: TradeOpportunity) {
