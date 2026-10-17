@@ -3136,7 +3136,21 @@ fun BubbleCatalogTab(
         if (filtered.isEmpty()) {
             Text(LanguageManager.translateUI("Keine Ressourcen im Katalog gefunden.", lang), color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
         } else {
-            val priceMap = remember(uiState.marketPrices) { uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() } }
+            var persistentCatalogPrices by remember { mutableStateOf<Map<String, List<MarketPrice>>>(emptyMap()) }
+
+            LaunchedEffect(uiState.marketPrices) {
+                if (uiState.marketPrices.isNotEmpty()) {
+                    val merged = persistentCatalogPrices.toMutableMap()
+                    for ((key, list) in uiState.marketPrices) {
+                        if (list.isNotEmpty()) {
+                            merged[key] = list
+                        }
+                    }
+                    persistentCatalogPrices = merged
+                }
+            }
+
+            val priceMap = if (persistentCatalogPrices.isNotEmpty()) persistentCatalogPrices else uiState.marketPrices.ifEmpty { AlbionMarketApi.getFallbackMarketPrices() }
 
             filtered.forEach { res ->
                 key(res.id) {
@@ -3699,13 +3713,17 @@ fun BubbleIslandTab(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(bldg.nameDe, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                            val isProfit = bldg.estimatedRoiPercent >= 0.0
+                            val badgeColor = if (isProfit) (if (index < 3) Color(0xFFFFD700) else Color(0xFF0284C7)) else Color(0xFFEF4444)
+                            val badgeText = if (isProfit) "🔥 #${index + 1} Marge (+${String.format(Locale.GERMANY, "%.1f", bldg.estimatedRoiPercent)}%)" else "⚠️ #${index + 1} Verlust (${String.format(Locale.GERMANY, "%.1f", bldg.estimatedRoiPercent)}%)"
+
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = if (index < 3) Color(0xFFFFD700) else Color(0xFF0284C7)
+                                color = badgeColor
                             ) {
                                 Text(
-                                    text = "🔥 #${index + 1} Marge (+${String.format(Locale.GERMANY, "%.1f", bldg.estimatedRoiPercent)}%)",
-                                    color = if (index < 3) Color.Black else Color.White,
+                                    text = badgeText,
+                                    color = if (isProfit && index < 3) Color.Black else Color.White,
                                     fontSize = 8.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
