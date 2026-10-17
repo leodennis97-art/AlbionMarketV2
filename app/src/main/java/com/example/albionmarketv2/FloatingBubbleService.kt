@@ -25,7 +25,12 @@ import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -2954,6 +2959,42 @@ fun BubbleInventoryRouterTab(
 }
 
 @Composable
+fun PriceTrendSparkline(
+    pricePoints: List<Int>,
+    modifier: Modifier = Modifier.fillMaxWidth().height(18.dp)
+) {
+    if (pricePoints.size < 2) return
+    val minP = pricePoints.minOrNull()?.toFloat() ?: 1f
+    val maxP = pricePoints.maxOrNull()?.toFloat() ?: 1f
+    val rangeP = (maxP - minP).coerceAtLeast(1f)
+    val isRising = pricePoints.last() >= pricePoints.first()
+    val lineColor = if (isRising) Color(0xFF10B981) else Color(0xFFEF4444)
+
+    Canvas(modifier = modifier) {
+        val w = size.width
+        val h = size.height
+        val points = pricePoints.mapIndexed { idx, price ->
+            val x = (idx.toFloat() / (pricePoints.size - 1)) * w
+            val y = h - (((price.toFloat() - minP) / rangeP) * (h - 4f) + 2f)
+            Offset(x, y)
+        }
+
+        val path = Path().apply {
+            moveTo(points.first().x, points.first().y)
+            for (i in 1 until points.size) {
+                lineTo(points[i].x, points[i].y)
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = lineColor,
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+        )
+    }
+}
+
+@Composable
 fun BubbleCatalogTab(
     uiState: ResourceUiState,
     onFocusModeChanged: (Boolean) -> Unit,
@@ -3190,11 +3231,20 @@ fun BubbleCatalogTab(
                                 ) {
                                     Text("🛒 Kaufort: ${bestBuy.city} (${fmt.format(bestBuy.sellPriceMin)} Silber)", color = Color(0xFF81C784), fontWeight = FontWeight.Bold, fontSize = 9.sp)
                                     Surface(shape = RoundedCornerShape(3.dp), color = Color(0xFF10B981).copy(alpha = 0.2f)) {
-                                        Text("✓ KI-Geprüft", color = Color(0xFF10B981), fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
+                                        Text("✓ Live Cloud-Sync", color = Color(0xFF10B981), fontSize = 7.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 3.dp, vertical = 1.dp))
                                     }
                                 }
                                 if ((bestSell != null) && (bestSell.city != bestBuy.city)) {
                                     Text("🏷️ Verkaufort: ${bestSell.city} (${fmt.format(bestSell.sellPriceMin)} Silber)", color = Color(0xFFFFB74D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                }
+
+                                val sparklinePoints = remember(validPrices) { validPrices.map { it.sellPriceMin }.filter { it > 0 } }
+                                if (sparklinePoints.size >= 2) {
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                                        Text("📉 Trend: ", color = Color(0xFF94A3B8), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                        PriceTrendSparkline(pricePoints = sparklinePoints, modifier = Modifier.weight(1f).height(16.dp))
+                                    }
                                 }
                             } else {
                                 Text("Bisher kein Preis", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.padding(top = 2.dp))
@@ -4298,7 +4348,7 @@ fun BubbleBuildsTab(
     uiState: ResourceUiState,
     maxHeight: Dp
 ) {
-    var selectedCat by remember { mutableStateOf(BuildCategory.UNFAIR_LIFESTEAL) }
+    var selectedCat by remember { mutableStateOf(BuildCategory.EXTREME_LIFESTEAL) }
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
 
     val filteredBuilds = remember(selectedCat, uiState.equipmentBuilds) {

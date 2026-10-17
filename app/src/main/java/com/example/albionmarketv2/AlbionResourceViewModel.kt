@@ -96,7 +96,7 @@ data class ResourceUiState(
 
     // KI Ausrüstung & Build-Sets
     val equipmentBuilds: List<EquipmentBuild> = EquipmentBuildRepository.builds,
-    val selectedBuildCategory: BuildCategory = BuildCategory.MELEE_DPS,
+    val selectedBuildCategory: BuildCategory = BuildCategory.EXTREME_LIFESTEAL,
 
     val marketPrices: Map<String, List<MarketPrice>> = AlbionMarketApi.getFallbackMarketPrices(),
     val tradeOpportunities: List<TradeOpportunity> = emptyList(),
