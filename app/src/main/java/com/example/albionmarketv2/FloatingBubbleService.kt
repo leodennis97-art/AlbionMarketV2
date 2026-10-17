@@ -2360,19 +2360,11 @@ fun BubbleStationFlippingTab(
     val fmt = remember { NumberFormat.getNumberInstance(Locale.GERMANY) }
     val cloudSnaps = remember { prefsObj.getPriceSnapshots(prefsObj.server) }
 
-    val initialFlippingOpps = remember(cloudSnaps) {
-        TradeCalculator.calculateStationTradingFlippingOpportunities(
-            resources = AlbionResourceRepository.resources,
-            pricesByItem = priceMap,
-            silverBudget = uiState.silverBudget,
-            marketTaxPercent = if (prefsObj.hasPremium) 4.0 else 8.0,
-            cloudSnapshots = cloudSnaps
-        ).take(20)
-    }
+    var accumulatedFlippingOpps by remember { mutableStateOf<List<TradeOpportunity>>(emptyList()) }
+    var isCalculatingFlipping by remember { mutableStateOf(true) }
 
-    var accumulatedFlippingOpps by remember { mutableStateOf(initialFlippingOpps) }
-
-    LaunchedEffect(priceMap, uiState.silverBudget, prefsObj.hasPremium) {
+    LaunchedEffect(priceMap, uiState.silverBudget, prefsObj.hasPremium, cloudSnaps) {
+        isCalculatingFlipping = true
         val freshOpps = withContext(Dispatchers.IO) {
             TradeCalculator.calculateStationTradingFlippingOpportunities(
                 resources = AlbionResourceRepository.resources,
@@ -2401,6 +2393,7 @@ fun BubbleStationFlippingTab(
                     .thenByDescending { it.totalNetProfit }
             ).take(20).toList()
         }
+        isCalculatingFlipping = false
     }
 
     val flippingOpps = remember(accumulatedFlippingOpps, selectedFlippingCity) {
@@ -2438,10 +2431,12 @@ fun BubbleStationFlippingTab(
             }
         }
 
-        if (flippingOpps.isEmpty()) {
-            Text(LanguageManager.translateUI("Keine Station-Flipping Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp)
+        if (isCalculatingFlipping && accumulatedFlippingOpps.isEmpty()) {
+            Text("🔄 Berechne Station-Flipping Deals auf I/O-Thread...", color = Color(0xFF38BDF8), fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
+        } else if (flippingOpps.isEmpty()) {
+            Text(LanguageManager.translateUI("Keine Station-Flipping Deals gefunden. Prüfe Budget.", lang), color = Color.Gray, fontSize = 10.sp, modifier = Modifier.padding(vertical = 8.dp))
         } else {
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
                 itemsIndexed(items = flippingOpps) { idx: Int, opp: TradeOpportunity ->
                     Surface(
                         shape = RoundedCornerShape(8.dp),
