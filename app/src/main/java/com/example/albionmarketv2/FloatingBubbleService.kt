@@ -2519,12 +2519,19 @@ fun BubbleStationFlippingTab(
                         Column(modifier = Modifier.padding(6.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                                    if (idx < 3) {
-                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFFD700)) {
-                                            Text("🔥 TOP #${idx+1}", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 8.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
-                                        }
-                                        Spacer(modifier = Modifier.width(4.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(4.dp),
+                                        color = if (idx < 3) Color(0xFFFFD700) else Color(0xFF0284C7)
+                                    ) {
+                                        Text(
+                                            text = "🔥 #${idx+1}",
+                                            color = if (idx < 3) Color.Black else Color.White,
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 8.sp,
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                        )
                                     }
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     AsyncImage(model = opp.resource.imageUrl, contentDescription = null, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Text("${opp.resource.nameDe} (${opp.resource.tierText})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
